@@ -8,6 +8,7 @@ var canvas = document.querySelector('canvas');
 var ctx = canvas.getContext('2d');
 var width = canvas.width = window.innerWidth;
 var height = canvas.height = window.innerHeight;
+const DEFAULT_VERTEX_COUNT = 14;
 
 function random(min, max) {
     var num = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -22,23 +23,12 @@ function Square(x, y, color, size) {
     this.size = size;
 }
 
-Square.prototype.draw = function() {
+Square.prototype.draw = function(vertexCount = DEFAULT_VERTEX_COUNT) {
   ctx.beginPath();
   ctx.moveTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
-  ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
+  for (let i = 0; i < vertexCount; i++) {
+    ctx.lineTo(random(0, window.innerWidth), random(0, window.innerHeight));
+  }
   ctx.globalAlpha = Math.random() * .99;
   ctx.fillStyle = 'rgb(' + random(0, 255) + ',' + random(0, 255) + ',' + random(0, 255) +','+ random(0,1)+ ')';
   ctx.fill();
@@ -83,7 +73,7 @@ function loop() {
 loop();
 
 window.addEventListener('resize',function(){
-  
+
   width = canvas.width = window.innerWidth;
   height = canvas.height = window.innerHeight;
 })
