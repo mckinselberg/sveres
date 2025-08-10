@@ -1,6 +1,8 @@
 // https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/Object_building_practice
 // import { throttle } from 'lodash';
 
+import { random } from './utils.js';
+
 document.title = 'shapes';
 
 
@@ -8,11 +10,6 @@ var canvas = document.querySelector('canvas');
 var ctx = canvas.getContext('2d');
 var width = canvas.width = window.innerWidth;
 var height = canvas.height = window.innerHeight;
-
-function random(min, max) {
-    var num = Math.floor(Math.random() * (max - min + 1)) + min;
-    return num;
-}
 
 
 function Shape(x, y, color, size) {

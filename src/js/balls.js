@@ -1,3 +1,5 @@
+import { random } from './utils.js';
+
 const selectedBallShapeSelect = document.getElementById('selectedBallShape');
 let sandboxModeEnabled = false;
 const sandboxModeCheckbox = document.getElementById('sandboxMode');
@@ -12,11 +14,6 @@ var ctx = canvas.getContext('2d');
 var width = canvas.width = window.innerWidth;
 var height = canvas.height = window.innerHeight;
 ctx.globalCompositeOperation = "source-over";
-
-function random(min, max) {
-    var num = Math.floor(Math.random() * (max - min + 1)) + min;
-    return num;
-}
 
 function logarithmicSlider(value, min, max) {
     const minp = 0;
