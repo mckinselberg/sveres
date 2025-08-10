@@ -18,20 +18,143 @@ canvas {
   margin:0;
 }
 
-#controls, #selectedBallControls {
+#controls,
+#selectedBallControls {
   font-size: 14px;
+  position: fixed;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  font-family: Arial, sans-serif;
+  z-index: 1000;
+  display: none;
 }
 
 #controls {
-  position: absolute;
-  top: 10px;
+  top: 65px;
   left: 10px;
-  background-color: rgba(0, 0, 0, 0.8);
-  padding: 10px;
-  border-radius: 5px;
-  font-family: sans-serif;
+}
+
+#selectedBallControls {
+  top: 65px;
+  right: 10px;
+}
+
+#selectedBallControlsHeader {
+  cursor: grab;
+  margin-top: 0;
+  color: #fff;
+}
+
+#controls h3,
+#selectedBallControls h3 {
+  margin-top: 0;
+  color: #fff;
+}
+
+#controls div,
+#selectedBallControls div {
+  margin-bottom: 10px;
+}
+
+#saved-balls-manager,
+#color-scheme-manager,
+#physics-settings-manager {
+  margin-top: 20px;
+  border-top: 1px solid white;
+  padding-top: 15px;
+  margin-bottom: 0;
+}
+
+#controls input[type="range"],
+#controls input[type="text"],
+#controls select,
+#selectedBallControls input[type="range"],
+#selectedBallControls input[type="text"],
+#selectedBallControls select {
+  width: 150px;
+}
+
+#physicsSchemeName {
+  margin-right: 10px;
+}
+
+#addBall {
+  background: #4caf50;
   color: white;
-  z-index: 100; /* Ensure it's above the canvas */
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+#removeBall {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+#resetBalls {
+  background: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#resetSelectedBall {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#saveBall {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+#saveScheme,
+#loadScheme,
+#deleteScheme,
+#loadPhysicsSettings,
+#deletePhysicsSettings,
+#loadBall,
+#deleteBall {
+  margin-left: 10px;
+}
+
+#toggleControls {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  transition: all 0.3s ease;
 }
 
 #controls label {
