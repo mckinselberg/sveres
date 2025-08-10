@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" >-->
+
+    <title>Bouncing Spheres</title>
+    <meta name="description" content="An interactive animation of bouncing spheres." />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+    <style>
+      #selectedBallControls {
+        position: fixed; /* Ensure it's positioned for dragging/resizing */
+        /* ... existing styles ... */
+      }
+
+      #selectedBallControlsHeader {
+        cursor: grab;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div
+      id="controls"
+      style="
+        position: fixed;
+        top: 65px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+        display: none;
+      ">
+      <h3 style="margin-top: 0; color: #fff">Ball Physics Controls</h3>
+
+      <div style="margin-bottom: 10px">
+        <label for="enableDeformation">Enable Realistic Deformation:</label>
+        <input type="checkbox" id="enableDeformation" checked />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="deformationIntensity">Deformation Intensity:</label>
+        <input type="range" id="deformationIntensity" min="0.1" max="1.5" step="0.1" value="0.4" style="width: 150px" />
+        <span id="deformationIntensityValue">0.4</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="deformationSpeed">Deformation Speed:</label>
+        <input type="range" id="deformationSpeed" min="0.01" max="0.1" step="0.01" value="0.04" style="width: 150px" />
+        <span id="deformationSpeedValue">0.04</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="deformationEase">Deformation Ease:</label>
+        <select id="deformationEase" style="width: 150px">
+          <option value="elastic.out(1.1, 0.5)">Elastic</option>
+          <option value="bounce.out">Bounce</option>
+          <option value="power2.out">Smooth</option>
+          <option value="back.out(1.7)">Overshoot</option>
+          <option value="slow(0.7, 0.7, false)">Slow Mo</option>
+          <option value="steps(12)">Stepped</option>
+          <option value="circ.out">Circular</option>
+          <option value="expo.out">Exponential</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="deformationEaseOverride">Ease Override:</label>
+        <input type="text" id="deformationEaseOverride" style="width: 150px" placeholder="e.g., elastic.out(1, 0.3)" />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="bounceSpeed">Animation Speed:</label>
+        <input type="range" id="bounceSpeed" min="0.5" max="3.0" step="0.1" value="1.0" style="width: 150px" />
+        <span id="speedValue">1.0x</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="ballSize">Ball Size:</label>
+        <input type="range" id="ballSize" min="10" max="150" step="5" value="90" style="width: 150px" />
+        <span id="ballSizeValue">90px</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="ballCount">Number of Balls:</label>
+        <input type="range" id="ballCount" min="0" max="200" step="1" value="10" style="width: 150px" />
+        <span id="ballCountValue">5</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="ballVelocity">Ball Velocity:</label>
+        <input type="range" id="ballVelocity" min="1" max="15" step="1" value="7" style="width: 150px" />
+        <span id="ballVelocityValue">7</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="ballShape">Ball Shape:</label>
+        <select id="ballShape" style="width: 150px">
+          <option value="circle">Circle</option>
+          <option value="square">Square</option>
+          <option value="triangle">Triangle</option>
+          <option value="diamond">Diamond</option>
+          <option value="pentagon">Pentagon</option>
+          <option value="hexagon">Hexagon</option>
+          <option value="star">Star</option>
+          <option value="mixed">Mixed Shapes</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="enableGravity">Enable Gravity:</label>
+        <input type="checkbox" id="enableGravity" />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="gravityStrength">Gravity Strength:</label>
+        <input type="range" id="gravityStrength" min="0.1" max="2.0" step="0.1" value="0.5" style="width: 150px" />
+        <span id="gravityValue">0.5</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="backgroundColor">Background Color:</label>
+        <input type="color" id="backgroundColor" value="#000000" />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="trailOpacity">Trail Opacity:</label>
+        <input type="range" id="trailOpacity" min="0" max="1" step="0.05" value="0.2" style="width: 150px" />
+        <span id="trailOpacityValue">1.0</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="uiOpacity">UI Opacity:</label>
+        <input type="range" id="uiOpacity" min="0.1" max="1" step="0.05" value="0.8" style="width: 150px" />
+        <span id="uiOpacityValue">0.8</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <button
+          id="addBall"
+          style="
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+          ">
+          Add Ball
+        </button>
+        <button
+          id="removeBall"
+          style="
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+          ">
+          Remove Ball
+        </button>
+        <button
+          id="resetBalls"
+          style="
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+          ">
+          Reset
+        </button>
+      </div>
+
+      <div id="color-scheme-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px;">
+        <h3 style="margin-top: 0; color: #fff">Color Schemes</h3>
+        <div style="margin-bottom: 10px;">
+          <input type="text" id="schemeName" placeholder="Scheme Name" style="width: 150px;" />
+          <button id="saveScheme" style="margin-left: 10px;">Save</button>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <select id="schemeSelect" style="width: 150px;"></select>
+          <button id="loadScheme" style="margin-left: 10px;">Load</button>
+          <button id="deleteScheme" style="margin-left: 10px;">Delete</button>
+        </div>
+      </div>
+
+      <div id="physics-settings-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px;">
+        <h3 style="margin-top: 0; color: #fff">Physics Settings</h3>
+        
+        <div style="margin-bottom: 10px;">
+          <input type="text" id="physicsSchemeName" placeholder="Physics Scheme Name" style="width: 150px; margin-right: 10px;">
+          <button id="savePhysicsSettings">Save</button>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <select id="physicsSchemeSelect" style="width: 150px;"></select>
+          <button id="loadPhysicsSettings" style="margin-left: 10px;">Load</button>
+          <button id="deletePhysicsSettings" style="margin-left: 10px;">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="selectedBallControls"
+      style="
+        position: fixed;
+        top: 65px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+      ">
+      <h3 id="selectedBallControlsHeader" style="margin-top: 0; color: #fff; cursor: grab;">Selected Ball Properties</h3>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallColor">Color:</label>
+        <input type="color" id="selectedBallColor" value="#ffffff" />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallSize">Size:</label>
+        <input type="range" id="selectedBallSize" min="10" max="150" step="5" value="90" style="width: 150px" />
+        <span id="selectedBallSizeValue">90px</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallVelocity">Velocity:</label>
+        <input type="range" id="selectedBallVelocity" min="1" max="15" step="1" value="7" style="width: 150px" />
+        <span id="selectedBallVelocityValue">7</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallSpeed">Speed:</label>
+        <input type="range" id="selectedBallSpeed" min="0" max="20" step="1" value="7" style="width: 150px" />
+        <span id="selectedBallSpeedValue">7</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallSpeedMultiplier">Speed Multiplier:</label>
+        <input type="range" id="selectedBallSpeedMultiplier" min="0.1" max="5" step="0.1" value="1" style="width: 150px" />
+        <span id="selectedBallSpeedMultiplierValue">1x</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallCollisionCount">Collision Count:</label>
+        <span id="selectedBallCollisionCount">0</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallHealth">Health:</label>
+        <span id="selectedBallHealth">100</span>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="enableScoring">Enable Scoring:</label>
+        <input type="checkbox" id="enableScoring" checked />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="sandboxMode">Sandbox Mode (No Ball Removal):</label>
+        <input type="checkbox" id="sandboxMode" />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="enableHealthSystem">Enable Health System:</label>
+        <input type="checkbox" id="enableHealthSystem" checked />
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <label for="selectedBallShape">Shape:</label>
+        <select id="selectedBallShape" style="width: 150px">
+          <option value="circle">Circle</option>
+          <option value="square">Square</option>
+          <option value="triangle">Triangle</option>
+          <option value="diamond">Diamond</option>
+          <option value="pentagon">Pentagon</option>
+          <option value="hexagon">Hexagon</option>
+          <option value="star">Star</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 10px">
+        <button
+          id="resetSelectedBall"
+          style="
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+          ">
+          Reset Selected Ball
+        </button>
+        <button
+          id="saveBall"
+          style="
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+          ">
+          Save Ball
+        </button>
+      </div>
+
+      <div id="saved-balls-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px;">
+        <h3 style="margin-top: 0; color: #fff">Saved Balls</h3>
+        <div style="margin-bottom: 10px;">
+          <select id="savedBallsSelect" style="width: 150px;"></select>
+          <button id="loadBall" style="margin-left: 10px;">Load</button>
+          <button id="deleteBall" style="margin-left: 10px;">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toggle button for control panel visibility -->
+    <button
+      id="toggleControls"
+      style="
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+        transition: all 0.3s ease;
+      "
+      title="Show Controls">
+      ⚙️
+    </button>
+
+    <div class="container">
+      <canvas id="canvas"></canvas>
+    </div>
+    <script type="module" src="/src/index.js"></script>
+  </body>
+</html>
