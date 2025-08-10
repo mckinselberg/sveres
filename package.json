@@ -16,10 +16,7 @@
     "prop-types": "^15.7.2"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^4.7.0",
     "lodash": "^4.17.20",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
     "sass": "^1.89.2",
     "vite": "^5.4.0",
     "gsap": "^3.13.0"
