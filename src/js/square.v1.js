@@ -1,4 +1,4 @@
-import { throttle } from 'lodash';
+import { random } from 'lodash';
 
 //function Square() {
   const canvas = document.querySelector('canvas');
@@ -10,8 +10,8 @@ import { throttle } from 'lodash';
   ctx.globalCompositeOperation = "xor";
 //}
 
-function returnRandom(down,up) {
-  return _.random(down,up,true)
+function returnRandom(down, up) {
+  return random(down, up, true);
 }
 
 
@@ -38,4 +38,4 @@ loop();
 window.addEventListener('resize',function(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-})
+});
