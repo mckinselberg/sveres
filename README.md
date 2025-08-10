@@ -219,6 +219,15 @@ npm run dev
 npm run preview
 ```
 
+## Testing
+
+Run unit tests with:
+
+```bash
+npm test
+```
+
+
 ## Configuration
 
 ### Physics Parameters
