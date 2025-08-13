@@ -20,21 +20,9 @@
   </head>
 
   <body>
-    <div
-      id="controls"
-      style="
-        position: fixed;
-        top: 65px;
-        left: 10px;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 15px;
-        border-radius: 8px;
-        font-family: Arial, sans-serif;
-        z-index: 1000;
-        display: none;
-      ">
+    <div id="controls">
       <h3 style="margin-top: 0; color: #fff">Ball Physics Controls</h3>
+      <div style="margin-bottom: 10px; font-size: 1.2em">Global Score: <span id="globalScoreDisplay">0</span></div>
 
       <div style="margin-bottom: 10px">
         <label for="enableDeformation">Enable Realistic Deformation:</label>
@@ -105,6 +93,7 @@
           <option value="diamond">Diamond</option>
           <option value="pentagon">Pentagon</option>
           <option value="hexagon">Hexagon</option>
+          <option value="octagon">Octagon</option>
           <option value="star">Star</option>
           <option value="mixed">Mixed Shapes</option>
         </select>
@@ -155,7 +144,14 @@
 
       <div style="margin-bottom: 10px">
         <label for="healthDamageMultiplier">Health Damage Multiplier:</label>
-        <input type="range" id="healthDamageMultiplier" min="0.01" max="1.0" step="0.01" value="0.1" style="width: 150px" />
+        <input
+          type="range"
+          id="healthDamageMultiplier"
+          min="0.01"
+          max="1.0"
+          step="0.01"
+          value="0.1"
+          style="width: 150px" />
         <span id="healthDamageMultiplierValue">0.1</span>
       </div>
 
@@ -200,30 +196,34 @@
         </button>
       </div>
 
-      <div id="color-scheme-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px;">
+      <div id="color-scheme-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px">
         <h3 style="margin-top: 0; color: #fff">Color Schemes</h3>
-        <div style="margin-bottom: 10px;">
-          <input type="text" id="schemeName" placeholder="Scheme Name" style="width: 150px;" />
-          <button id="saveScheme" style="margin-left: 10px;">Save</button>
+        <div style="margin-bottom: 10px">
+          <input type="text" id="schemeName" placeholder="Scheme Name" style="width: 150px" />
+          <button id="saveScheme" style="margin-left: 10px">Save</button>
         </div>
-        <div style="margin-bottom: 10px;">
-          <select id="schemeSelect" style="width: 150px;"></select>
-          <button id="loadScheme" style="margin-left: 10px;">Load</button>
-          <button id="deleteScheme" style="margin-left: 10px;">Delete</button>
+        <div style="margin-bottom: 10px">
+          <select id="schemeSelect" style="width: 150px"></select>
+          <button id="loadScheme" style="margin-left: 10px">Load</button>
+          <button id="deleteScheme" style="margin-left: 10px">Delete</button>
         </div>
       </div>
 
-      <div id="physics-settings-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px;">
+      <div id="physics-settings-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px">
         <h3 style="margin-top: 0; color: #fff">Physics Settings</h3>
-        
-        <div style="margin-bottom: 10px;">
-          <input type="text" id="physicsSchemeName" placeholder="Physics Scheme Name" style="width: 150px; margin-right: 10px;">
+
+        <div style="margin-bottom: 10px">
+          <input
+            type="text"
+            id="physicsSchemeName"
+            placeholder="Physics Scheme Name"
+            style="width: 150px; margin-right: 10px" />
           <button id="savePhysicsSettings">Save</button>
         </div>
-        <div style="margin-bottom: 10px;">
-          <select id="physicsSchemeSelect" style="width: 150px;"></select>
-          <button id="loadPhysicsSettings" style="margin-left: 10px;">Load</button>
-          <button id="deletePhysicsSettings" style="margin-left: 10px;">Delete</button>
+        <div style="margin-bottom: 10px">
+          <select id="physicsSchemeSelect" style="width: 150px"></select>
+          <button id="loadPhysicsSettings" style="margin-left: 10px">Load</button>
+          <button id="deletePhysicsSettings" style="margin-left: 10px">Delete</button>
         </div>
       </div>
     </div>
@@ -242,7 +242,7 @@
         z-index: 1000;
         display: none; /* Hidden by default */
       ">
-      <h3 id="selectedBallControlsHeader" style="margin-top: 0; color: #fff; cursor: grab;">Selected Ball Properties</h3>
+      <h3 id="selectedBallControlsHeader" style="margin-top: 0; color: #fff; cursor: grab">Selected Ball Properties</h3>
 
       <div style="margin-bottom: 10px">
         <label for="selectedBallColor">Color:</label>
@@ -269,7 +269,14 @@
 
       <div style="margin-bottom: 10px">
         <label for="selectedBallSpeedMultiplier">Speed Multiplier:</label>
-        <input type="range" id="selectedBallSpeedMultiplier" min="0.1" max="5" step="0.1" value="1" style="width: 150px" />
+        <input
+          type="range"
+          id="selectedBallSpeedMultiplier"
+          min="0.1"
+          max="5"
+          step="0.1"
+          value="1"
+          style="width: 150px" />
         <span id="selectedBallSpeedMultiplierValue">1x</span>
       </div>
 
@@ -283,8 +290,6 @@
         <span id="selectedBallHealth">100</span>
       </div>
 
-      
-
       <div style="margin-bottom: 10px">
         <label for="selectedBallShape">Shape:</label>
         <select id="selectedBallShape" style="width: 150px">
@@ -294,6 +299,7 @@
           <option value="diamond">Diamond</option>
           <option value="pentagon">Pentagon</option>
           <option value="hexagon">Hexagon</option>
+          <option value="octagon">Octagon</option>
           <option value="star">Star</option>
         </select>
       </div>
@@ -326,12 +332,12 @@
         </button>
       </div>
 
-      <div id="saved-balls-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px;">
+      <div id="saved-balls-manager" style="margin-top: 20px; border-top: 1px solid white; padding-top: 15px">
         <h3 style="margin-top: 0; color: #fff">Saved Balls</h3>
-        <div style="margin-bottom: 10px;">
-          <select id="savedBallsSelect" style="width: 150px;"></select>
-          <button id="loadBall" style="margin-left: 10px;">Load</button>
-          <button id="deleteBall" style="margin-left: 10px;">Delete</button>
+        <div style="margin-bottom: 10px">
+          <select id="savedBallsSelect" style="width: 150px"></select>
+          <button id="loadBall" style="margin-left: 10px">Load</button>
+          <button id="deleteBall" style="margin-left: 10px">Delete</button>
         </div>
       </div>
     </div>
