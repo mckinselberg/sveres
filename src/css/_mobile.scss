@@ -1,11 +1,34 @@
 @media (max-width: 768px) {
-  #controls {
-    width: 90%;
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  canvas {
+    height: 100vh;   /* fallback */
+    height: 100dvh;  /* modern dynamic viewport */
+    height: 100svh;  /* small viewport for mobile UI chrome */
+    left: 0;
+    max-height: none;
     max-width: none;
-    left: 5%;
-    top: 10px;
-    padding: 5px;
-    font-size: 12px;
+    position: fixed;
+    top: 0;
+    width: 100vw;
+  }
+
+  #controls {
+    /* bottom sheet style for thumb reach */
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 50%;
+    max-height: 60dvh;
+    max-width: 560px;
+    padding: 10px;
+    position: fixed;
+    transform: translateX(-50%);
+    width: 94vw;
+    font-size: 14px;
+    top: auto;
   }
 
   #controls label {
@@ -15,5 +38,72 @@
 
   input[type=range] {
     width: 100%;
+    /* larger thumb and track for touch */
+    &::-webkit-slider-runnable-track { height: 14px; }
+    &::-webkit-slider-thumb { height: 30px; width: 30px; margin-top: -8px; }
+    &::-moz-range-track { height: 14px; }
+    &::-moz-range-thumb { height: 30px; width: 30px; }
+    &::-ms-track { height: 14px; }
+    &::-ms-thumb { height: 30px; width: 30px; }
+  }
+
+  /* Larger touch targets inside the panel */
+  #controls {
+    .row { margin-bottom: 12px; }
+    button,
+    select,
+    input[type="number"],
+    input[type="text"],
+    input[type="color"] {
+      font-size: 16px;
+      min-height: 44px; /* recommended tap size */
+      width: 100%;
+    }
+
+    details > summary {
+      font-size: 16px;
+      padding: 12px 14px;
+    }
+  }
+
+  /* Selected ball panel as a compact bottom sheet */
+  #selectedBallControls {
+    bottom: calc(max(8px, env(safe-area-inset-bottom)) + 64px);
+    left: 50%;
+    max-height: 50dvh;
+    max-width: 560px;
+    padding: 10px;
+    position: fixed !important;
+    transform: translateX(-50%);
+    width: 94vw;
+    right: auto;
+    top: auto;
+    z-index: 1002; /* above main controls */
+
+    h3 { text-align: center; }
+    .row { margin-bottom: 12px; }
+    button,
+    select,
+    input[type="number"],
+    input[type="text"],
+    input[type="color"] {
+      font-size: 16px;
+      min-height: 44px;
+      width: 100%;
+    }
+
+    details > summary { font-size: 16px; padding: 12px 14px; }
+  }
+
+  /* Friendlier toggle button placement/size */
+  #toggleControls {
+    bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
+    left: auto;
+    right: 16px;
+    top: auto;
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
   }
 }

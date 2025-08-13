@@ -12,7 +12,7 @@ let globalScore = 0; // New global score variable
 var canvas = document.querySelector('canvas');
 var ctx = canvas.getContext('2d');
 var width = canvas.width = window.innerWidth;
-var height = canvas.height = window.innerHeight;
+var height = canvas.height = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
 ctx.globalCompositeOperation = "source-over";
 
 function random(min, max) {
@@ -1697,10 +1697,17 @@ document.addEventListener('visibilitychange', function() {
 });
 
 window.addEventListener('resize',function(){
-  
-  width = canvas.width = window.innerWidth;
-  height = canvas.height = window.innerHeight;
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
 })
+
+// Respond to mobile browser UI showing/hiding (address bar)
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function(){
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.visualViewport.height;
+    });
+}
 
 // Add a keydown event listener to toggle the control panel
 document.addEventListener('keydown', function(event) {
