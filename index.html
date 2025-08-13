@@ -2,17 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" >-->
 
-    <title>Bouncing Spheres</title>
+    <title>Sveres</title>
     <meta name="description" content="An interactive animation of bouncing spheres." />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
     <style></style>
   </head>
 
   <body>
+    <!-- Intro overlay: shown on first load and then at most once per week -->
+    <div id="introOverlay" aria-hidden="true">
+      <div class="intro-card" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+        <h3 id="introTitle">Welcome to Sveres</h3>
+        <p>Quick tips to get you started:</p>
+        <ul>
+          <li>Click or tap the gear to show/hide controls (or press C).</li>
+          <li>Drag on a ball to move it; use WASD or arrow keys to nudge the selected ball.</li>
+          <li>Use the sliders to change size, speed, gravity, and more. Try Deformation for squishy fun.</li>
+          <li>On mobile, panels become bottom sheets and inputs are touch-friendly.</li>
+        </ul>
+        <div class="actions">
+          <button id="introDismiss">Got it</button>
+        </div>
+      </div>
+    </div>
     <div id="controls">
-      <h3>Bouncing Spheres</h3>
+      <h3>Sveres</h3>
       <div class="subdued">Press C or click the gear to toggle this panel.</div>
       <div class="row" style="font-size: 1.1em">Global Score: <span id="globalScoreDisplay">0</span></div>
 
@@ -21,7 +40,7 @@
         <div class="section-body">
           <div class="row">
             <label for="bounceSpeed">Animation Speed:</label>
-            <input type="range" id="bounceSpeed" min="0.5" max="3.0" step="0.1" value="1.0" style="width: 150px" />
+            <input type="range" id="bounceSpeed" min="0.5" max="3.0" step="0.1" value="1.0" />
             <span id="speedValue">1.0x</span>
           </div>
           <div class="row">
@@ -30,12 +49,12 @@
           </div>
           <div class="row">
             <label for="gravityStrength">Gravity Strength:</label>
-            <input type="range" id="gravityStrength" min="0.1" max="2.0" step="0.1" value="0.5" style="width: 150px" />
+            <input type="range" id="gravityStrength" min="0.1" max="2.0" step="0.1" value="0.5" />
             <span id="gravityValue">0.5</span>
           </div>
           <div class="row">
-            <label for="ballVelocity">Ball Velocity:</label>
-            <input type="range" id="ballVelocity" min="1" max="15" step="1" value="7" style="width: 150px" />
+            <label for="ballVelocity">Shape Velocity:</label>
+            <input type="range" id="ballVelocity" min="1" max="15" step="1" value="7" />
             <span id="ballVelocityValue">7</span>
           </div>
         </div>
@@ -46,7 +65,7 @@
         <div class="section-body">
           <div class="row">
             <label for="ballShape">Ball Shape:</label>
-            <select id="ballShape" style="width: 150px">
+            <select id="ballShape">
               <option value="circle">Circle</option>
               <option value="square">Square</option>
               <option value="triangle">Triangle</option>
@@ -60,7 +79,7 @@
           </div>
           <div class="row">
             <label for="ballSize">Ball Size:</label>
-            <input type="range" id="ballSize" min="10" max="150" step="5" value="45" style="width: 150px" />
+            <input type="range" id="ballSize" min="10" max="150" step="5" value="45" />
             <span id="ballSizeValue">45px</span>
           </div>
           <!-- <div class="row">
@@ -120,31 +139,17 @@
           </div>
           <div class="row">
             <label for="deformationIntensity">Deformation Intensity:</label>
-            <input
-              type="range"
-              id="deformationIntensity"
-              min="0.1"
-              max="1.5"
-              step="0.1"
-              value="0.4"
-              style="width: 150px" />
+            <input type="range" id="deformationIntensity" min="0.1" max="1.5" step="0.1" value="0.4" />
             <span id="deformationIntensityValue">0.4</span>
           </div>
           <div class="row">
             <label for="deformationSpeed">Deformation Speed:</label>
-            <input
-              type="range"
-              id="deformationSpeed"
-              min="0.01"
-              max="0.1"
-              step="0.01"
-              value="0.04"
-              style="width: 150px" />
+            <input type="range" id="deformationSpeed" min="0.01" max="0.1" step="0.01" value="0.04" />
             <span id="deformationSpeedValue">0.04</span>
           </div>
           <div class="row">
             <label for="deformationEase">Deformation Ease:</label>
-            <select id="deformationEase" style="width: 150px">
+            <select id="deformationEase">
               <option value="elastic.out(1.1, 0.5)">Elastic</option>
               <option value="bounce.out">Bounce</option>
               <option value="power2.out">Smooth</option>
@@ -157,11 +162,7 @@
           </div>
           <div class="row">
             <label for="deformationEaseOverride">Ease Override:</label>
-            <input
-              type="text"
-              id="deformationEaseOverride"
-              style="width: 150px"
-              placeholder="e.g., elastic.out(1, 0.3)" />
+            <input type="text" id="deformationEaseOverride" placeholder="e.g., elastic.out(1, 0.3)" />
           </div>
         </div>
       </details>
@@ -175,12 +176,12 @@
           </div>
           <div class="row">
             <label for="trailOpacity">Trail Opacity:</label>
-            <input type="range" id="trailOpacity" min="0" max="1" step="0.05" value="0.2" style="width: 150px" />
+            <input type="range" id="trailOpacity" min="0" max="1" step="0.05" value="0.2" />
             <span id="trailOpacityValue">1.0</span>
           </div>
           <div class="row">
             <label for="uiOpacity">UI Opacity:</label>
-            <input type="range" id="uiOpacity" min="0.1" max="1" step="0.05" value="0.8" style="width: 150px" />
+            <input type="range" id="uiOpacity" min="0.1" max="1" step="0.05" value="0.8" />
             <span id="uiOpacityValue">0.8</span>
           </div>
         </div>
@@ -203,14 +204,7 @@
           </div>
           <div class="row">
             <label for="healthDamageMultiplier">Health Damage Multiplier:</label>
-            <input
-              type="range"
-              id="healthDamageMultiplier"
-              min="0.01"
-              max="1.0"
-              step="0.01"
-              value="0.1"
-              style="width: 150px" />
+            <input type="range" id="healthDamageMultiplier" min="0.01" max="1.0" step="0.01" value="0.1" />
             <span id="healthDamageMultiplierValue">0.1</span>
           </div>
         </div>
@@ -222,11 +216,11 @@
           <div id="color-scheme-manager" style="margin-bottom: 15px">
             <div class="row" style="font-weight: 600; margin-bottom: 6px">Color Schemes</div>
             <div class="row">
-              <input type="text" id="schemeName" placeholder="Scheme Name" style="width: 150px" />
+              <input type="text" id="schemeName" placeholder="Scheme Name" />
               <button id="saveScheme" style="margin-left: 10px">Save</button>
             </div>
             <div class="row">
-              <select id="schemeSelect" style="width: 150px"></select>
+              <select id="schemeSelect"></select>
               <button id="loadScheme" style="margin-left: 10px">Load</button>
               <button id="deleteScheme" style="margin-left: 10px">Delete</button>
             </div>
@@ -235,15 +229,11 @@
           <div id="physics-settings-manager">
             <div class="row" style="font-weight: 600; margin-bottom: 6px">Physics Settings</div>
             <div class="row">
-              <input
-                type="text"
-                id="physicsSchemeName"
-                placeholder="Physics Scheme Name"
-                style="width: 150px; margin-right: 10px" />
+              <input type="text" id="physicsSchemeName" placeholder="Physics Scheme Name" style="margin-right: 10px" />
               <button id="savePhysicsSettings">Save</button>
             </div>
             <div class="row">
-              <select id="physicsSchemeSelect" style="width: 150px"></select>
+              <select id="physicsSchemeSelect"></select>
               <button id="loadPhysicsSettings" style="margin-left: 10px">Load</button>
               <button id="deletePhysicsSettings" style="margin-left: 10px">Delete</button>
             </div>
@@ -252,21 +242,7 @@
       </details>
     </div>
 
-    <div
-      id="selectedBallControls"
-      style="
-        position: fixed;
-        top: 65px;
-        right: 10px;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 15px;
-        border-radius: 8px;
-        font-family: Arial, sans-serif;
-        z-index: 1000;
-        display: none; /* Hidden by default */
-        width: 300px; /* Adjusted width */
-      ">
+    <div id="selectedBallControls">
       <h3 id="selectedBallControlsHeader">Selected Ball</h3>
 
       <details id="section-selected-appearance" open>
@@ -278,7 +254,7 @@
           </div>
           <div class="row">
             <label for="selectedBallShape">Shape:</label>
-            <select id="selectedBallShape" style="width: 150px">
+            <select id="selectedBallShape">
               <option value="circle">Circle</option>
               <option value="square">Square</option>
               <option value="triangle">Triangle</option>
@@ -291,7 +267,7 @@
           </div>
           <div class="row">
             <label for="selectedBallSize">Size:</label>
-            <input type="range" id="selectedBallSize" min="10" max="150" step="5" value="45" style="width: 150px" />
+            <input type="range" id="selectedBallSize" min="10" max="150" step="5" value="45" />
             <span id="selectedBallSizeValue">45px</span>
           </div>
         </div>
@@ -302,24 +278,17 @@
         <div class="section-body">
           <div class="row">
             <label for="selectedBallVelocity">Velocity:</label>
-            <input type="range" id="selectedBallVelocity" min="1" max="15" step="1" value="7" style="width: 150px" />
+            <input type="range" id="selectedBallVelocity" min="1" max="15" step="1" value="7" />
             <span id="selectedBallVelocityValue">7</span>
           </div>
           <div class="row">
             <label for="selectedBallSpeed">Speed:</label>
-            <input type="range" id="selectedBallSpeed" min="0" max="20" step="1" value="7" style="width: 150px" />
+            <input type="range" id="selectedBallSpeed" min="0" max="20" step="1" value="7" />
             <span id="selectedBallSpeedValue">7</span>
           </div>
           <div class="row">
             <label for="selectedBallSpeedMultiplier">Speed Multiplier:</label>
-            <input
-              type="range"
-              id="selectedBallSpeedMultiplier"
-              min="0.1"
-              max="5"
-              step="0.1"
-              value="1"
-              style="width: 150px" />
+            <input type="range" id="selectedBallSpeedMultiplier" min="0.1" max="5" step="0.1" value="1" />
             <span id="selectedBallSpeedMultiplierValue">1x</span>
           </div>
         </div>
@@ -374,7 +343,7 @@
         <summary>Saved Balls</summary>
         <div class="section-body" id="saved-balls-manager">
           <div class="row">
-            <select id="savedBallsSelect" style="width: 150px"></select>
+            <select id="savedBallsSelect"></select>
             <button id="loadBall" style="margin-left: 10px">Load</button>
             <button id="deleteBall" style="margin-left: 10px">Delete</button>
           </div>
@@ -383,35 +352,52 @@
     </div>
 
     <!-- Toggle button for control panel visibility -->
-    <button
-      id="toggleControls"
-      style="
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        width: 40px;
-        height: 40px;
-        background: rgba(0, 0, 0, 0.5);
-        color: white;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1001;
-        transition: all 0.3s ease;
-      "
-      title="Show Controls">
-      ⚙️
-    </button>
+    <button id="toggleControls" title="Show Controls">⚙️</button>
 
     <div class="container">
       <canvas id="canvas"></canvas>
     </div>
     <script type="module" src="/src/index.js"></script>
     <script>
+      // Intro overlay show/hide with 1-week re-show window
+      (function () {
+        try {
+          const overlay = document.getElementById("introOverlay");
+          const dismissBtn = document.getElementById("introDismiss");
+          const STORAGE_KEY = "introOverlay:lastDismissedAt";
+          const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+          const now = Date.now();
+          const last = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+          const shouldShow = !last || now - last > WEEK_MS;
+
+          if (overlay && shouldShow) {
+            overlay.style.display = "flex";
+            overlay.setAttribute("aria-hidden", "false");
+          }
+
+          if (dismissBtn) {
+            const dismiss = () => {
+              if (!overlay) return;
+              overlay.style.display = "none";
+              overlay.setAttribute("aria-hidden", "true");
+              try {
+                localStorage.setItem(STORAGE_KEY, String(Date.now()));
+              } catch (e) {
+                /* noop */
+              }
+            };
+            dismissBtn.addEventListener("click", dismiss);
+            // Allow clicking backdrop to dismiss
+            overlay &&
+              overlay.addEventListener("click", (e) => {
+                if (e.target === overlay) dismiss();
+              });
+          }
+        } catch (e) {
+          // Fail open: never block the app
+        }
+      })();
+
       // Draggable functionality for selectedBallControls with position persistence
       const selectedBallControls = document.getElementById("selectedBallControls");
       const header = document.getElementById("selectedBallControlsHeader");
@@ -426,35 +412,39 @@
         selectedBallControls.style.top = savedPosition.top;
       }
 
-      header.addEventListener("mousedown", (e) => {
-        isDragging = true;
-        offsetX = e.clientX - selectedBallControls.offsetLeft;
-        offsetY = e.clientY - selectedBallControls.offsetTop;
-        header.style.cursor = "grabbing";
-      });
+      // Enable drag on desktop only; keep fixed position on mobile
+      const enableDrag = window.matchMedia ? !window.matchMedia("(max-width: 768px)").matches : window.innerWidth > 768;
+      if (enableDrag) {
+        header.addEventListener("mousedown", (e) => {
+          isDragging = true;
+          offsetX = e.clientX - selectedBallControls.offsetLeft;
+          offsetY = e.clientY - selectedBallControls.offsetTop;
+          header.style.cursor = "grabbing";
+        });
 
-      document.addEventListener("mousemove", (e) => {
-        if (isDragging) {
-          const left = `${e.clientX - offsetX}px`;
-          const top = `${e.clientY - offsetY}px`;
-          selectedBallControls.style.left = left;
-          selectedBallControls.style.top = top;
-        }
-      });
+        document.addEventListener("mousemove", (e) => {
+          if (isDragging) {
+            const left = `${e.clientX - offsetX}px`;
+            const top = `${e.clientY - offsetY}px`;
+            selectedBallControls.style.left = left;
+            selectedBallControls.style.top = top;
+          }
+        });
 
-      document.addEventListener("mouseup", () => {
-        if (isDragging) {
-          isDragging = false;
-          header.style.cursor = "grab";
+        document.addEventListener("mouseup", () => {
+          if (isDragging) {
+            isDragging = false;
+            header.style.cursor = "grab";
 
-          // Save position to localStorage
-          const position = {
-            left: selectedBallControls.style.left,
-            top: selectedBallControls.style.top,
-          };
-          localStorage.setItem("selectedBallControlsPosition", JSON.stringify(position));
-        }
-      });
+            // Save position to localStorage
+            const position = {
+              left: selectedBallControls.style.left,
+              top: selectedBallControls.style.top,
+            };
+            localStorage.setItem("selectedBallControlsPosition", JSON.stringify(position));
+          }
+        });
+      }
 
       // Persist open/closed state of details sections
       const sectionKeys = [

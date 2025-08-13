@@ -15,6 +15,24 @@ var width = canvas.width = window.innerWidth;
 var height = canvas.height = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
 ctx.globalCompositeOperation = "source-over";
 
+// Prevent zoom gestures on the canvas (mobile)
+canvas.addEventListener('gesturestart', (e) => e.preventDefault());
+canvas.addEventListener('gesturechange', (e) => e.preventDefault());
+canvas.addEventListener('gestureend', (e) => e.preventDefault());
+canvas.addEventListener('touchstart', function(e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', function(e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+// Prevent double-tap to zoom
+let _lastTouchEnd = 0;
+canvas.addEventListener('touchend', function(e) {
+    const now = Date.now();
+    if (now - _lastTouchEnd <= 300) e.preventDefault();
+    _lastTouchEnd = now;
+}, { passive: false });
+
 function random(min, max) {
     var num = Math.floor(Math.random() * (max - min + 1)) + min;
     return num;
