@@ -1,3 +1,4 @@
+import { DEFAULTS } from './config.js';
 const selectedBallShapeSelect = document.getElementById('selectedBallShape');
 let sandboxModeEnabled = false;
 const sandboxModeCheckbox = document.getElementById('sandboxMode');
@@ -37,7 +38,7 @@ function inverseLogarithmicSlider(value, min, max) {
     return (Math.log(value) - minv) / scale + minp;
 }
 
-function Ball(x, y, velX, velY, color, size, shape = 'circle') {
+function Ball(x, y, velX, velY, color, size, shape = DEFAULTS.ballShape) {
     this.x = x;
     this.y = y;
     this.velX = velX;
@@ -210,6 +211,51 @@ Ball.prototype.applyWallDeformation = function(normalX, normalY) {
 window.addEventListener('load', function() {
     const controlsPanel = document.getElementById('controls');
     const selectedBallControls = document.getElementById('selectedBallControls');
+
+    // Initialize UI controls from centralized defaults (only if not already set)
+    const setIfPresent = (id, value, type = 'value') => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (type === 'checked') el.checked = value;
+        else el.value = value;
+        // Trigger change/input to sync labels/handlers
+        const evtName = type === 'checked' ? 'change' : 'input';
+        el.dispatchEvent(new Event(evtName));
+    };
+
+    // Simulation
+    setIfPresent('bounceSpeed', DEFAULTS.bounceSpeed);
+    setIfPresent('enableGravity', DEFAULTS.enableGravity, 'checked');
+    setIfPresent('gravityStrength', DEFAULTS.gravityStrength);
+
+    // Objects
+    setIfPresent('ballShape', DEFAULTS.ballShape);
+    setIfPresent('ballSize', DEFAULTS.ballSize);
+    setIfPresent('ballVelocity', DEFAULTS.ballVelocity);
+    // ballCount uses logarithmic mapping; set slider to reflect DEFAULTS.ballCount
+    const ballCountSliderInit = document.getElementById('ballCount');
+    if (ballCountSliderInit) {
+        ballCountSliderInit.value = inverseLogarithmicSlider(DEFAULTS.ballCount, 3, 500);
+        ballCountSliderInit.dispatchEvent(new Event('input'));
+    }
+
+    // Deformation
+    setIfPresent('enableDeformation', DEFAULTS.deformation.enabled, 'checked');
+    setIfPresent('deformationIntensity', DEFAULTS.deformation.intensity);
+    setIfPresent('deformationSpeed', DEFAULTS.deformation.speed);
+    setIfPresent('deformationEase', DEFAULTS.deformation.ease);
+    setIfPresent('deformationEaseOverride', DEFAULTS.deformation.easeOverride);
+
+    // Visuals
+    setIfPresent('backgroundColor', DEFAULTS.visuals.backgroundColor);
+    setIfPresent('trailOpacity', DEFAULTS.visuals.trailOpacity);
+    setIfPresent('uiOpacity', DEFAULTS.visuals.uiOpacity);
+
+    // Gameplay
+    setIfPresent('enableScoring', DEFAULTS.gameplay.scoring, 'checked');
+    setIfPresent('sandboxMode', DEFAULTS.gameplay.sandbox, 'checked');
+    setIfPresent('enableHealthSystem', DEFAULTS.gameplay.healthSystem, 'checked');
+    setIfPresent('healthDamageMultiplier', DEFAULTS.gameplay.healthDamageMultiplier);
 
     // Update deformation intensity display
     const deformationIntensitySlider = document.getElementById('deformationIntensity');
@@ -755,18 +801,18 @@ window.addEventListener('load', function() {
             if (selectedBall) {
                 selectedBall.color = selectedBall.originalColor;
                 selectedBall.size = selectedBall.originalSize;
-                selectedBall.shape = 'circle'; // Reset to default shape
+                selectedBall.shape = DEFAULTS.ballShape; // Reset to default shape
                 selectedBall.rotation = 0; // Reset rotation
                 selectedBall.rotationSpeed = (Math.random() - 0.5) * 0.02; // Reset rotation speed
-                selectedBall.velX = random(-7, 7); // Reset to default velocity range
-                selectedBall.velY = random(-7, 7);
+                selectedBall.velX = random(-DEFAULTS.ballVelocity, DEFAULTS.ballVelocity); // Reset to default velocity range
+                selectedBall.velY = random(-DEFAULTS.ballVelocity, DEFAULTS.ballVelocity);
                 selectedBall.health = 100; // Reset health to full
                 selectedBall._lastMultiplier = 1; // Reset speed multiplier
                 
                 // Update UI controls
                 selectedBallSpeedMultiplierInput.value = 1;
                 selectedBallSpeedMultiplierValue.textContent = '1x';
-                selectedBallShapeSelect.value = 'circle'; // Reset shape selector
+                selectedBallShapeSelect.value = DEFAULTS.ballShape; // Reset shape selector
                 updateSelectedBallHealth();
             }
         });
@@ -817,8 +863,8 @@ function adjustBallVelocities(maxVelocity) {
 }
 
 function addNewBall(x = null, y = null) {
-    const ballSize = parseInt(document.getElementById('ballSize')?.value || 90);
-    const ballVelocity = parseInt(document.getElementById('ballVelocity')?.value || 7);
+    const ballSize = parseInt(document.getElementById('ballSize')?.value || DEFAULTS.ballSize);
+    const ballVelocity = parseInt(document.getElementById('ballVelocity')?.value || DEFAULTS.ballVelocity);
     const size = ballSize;
     
     let attempts = 0;
@@ -851,7 +897,7 @@ function addNewBall(x = null, y = null) {
         }
     }
     
-    const ballShape = document.getElementById('ballShape')?.value || 'circle';
+    const ballShape = document.getElementById('ballShape')?.value || DEFAULTS.ballShape;
     
     const ball = new Ball(
         newX, newY,
@@ -879,10 +925,10 @@ function resetAllBalls() {
     globalScore = 0; // Reset global score
     updateGlobalScoreDisplay(); // Update display
     
-    const ballSize = parseInt(document.getElementById('ballSize')?.value || 90);
-    const ballCount = parseInt(document.getElementById('ballCountValue')?.textContent || 5);
-    const ballVelocity = parseInt(document.getElementById('ballVelocity')?.value || 7);
-    const ballShape = document.getElementById('ballShape')?.value || 'circle';
+    const ballSize = parseInt(document.getElementById('ballSize')?.value || DEFAULTS.ballSize);
+    const ballCount = parseInt(document.getElementById('ballCountValue')?.textContent || DEFAULTS.ballCount);
+    const ballVelocity = parseInt(document.getElementById('ballVelocity')?.value || DEFAULTS.ballVelocity);
+    const ballShape = document.getElementById('ballShape')?.value || DEFAULTS.ballShape;
     
     // Create new balls with current settings
     while (balls.length < ballCount) {
@@ -975,7 +1021,7 @@ canvas.addEventListener('mousedown', function(e) {
             selectedBallCollisionCount.textContent = selectedBall.collisionCount;
             selectedBallHealth.textContent = Math.round(selectedBall.health);
             
-            selectedBallShapeSelect.value = selectedBall.shape || 'circle';
+            selectedBallShapeSelect.value = selectedBall.shape || DEFAULTS.ballShape;
             
             ballClicked = true;
             break;
@@ -1101,7 +1147,7 @@ Ball.prototype.update = function() {
     // Apply gravity if enabled
     const enableGravityCheckbox = document.getElementById('enableGravity');
     if (enableGravityCheckbox && enableGravityCheckbox.checked) {
-        const gravityStrength = parseFloat(document.getElementById('gravityStrength')?.value || 0.5);
+        const gravityStrength = parseFloat(document.getElementById('gravityStrength')?.value || DEFAULTS.gravityStrength);
         this.velY += gravityStrength;
     }
 
@@ -1150,7 +1196,7 @@ Ball.prototype.update = function() {
 
 
     // Get current velocity setting as maximum velocity
-    const maxVelocity = parseInt(document.getElementById('ballVelocity')?.value || 7);
+    const maxVelocity = parseInt(document.getElementById('ballVelocity')?.value || DEFAULTS.ballVelocity);
     
     // Velocity limiting based on user setting
     if (Math.abs(this.velX) > maxVelocity) {
@@ -1254,9 +1300,9 @@ var balls = [];
 
 // Initialize balls with default settings
 function initializeBalls() {
-    const ballSize = parseInt(document.getElementById('ballSize')?.value || 90);
-    const ballCount = parseInt(document.getElementById('ballCount')?.value || 5);
-    const ballVelocity = parseInt(document.getElementById('ballVelocity')?.value || 7);
+    const ballSize = parseInt(document.getElementById('ballSize')?.value || DEFAULTS.ballSize);
+    const ballCount = parseInt(document.getElementById('ballCountValue')?.textContent || DEFAULTS.ballCount);
+    const ballVelocity = parseInt(document.getElementById('ballVelocity')?.value || DEFAULTS.ballVelocity);
     
     while(balls.length < ballCount) {
         const size = random(ballSize - 20, ballSize + 20);
@@ -1553,7 +1599,7 @@ function detectCollisions() {
 let animationId;
 let isAnimationRunning = true;
 
-let currentBackgroundColor = 'black'; // Default background color
+let currentBackgroundColor = DEFAULTS.visuals.backgroundColor; // Default background color
 let currentClearAlpha = 1; // Default to no trail (fully opaque clear)
 
 function loop() {

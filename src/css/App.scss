@@ -1,13 +1,25 @@
+// Theme vars (alphabetized)
+$accent: #8a2be2;
+$accent-hover: #9b4dff;
+$bg-black: black;
+$panel-bg: rgba(0, 0, 0, 0.8);
+$scrollbar-thumb: rgba(255, 255, 255, 0.3);
+$scrollbar-thumb-hover: rgba(255, 255, 255, 0.5);
+$scrollbar-track: rgba(255, 255, 255, 0.1);
+$section-bg: rgba(255, 255, 255, 0.06);
+$section-border: rgba(255, 255, 255, 0.12);
+$text-color: white;
+
 html, body {
-  background: black;
-  background-color: black;
+  background: $bg-black;
+  background-color: $bg-black;
   margin: 0 !important;
   overflow: hidden;
   padding: 0;
 }
 
 canvas {
-  background-color: black;
+  background-color: $bg-black;
   display: block;
   margin: 0;
   padding: 0;
@@ -18,136 +30,200 @@ canvas {
   padding: 0;
 }
 
-#controls, #selectedBallControls {
-  background: rgba(0, 0, 0, 0.8);
+// Shared panel base
+%panel {
+  background: $panel-bg;
   border-radius: 8px;
-  color: white;
-  display: none;
+  color: $text-color;
   font-family: Arial, sans-serif;
-  font-size: 14px;
   padding: 15px;
   position: fixed;
-  right: 10px;
-  top: 65px;
+  width: 300px;
   z-index: 1000;
 }
 
+/* Panels */
 #controls {
-  background-color: rgba(0, 0, 0, 0.8);
-  border-radius: 5px;
-  color: white;
-  font-family: sans-serif;
+  @extend %panel;
   left: 10px;
-  padding: 10px;
-  position: absolute;
-  top: 10px;
-  max-width: 400px;
-  min-width: 300px;
-  width: 50%;
-  z-index: 100; /* Ensure it's above the canvas */
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+  top: 45px;
+
+  // Custom scrollbar styling
+  &::-webkit-scrollbar { width: 8px; }
+  &::-webkit-scrollbar-track { background: $scrollbar-track; border-radius: 4px; }
+  &::-webkit-scrollbar-thumb { background: $scrollbar-thumb; border-radius: 4px; }
+  &::-webkit-scrollbar-thumb:hover { background: $scrollbar-thumb-hover; }
+
+  // Section styling
+  h3 { color: #fff; margin: 0 0 10px 0; }
+  .subdued { color: #ddd; font-size: 12px; margin-bottom: 10px; margin-top: -6px; }
+
+  details {
+    background: $section-bg;
+    border: 1px solid $section-border;
+    border-radius: 6px;
+    margin-bottom: 10px;
+
+  > summary { cursor: pointer; font-weight: 600; list-style: none; padding: 8px 10px; user-select: none; }
+
+    &[open] > summary {
+      background: $section-bg;
+      border-bottom: 1px solid $section-border;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+
+    .section-body { padding: 10px; }
+  }
+
+  label { display: inline-block; min-width: 140px; }
+  .row { margin-bottom: 10px; }
 }
 
-#controls label {
-  margin-right: 10px;
+#selectedBallControls {
+  @extend %panel;
+  display: none; // Hidden by default
+  right: 10px;
+  top: 65px;
+
+  // Section styling
+  h3 { color: #fff; margin: 0 0 10px 0; }
+
+  details {
+    background: $section-bg;
+    border: 1px solid $section-border;
+    border-radius: 6px;
+    margin-bottom: 10px;
+
+  > summary { cursor: pointer; font-weight: 600; list-style: none; padding: 8px 10px; user-select: none; }
+
+    &[open] > summary {
+      background: $section-bg;
+      border-bottom: 1px solid $section-border;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+
+    .section-body { padding: 10px; }
+  }
+
+  label { display: inline-block; min-width: 140px; }
+  .row { margin-bottom: 10px; }
+}
+
+#selectedBallControlsHeader { cursor: grab; }
+
+/* Toggle button */
+#toggleControls {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  font-size: 18px;
+  height: 40px;
+  justify-content: center;
+  left: 15px;
+  position: fixed;
+  justify-content: center;
+  top: 15px;
+  transition: all 0.3s ease;
+  width: 40px;
+  z-index: 1001;
 }
 
 input[type=range] {
   -webkit-appearance: none;
+  appearance: none;
   background-color: transparent;
   margin: 7.3px 0;
   width: 100%;
-}
 
-input[type=range]:focus {
-  outline: none;
-}
+  &:focus { outline: none; }
 
-input[type=range]::-webkit-slider-runnable-track {
-  background: #8a2be2;
-  border: 0.2px solid #010101;
-  border-radius: 1.3px;
-  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
-  cursor: pointer;
-  height: 11.4px;
-  width: 100%;
-}
+  &::-webkit-slider-runnable-track {
+    background: $accent;
+    border: 0.2px solid #010101;
+    border-radius: 1.3px;
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
+    cursor: pointer;
+    height: 11.4px;
+    width: 100%;
+  }
 
-input[type=range]::-webkit-slider-thumb {
+  &::-webkit-slider-thumb {
+    background: #ffffff;
+    border: 1.8px solid #000000;
+    border-radius: 15px;
+    box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
+    cursor: pointer;
+    height: 26px;
+    margin-top: -7.5px;
+    width: 26px;
   -webkit-appearance: none;
-  background: #ffffff;
-  border: 1.8px solid #000000;
-  border-radius: 15px;
-  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
-  cursor: pointer;
-  height: 26px;
-  margin-top: -7.5px;
-  width: 26px;
-}
+  }
 
-input[type=range]:focus::-webkit-slider-runnable-track {
-  background: #9b4dff;
-}
+  &:focus::-webkit-slider-runnable-track { background: $accent-hover; }
 
-input[type=range]::-moz-range-track {
-  background: #8a2be2;
-  border: 0.2px solid #010101;
-  border-radius: 1.3px;
-  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
-  cursor: pointer;
-  height: 11.4px;
-  width: 100%;
-}
+  &::-moz-range-track {
+    background: $accent;
+    border: 0.2px solid #010101;
+    border-radius: 1.3px;
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
+    cursor: pointer;
+    height: 11.4px;
+    width: 100%;
+  }
 
-input[type=range]::-moz-range-thumb {
-  background: #ffffff;
-  border: 1.8px solid #000000;
-  border-radius: 15px;
-  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
-  cursor: pointer;
-  height: 26px;
-  width: 26px;
-}
+  &::-moz-range-thumb {
+    background: #ffffff;
+    border: 1.8px solid #000000;
+    border-radius: 15px;
+    box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
+    cursor: pointer;
+    height: 26px;
+    width: 26px;
+  }
 
-input[type=range]::-ms-track {
-  background: transparent;
-  border-color: transparent;
-  color: transparent;
-  cursor: pointer;
-  height: 11.4px;
-  width: 100%;
-}
+  &::-ms-track {
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+    cursor: pointer;
+    height: 11.4px;
+    width: 100%;
+  }
 
-input[type=range]::-ms-fill-lower {
-  background: #7b24cb;
-  border: 0.2px solid #010101;
-  border-radius: 2.6px;
-  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
-}
+  &::-ms-fill-lower {
+    background: #7b24cb;
+    border: 0.2px solid #010101;
+    border-radius: 2.6px;
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
+  }
 
-input[type=range]::-ms-fill-upper {
-  background: #8a2be2;
-  border: 0.2px solid #010101;
-  border-radius: 2.6px;
-  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
-}
+  &::-ms-fill-upper {
+    background: $accent;
+    border: 0.2px solid #010101;
+    border-radius: 2.6px;
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
+  }
 
-input[type=range]::-ms-thumb {
-  background: #ffffff;
-  border: 1.8px solid #000000;
-  border-radius: 15px;
-  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
-  cursor: pointer;
-  height: 11.4px;
-  height: 26px;
-  width: 26px;
-}
+  &::-ms-thumb {
+    background: #ffffff;
+    border: 1.8px solid #000000;
+    border-radius: 15px;
+    box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
+    cursor: pointer;
+    height: 26px;
+    width: 26px;
+  }
 
-input[type=range]:focus::-ms-fill-lower {
-  background: #8a2be2;
-}
-
-input[type=range]:focus::-ms-fill-upper {
-  background: #9b4dff;
+  &:focus::-ms-fill-lower { background: $accent; }
+  &:focus::-ms-fill-upper { background: $accent-hover; }
 }
 
 @import 'mobile';
