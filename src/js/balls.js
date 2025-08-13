@@ -3,6 +3,7 @@ let sandboxModeEnabled = false;
 const sandboxModeCheckbox = document.getElementById('sandboxMode');
 let healthSystemEnabled = true;
 const enableHealthSystemCheckbox = document.getElementById('enableHealthSystem');
+let globalScore = 0; // New global score variable
 // https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/Object_building_practice
 // import { throttle } from 'lodash';
 
@@ -81,7 +82,7 @@ Ball.prototype.draw = function() {
     
     // Draw the main ball
     ctx.beginPath();
-    ctx.fillStyle = this.color;
+    ctx.fillStyle = this.originalColor; // Use original color as base
 
     if (this.shape === 'circle') {
         ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
@@ -112,18 +113,33 @@ Ball.prototype.draw = function() {
             ctx.lineTo(this.size * Math.cos(i * 2 * Math.PI / 6), this.size * Math.sin(i * 2 * Math.PI / 6));
         }
         ctx.closePath();
+    } else if (this.shape === 'octagon') {
+        for (let i = 0; i < 8; i++) {
+            ctx.lineTo(this.size * Math.cos(i * 2 * Math.PI / 8), this.size * Math.sin(i * 2 * Math.PI / 8));
+        }
+        ctx.closePath();
     } else if (this.shape === 'star') {
         const outerRadius = this.size;
         const innerRadius = this.size / 2;
+        const numPoints = 6; // Changed to 6 points
         ctx.moveTo(0, -outerRadius);
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < numPoints * 2; i++) {
             const radius = i % 2 === 0 ? outerRadius : innerRadius;
-            const angle = Math.PI / 5 * i;
+            const angle = Math.PI / numPoints * i;
             ctx.lineTo(radius * Math.sin(angle), -radius * Math.cos(angle));
         }
         ctx.closePath();
     }
     ctx.fill();
+    
+    // Draw health overlay
+    if (healthSystemEnabled && this.health < this.maxHealth) {
+        const healthRatio = this.health / this.maxHealth;
+        const opacity = 1 - healthRatio; // Opacity increases as health decreases (0 to 1)
+        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
+        ctx.fill();
+    }
     
     ctx.restore(); // Restore the transformation matrix
 }
@@ -228,7 +244,6 @@ window.addEventListener('load', function() {
     if (ballSizeSlider && ballSizeValue) {
         ballSizeSlider.addEventListener('input', function() {
             ballSizeValue.textContent = this.value + 'px';
-            resizeAllBalls(parseInt(this.value));
         });
     }
 
@@ -300,6 +315,39 @@ window.addEventListener('load', function() {
             uiOpacityValue.textContent = opacity;
             controlsPanel.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
             selectedBallControls.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+        });
+    }
+
+    const enableScoringCheckbox = document.getElementById('enableScoring');
+    if (enableScoringCheckbox) {
+        enableScoringCheckbox.addEventListener('change', function() {
+            scoringEnabled = this.checked;
+            if (!scoringEnabled && selectedBall) {
+                selectedBall.collisionCount = 0;
+                selectedBallCollisionCount.textContent = '0';
+            }
+        });
+    }
+
+    const sandboxModeCheckbox = document.getElementById('sandboxMode');
+    if (sandboxModeCheckbox) {
+        sandboxModeCheckbox.addEventListener('change', function() {
+            sandboxModeEnabled = this.checked;
+        });
+    }
+
+    const enableHealthSystemCheckbox = document.getElementById('enableHealthSystem');
+    if (enableHealthSystemCheckbox) {
+        enableHealthSystemCheckbox.addEventListener('change', function() {
+            healthSystemEnabled = this.checked;
+        });
+    }
+
+    const healthDamageMultiplierSlider = document.getElementById('healthDamageMultiplier');
+    const healthDamageMultiplierValue = document.getElementById('healthDamageMultiplierValue');
+    if (healthDamageMultiplierSlider && healthDamageMultiplierValue) {
+        healthDamageMultiplierSlider.addEventListener('input', function() {
+            healthDamageMultiplierValue.textContent = this.value;
         });
     }
 
@@ -425,6 +473,7 @@ window.addEventListener('load', function() {
             enableScoring: document.getElementById('enableScoring').checked,
             sandboxMode: document.getElementById('sandboxMode').checked,
             enableHealthSystem: document.getElementById('enableHealthSystem').checked,
+            healthDamageMultiplier: parseFloat(document.getElementById('healthDamageMultiplier').value),
             bounceSpeed: parseFloat(document.getElementById('bounceSpeed').value),
             trailOpacity: parseFloat(document.getElementById('trailOpacity').value),
             uiOpacity: parseFloat(document.getElementById('uiOpacity').value)
@@ -444,6 +493,7 @@ window.addEventListener('load', function() {
         document.getElementById('enableScoring').checked = settings.enableScoring;
         document.getElementById('sandboxMode').checked = settings.sandboxMode;
         document.getElementById('enableHealthSystem').checked = settings.enableHealthSystem;
+        document.getElementById('healthDamageMultiplier').value = settings.healthDamageMultiplier;
         document.getElementById('bounceSpeed').value = settings.bounceSpeed;
         document.getElementById('trailOpacity').value = settings.trailOpacity;
         document.getElementById('uiOpacity').value = settings.uiOpacity;
@@ -461,6 +511,7 @@ window.addEventListener('load', function() {
         document.getElementById('enableScoring').dispatchEvent(new Event('change'));
         document.getElementById('sandboxMode').dispatchEvent(new Event('change'));
         document.getElementById('enableHealthSystem').dispatchEvent(new Event('change'));
+        document.getElementById('healthDamageMultiplier').dispatchEvent(new Event('input')); // Added this line
         document.getElementById('bounceSpeed').dispatchEvent(new Event('input'));
         document.getElementById('trailOpacity').dispatchEvent(new Event('input'));
         document.getElementById('uiOpacity').dispatchEvent(new Event('input'));
@@ -697,41 +748,7 @@ window.addEventListener('load', function() {
         });
     }
 
-    const scoringToggleButton = document.getElementById('scoringToggle');
-    if (scoringToggleButton) {
-        scoringToggleButton.addEventListener('click', function() {
-            scoringEnabled = !scoringEnabled;
-            this.textContent = scoringEnabled ? 'Disable Scoring' : 'Enable Scoring';
-            
-            // Update button styles based on state
-            if (scoringEnabled) {
-                this.style.background = 'rgba(0, 100, 0, 0.7)';
-                this.style.borderColor = 'rgba(0, 255, 0, 0.5)';
-                this.style.color = '#88ff88';
-            } else {
-                this.style.background = 'rgba(100, 0, 0, 0.7)';
-                this.style.borderColor = 'rgba(255, 0, 0, 0.5)';
-                this.style.color = '#ff8888';
-            }
-            
-            // Reset collision count display when disabling scoring
-            if (!scoringEnabled && selectedBall) {
-                selectedBallCollisionCount.textContent = '0';
-            }
-        });
-    }
-
-    if (sandboxModeCheckbox) {
-        sandboxModeCheckbox.addEventListener('change', function() {
-            sandboxModeEnabled = this.checked;
-        });
-    }
-
-    if (enableHealthSystemCheckbox) {
-        enableHealthSystemCheckbox.addEventListener('change', function() {
-            healthSystemEnabled = this.checked;
-        });
-    }
+    
 
     if (resetSelectedBallButton) {
         resetSelectedBallButton.addEventListener('click', function() {
@@ -859,6 +876,8 @@ function updateBallCountSlider() {
 
 function resetAllBalls() {
     balls.length = 0; // Clear existing balls
+    globalScore = 0; // Reset global score
+    updateGlobalScoreDisplay(); // Update display
     
     const ballSize = parseInt(document.getElementById('ballSize')?.value || 90);
     const ballCount = parseInt(document.getElementById('ballCountValue')?.textContent || 5);
@@ -870,7 +889,7 @@ function resetAllBalls() {
         const size = ballSize;
         // Mix of shapes or use selected shape
         const shapeToUse = ballShape === 'mixed' ? 
-            ['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star'][Math.floor(Math.random() * 7)] :
+            ['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'octagon', 'star'][Math.floor(Math.random() * 8)] :
             ballShape;
             
         const ball = new Ball(
@@ -955,7 +974,7 @@ canvas.addEventListener('mousedown', function(e) {
             selectedBallSpeedMultiplierValue.textContent = (selectedBall._lastMultiplier || 1) + 'x';
             selectedBallCollisionCount.textContent = selectedBall.collisionCount;
             selectedBallHealth.textContent = Math.round(selectedBall.health);
-            enableScoring.checked = document.getElementById('enableScoring').checked;
+            
             selectedBallShapeSelect.value = selectedBall.shape || 'circle';
             
             ballClicked = true;
@@ -1355,7 +1374,7 @@ function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, nor
 
     // --- Health System ---
     if (healthSystemEnabled) {
-        const healthDamage = intensity * 1; // More intense collisions cause more damage
+        const healthDamage = intensity * parseFloat(document.getElementById('healthDamageMultiplier').value); // More intense collisions cause more damage
         ball1.health -= healthDamage;
         ball2.health -= healthDamage;
         
@@ -1373,8 +1392,11 @@ function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, nor
     if (healthSystemEnabled && ball2.health <= 0 && !sandboxModeEnabled) removeBall(ball2);
     
     // Update collision counts if diagnostics are enabled
-    const enableScoring = document.getElementById('enableScoring');
     if (enableScoring && enableScoring.checked) {
+        // Increment global score for every collision
+        globalScore++;
+        updateGlobalScoreDisplay();
+
         if (ball1 === selectedBall) {
             selectedBall.collisionCount++;
             const collisionCountSpan = document.getElementById('selectedBallCollisionCount');
@@ -1450,15 +1472,7 @@ function updateBallHealth(ball) {
     
     // Update color based on health (fade to white as health decreases)
     if (healthSystemEnabled) {
-        const originalRgb = ball.originalColor.match(/\d+/g);
-        if (originalRgb && originalRgb.length >= 3) {
-            const r = Math.min(255, Math.floor(255 + (parseInt(originalRgb[0]) - 255) * (1 - healthRatio)));
-            const g = Math.min(255, Math.floor(255 + (parseInt(originalRgb[1]) - 255) * (1 - healthRatio)));
-            const b = Math.min(255, Math.floor(255 + (parseInt(originalRgb[2]) - 255) * (1 - healthRatio)));
-            ball.color = `rgb(${r}, ${g}, ${b})`;
-        }
-    } else {
-        ball.color = ball.originalColor;
+        
     }
     
     // Update size based on health (shrink as health decreases)
@@ -1487,6 +1501,13 @@ function updateSelectedBallHealth() {
         if (healthSpan) {
             healthSpan.textContent = Math.round(selectedBall.health);
         }
+    }
+}
+
+function updateGlobalScoreDisplay() {
+    const globalScoreSpan = document.getElementById('globalScoreDisplay');
+    if (globalScoreSpan) {
+        globalScoreSpan.textContent = globalScore;
     }
 }
 

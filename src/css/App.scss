@@ -4,8 +4,8 @@ html, body {
   margin: 0 !important;
   overflow: hidden;
   padding: 0;
-
 }
+
 canvas {
   background-color: black;
   display: block;
@@ -14,23 +14,36 @@ canvas {
 }
 
 .container {
+  margin: 0;
   padding: 0;
-  margin:0;
 }
 
 #controls, #selectedBallControls {
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  color: white;
+  display: none;
+  font-family: Arial, sans-serif;
   font-size: 14px;
+  padding: 15px;
+  position: fixed;
+  right: 10px;
+  top: 65px;
+  z-index: 1000;
 }
 
 #controls {
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  color: white;
+  font-family: sans-serif;
+  left: 10px;
+  padding: 10px;
   position: absolute;
   top: 10px;
-  left: 10px;
-  background-color: rgba(0, 0, 0, 0.8);
-  padding: 10px;
-  border-radius: 5px;
-  font-family: sans-serif;
-  color: white;
+  max-width: 400px;
+  min-width: 300px;
+  width: 50%;
   z-index: 100; /* Ensure it's above the canvas */
 }
 
@@ -40,9 +53,9 @@ canvas {
 
 input[type=range] {
   -webkit-appearance: none;
-  width: 100%;
-  margin: 7.3px 0;
   background-color: transparent;
+  margin: 7.3px 0;
+  width: 100%;
 }
 
 input[type=range]:focus {
@@ -50,25 +63,25 @@ input[type=range]:focus {
 }
 
 input[type=range]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 11.4px;
-  cursor: pointer;
-  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
   background: #8a2be2;
-  border-radius: 1.3px;
   border: 0.2px solid #010101;
+  border-radius: 1.3px;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
+  cursor: pointer;
+  height: 11.4px;
+  width: 100%;
 }
 
 input[type=range]::-webkit-slider-thumb {
-  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
-  border: 1.8px solid #000000;
-  height: 26px;
-  width: 26px;
-  border-radius: 15px;
-  background: #ffffff;
-  cursor: pointer;
   -webkit-appearance: none;
+  background: #ffffff;
+  border: 1.8px solid #000000;
+  border-radius: 15px;
+  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
+  cursor: pointer;
+  height: 26px;
   margin-top: -7.5px;
+  width: 26px;
 }
 
 input[type=range]:focus::-webkit-slider-runnable-track {
@@ -76,32 +89,32 @@ input[type=range]:focus::-webkit-slider-runnable-track {
 }
 
 input[type=range]::-moz-range-track {
-  width: 100%;
-  height: 11.4px;
-  cursor: pointer;
-  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
   background: #8a2be2;
-  border-radius: 1.3px;
   border: 0.2px solid #010101;
+  border-radius: 1.3px;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0), 0 0 1px rgba(13, 13, 13, 0);
+  cursor: pointer;
+  height: 11.4px;
+  width: 100%;
 }
 
 input[type=range]::-moz-range-thumb {
-  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
+  background: #ffffff;
   border: 1.8px solid #000000;
+  border-radius: 15px;
+  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
+  cursor: pointer;
   height: 26px;
   width: 26px;
-  border-radius: 15px;
-  background: #ffffff;
-  cursor: pointer;
 }
 
 input[type=range]::-ms-track {
-  width: 100%;
-  height: 11.4px;
-  cursor: pointer;
   background: transparent;
   border-color: transparent;
   color: transparent;
+  cursor: pointer;
+  height: 11.4px;
+  width: 100%;
 }
 
 input[type=range]::-ms-fill-lower {
@@ -119,14 +132,14 @@ input[type=range]::-ms-fill-upper {
 }
 
 input[type=range]::-ms-thumb {
-  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
-  border: 1.8px solid #000000;
-  height: 26px;
-  width: 26px;
-  border-radius: 15px;
   background: #ffffff;
+  border: 1.8px solid #000000;
+  border-radius: 15px;
+  box-shadow: 0.9px 0.9px 1px #000031, 0 0 0.9px #00004b;
   cursor: pointer;
   height: 11.4px;
+  height: 26px;
+  width: 26px;
 }
 
 input[type=range]:focus::-ms-fill-lower {
