@@ -32,8 +32,9 @@
   }
 
   #controls label {
-    display: block;
-    margin-bottom: 5px;
+  display: block;
+  font-size: 16px;
+  margin-bottom: 8px;
   }
 
   input[type=range] {
@@ -49,20 +50,20 @@
 
   /* Larger touch targets inside the panel */
   #controls {
-    .row { margin-bottom: 12px; }
+    .row { margin-bottom: 14px; }
     button,
     select,
     input[type="number"],
     input[type="text"],
     input[type="color"] {
-      font-size: 16px;
-      min-height: 44px; /* recommended tap size */
+      font-size: 18px;
+      min-height: 48px; /* larger tap size */
       width: 100%;
     }
 
     details > summary {
-      font-size: 16px;
-      padding: 12px 14px;
+      font-size: 18px;
+      padding: 14px 16px;
     }
   }
 
@@ -81,18 +82,18 @@
     z-index: 1002; /* above main controls */
 
     h3 { text-align: center; }
-    .row { margin-bottom: 12px; }
+    .row { margin-bottom: 14px; }
     button,
     select,
     input[type="number"],
     input[type="text"],
     input[type="color"] {
-      font-size: 16px;
-      min-height: 44px;
+      font-size: 18px;
+      min-height: 48px;
       width: 100%;
     }
 
-    details > summary { font-size: 16px; padding: 12px 14px; }
+    details > summary { font-size: 18px; padding: 14px 16px; }
   }
 
   /* Friendlier toggle button placement/size */

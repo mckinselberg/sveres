@@ -1153,9 +1153,10 @@ Ball.prototype.update = function() {
 
     // If ball is being grabbed, don't apply other physics
     
-    // Add collision with controls panel
+    // Add collision with controls panel (desktop only)
     const controlsPanel = document.getElementById('controls');
-    if (controlsPanel && controlsPanel.style.display !== 'none') {
+    const isMobileViewport = window.matchMedia ? window.matchMedia('(max-width: 768px)').matches : (window.innerWidth <= 768);
+    if (!isMobileViewport && controlsPanel && controlsPanel.style.display !== 'none') {
         const panelRect = controlsPanel.getBoundingClientRect();
 
         // Find the closest point on the panel to the ball's center
