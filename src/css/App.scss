@@ -41,6 +41,9 @@ canvas {
   padding: 10px;
   position: absolute;
   top: 10px;
+  max-width: 400px;
+  min-width: 300px;
+  width: 50%;
   z-index: 100; /* Ensure it's above the canvas */
 }
 

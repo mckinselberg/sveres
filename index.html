@@ -9,12 +9,55 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
     <style>
       #selectedBallControls {
-        position: fixed; /* Ensure it's positioned for dragging/resizing */
-        /* ... existing styles ... */
+        position: fixed;
+        top: 65px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+        display: none; /* Hidden by default */
+        width: 300px; /* Adjusted width */
       }
 
       #selectedBallControlsHeader {
         cursor: grab;
+      }
+
+      #controls {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        max-height: calc(100vh - 20px); /* Dynamic height */
+        overflow-y: auto; /* Enable scrolling */
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+        width: 300px;
+      }
+
+      /* Custom scrollbar styling */
+      #controls::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      #controls::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+
+      #controls::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+      }
+
+      #controls::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
       }
     </style>
   </head>
@@ -241,6 +284,7 @@
         font-family: Arial, sans-serif;
         z-index: 1000;
         display: none; /* Hidden by default */
+        width: 300px; /* Adjusted width */
       ">
       <h3 id="selectedBallControlsHeader" style="margin-top: 0; color: #fff; cursor: grab">Selected Ball Properties</h3>
 
@@ -371,5 +415,50 @@
       <canvas id="canvas"></canvas>
     </div>
     <script type="module" src="/src/index.js"></script>
+    <script>
+      // Draggable functionality for selectedBallControls with position persistence
+      const selectedBallControls = document.getElementById("selectedBallControls");
+      const header = document.getElementById("selectedBallControlsHeader");
+
+      let isDragging = false;
+      let offsetX, offsetY;
+
+      // Load saved position from localStorage
+      const savedPosition = JSON.parse(localStorage.getItem("selectedBallControlsPosition"));
+      if (savedPosition) {
+        selectedBallControls.style.left = savedPosition.left;
+        selectedBallControls.style.top = savedPosition.top;
+      }
+
+      header.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        offsetX = e.clientX - selectedBallControls.offsetLeft;
+        offsetY = e.clientY - selectedBallControls.offsetTop;
+        header.style.cursor = "grabbing";
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+          const left = `${e.clientX - offsetX}px`;
+          const top = `${e.clientY - offsetY}px`;
+          selectedBallControls.style.left = left;
+          selectedBallControls.style.top = top;
+        }
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (isDragging) {
+          isDragging = false;
+          header.style.cursor = "grab";
+
+          // Save position to localStorage
+          const position = {
+            left: selectedBallControls.style.left,
+            top: selectedBallControls.style.top,
+          };
+          localStorage.setItem("selectedBallControlsPosition", JSON.stringify(position));
+        }
+      });
+    </script>
   </body>
 </html>
