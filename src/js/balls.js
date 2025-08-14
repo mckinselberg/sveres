@@ -83,6 +83,7 @@ function Ball(x, y, velX, velY, color, size, shape = DEFAULTS.ballShape) {
     this.rotationSpeed = (Math.random() - 0.5) * 0.02; // Random rotation speed
     this.isSleeping = false; // For performance optimization
     this._lastMultiplier = 1; // For speed multiplier tracking
+    this.opacity = 1; // Individual ball opacity override (0..1)
 }
 
 Ball.prototype.draw = function() {
@@ -101,7 +102,7 @@ Ball.prototype.draw = function() {
     
     // Draw the main ball
     ctx.beginPath();
-    ctx.fillStyle = this.originalColor; // Use original color as base
+    ctx.fillStyle = colorWithAlpha(this.originalColor, this.opacity); // Apply per-ball opacity
 
     if (this.shape === 'circle') {
         ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
@@ -714,7 +715,8 @@ window.addEventListener('load', function() {
             shape: selectedBall.shape,
             health: selectedBall.health,
             collisionCount: selectedBall.collisionCount,
-            _lastMultiplier: selectedBall._lastMultiplier
+            _lastMultiplier: selectedBall._lastMultiplier,
+            opacity: selectedBall.opacity
         };
 
         localStorage.setItem('savedBalls', JSON.stringify(savedBalls));
@@ -743,6 +745,7 @@ window.addEventListener('load', function() {
                 selectedBall.health = ballData.health;
                 selectedBall.collisionCount = ballData.collisionCount;
                 selectedBall._lastMultiplier = ballData._lastMultiplier;
+                selectedBall.opacity = (ballData.opacity != null ? ballData.opacity : 1);
             } else {
                 const newBall = new Ball(
                     ballData.x,
@@ -756,6 +759,7 @@ window.addEventListener('load', function() {
                 newBall.health = ballData.health;
                 newBall.collisionCount = ballData.collisionCount;
                 newBall._lastMultiplier = ballData._lastMultiplier;
+                newBall.opacity = (ballData.opacity != null ? ballData.opacity : 1);
                 balls.push(newBall);
                 updateBallCountSlider();
             }
@@ -990,6 +994,10 @@ const selectedBallSpeedMultiplierInput = document.getElementById('selectedBallSp
 const selectedBallSpeedMultiplierValue = document.getElementById('selectedBallSpeedMultiplierValue');
 const selectedBallCollisionCount = document.getElementById('selectedBallCollisionCount');
 
+// Per-ball opacity controls
+const selectedBallOpacityInput = document.getElementById('selectedBallOpacity');
+const selectedBallOpacityValue = document.getElementById('selectedBallOpacityValue');
+
 const selectedBallHealth = document.getElementById('selectedBallHealth');
 const enableDiagnostics = document.getElementById('enableDiagnostics');
 const resetSelectedBallButton = document.getElementById('resetSelectedBall');
@@ -1004,6 +1012,34 @@ function rgbToHex(rgb) {
         return hex.length === 1 ? '0' + hex : hex;
     };
     return '#' + toHex(rgbMatch[1]) + toHex(rgbMatch[2]) + toHex(rgbMatch[3]);
+}
+
+// Convert rgb(...) or #hex to rgba with alpha
+function colorWithAlpha(color, alpha = 1) {
+    try {
+        if (typeof color !== 'string') return color;
+        const rgbMatch = color.match(/^\s*rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*([0-9.]+))?\s*\)\s*$/i);
+        if (rgbMatch) {
+            const r = Math.min(255, parseInt(rgbMatch[1], 10));
+            const g = Math.min(255, parseInt(rgbMatch[2], 10));
+            const b = Math.min(255, parseInt(rgbMatch[3], 10));
+            const a = Math.max(0, Math.min(1, alpha));
+            return `rgba(${r}, ${g}, ${b}, ${a})`;
+        }
+        const hexMatch = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+        if (hexMatch) {
+            let hex = hexMatch[1];
+            if (hex.length === 3) hex = hex.split('').map(ch => ch + ch).join('');
+            const r = parseInt(hex.slice(0, 2), 16);
+            const g = parseInt(hex.slice(2, 4), 16);
+            const b = parseInt(hex.slice(4, 6), 16);
+            const a = Math.max(0, Math.min(1, alpha));
+            return `rgba(${r}, ${g}, ${b}, ${a})`;
+        }
+        return color;
+    } catch (e) {
+        return color;
+    }
 }
 
 // Mouse event listeners
@@ -1140,6 +1176,17 @@ selectedBallSpeedInput.addEventListener('input', function() {
     }
 });
 
+// Opacity slider for selected ball
+if (selectedBallOpacityInput && selectedBallOpacityValue) {
+    selectedBallOpacityInput.addEventListener('input', function() {
+        if (selectedBall) {
+            const val = parseFloat(this.value);
+            selectedBall.opacity = isNaN(val) ? 1 : Math.max(0, Math.min(1, val));
+        }
+        selectedBallOpacityValue.textContent = this.value;
+    });
+}
+
 
 
 
@@ -1158,7 +1205,18 @@ function updateSelectedBallInfo() {
     }
     if (selectedBallSpeedMultiplierValue) {
         selectedBallSpeedMultiplierValue.textContent = (selectedBall._lastMultiplier || 1) + 'x';
+    if (selectedBallOpacityInput && selectedBallOpacityValue) {
+        const op = selectedBall.opacity != null ? selectedBall.opacity : 1;
+        selectedBallOpacityInput.value = op;
+        selectedBallOpacityValue.textContent = String(op);
     }
+    }
+            if (selectedBallOpacityInput && selectedBallOpacityValue) {
+                const op = selectedBall.opacity != null ? selectedBall.opacity : 1;
+                selectedBallOpacityInput.value = op;
+                selectedBallOpacityValue.textContent = String(op);
+            }
+                selectedBall.opacity = 1; // Reset opacity
 }
 
 Ball.prototype.update = function() {
@@ -1369,6 +1427,10 @@ Ball.prototype.applyBallDeformation = function(normalX, normalY, intensity) {
             this.lastAnimationTime = Date.now();
             this.scaleX = 1;
             this.scaleY = 1;
+                if (selectedBallOpacityInput && selectedBallOpacityValue) {
+                    selectedBallOpacityInput.value = 1;
+                    selectedBallOpacityValue.textContent = '1';
+                }
         }
     });
 
@@ -1611,9 +1673,6 @@ function detectCollisions() {
     }
 }
 
-//ctx.fillStyle = 'blue';
-//ctx.fillRect(0,0, width, height);
-
 // Animation control variables
 let animationId;
 let isAnimationRunning = true;
@@ -1729,25 +1788,25 @@ if (window.visualViewport) {
 }
 
 // Add a keydown event listener to toggle the control panel
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'c' || event.key === 'C') {
-        const controlsPanel = document.getElementById('controls');
-        const toggleControlsButton = document.getElementById('toggleControls');
-        const isVisible = controlsPanel.style.display !== 'none';
+// document.addEventListener('keydown', function(event) {
+//     if (event.key === 'c' || event.key === 'C') {
+//         const controlsPanel = document.getElementById('controls');
+//         const toggleControlsButton = document.getElementById('toggleControls');
+//         const isVisible = controlsPanel.style.display !== 'none';
         
-        if (isVisible) {
-            controlsPanel.style.display = 'none';
-            toggleControlsButton.style.background = 'rgba(0, 0, 0, 0.5)';
-            toggleControlsButton.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-            toggleControlsButton.title = 'Show Controls';
-        } else {
-            controlsPanel.style.display = 'block';
-            toggleControlsButton.style.background = 'rgba(0, 0, 0, 0.7)';
-            toggleControlsButton.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-            toggleControlsButton.title = 'Hide Controls';
-        }
-    }
-});
+//         if (isVisible) {
+//             controlsPanel.style.display = 'none';
+//             toggleControlsButton.style.background = 'rgba(0, 0, 0, 0.5)';
+//             toggleControlsButton.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+//             toggleControlsButton.title = 'Show Controls';
+//         } else {
+//             controlsPanel.style.display = 'block';
+//             toggleControlsButton.style.background = 'rgba(0, 0, 0, 0.7)';
+//             toggleControlsButton.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+//             toggleControlsButton.title = 'Hide Controls';
+//         }
+//     }
+// });
 
 // Add WASD controls for selected ball
 document.addEventListener('keydown', function(event) {
