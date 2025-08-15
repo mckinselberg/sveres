@@ -1,0 +1,51 @@
+import React, { useState, useEffect } from 'react';
+
+function IntroOverlay() {
+    const STORAGE_KEY = "introOverlay:lastDismissedAt";
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const now = Date.now();
+        const last = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+        const shouldShow = !last || now - last > WEEK_MS;
+
+        if (shouldShow) {
+            setIsVisible(true);
+        }
+    }, []);
+
+    const dismiss = () => {
+        setIsVisible(false);
+        try {
+            localStorage.setItem(STORAGE_KEY, String(Date.now()));
+        } catch (e) {
+            // noop
+        }
+    };
+
+    if (!isVisible) {
+        return null;
+    }
+
+    return (
+        <div className="intro-overlay" onClick={(e) => e.target.classList.contains('intro-overlay') && dismiss()}>
+            <div className="intro-card">
+                <h3>Welcome to Sveres</h3>
+                <p>Quick tips to get you started:</p>
+                <ul>
+                    <li>Click or tap the gear to show/hide controls (or press C).</li>
+                    <li>Drag on a ball to move it; use WASD or arrow keys to nudge the selected ball.</li>
+                    <li>Use the sliders to change size, speed, gravity, and more. Try Deformation for squishy fun.</li>
+                    <li>On mobile, panels become bottom sheets and inputs are touch-friendly.</li>
+                </ul>
+                <div className="actions">
+                    <button onClick={dismiss}>Got it</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default IntroOverlay;

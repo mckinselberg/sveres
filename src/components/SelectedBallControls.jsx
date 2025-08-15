@@ -1,0 +1,139 @@
+import React from 'react';
+import Slider from './Slider.jsx';
+
+function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
+    if (!selectedBall) {
+        return null; // Don't render if no ball is selected
+    }
+
+    const handleColorChange = (e) => {
+        onUpdateSelectedBall({
+            ...selectedBall,
+            color: e.target.value,
+            originalColor: e.target.value, // Update original color too
+        });
+    };
+
+    const handleSizeChange = (e) => {
+        onUpdateSelectedBall({
+            ...selectedBall,
+            size: parseInt(e.target.value),
+            originalSize: parseInt(e.target.value), // Update original size too
+        });
+    };
+
+    const handleShapeChange = (e) => {
+        onUpdateSelectedBall({
+            ...selectedBall,
+            shape: e.target.value,
+        });
+    };
+
+    const handleVelocityChange = (e) => {
+        const newVelocity = parseInt(e.target.value);
+        const currentSpeed = Math.sqrt(selectedBall.velX * selectedBall.velX + selectedBall.velY * selectedBall.velY);
+        let newVelX = selectedBall.velX;
+        let newVelY = selectedBall.velY;
+
+        if (currentSpeed > 0) {
+            const ratio = newVelocity / currentSpeed;
+            newVelX *= ratio;
+            newVelY *= ratio;
+        } else {
+            // If stationary, give it a random velocity within the new max range
+            newVelX = (Math.random() - 0.5) * 2 * newVelocity;
+            newVelY = (Math.random() - 0.5) * 2 * newVelocity;
+        }
+
+        onUpdateSelectedBall({
+            ...selectedBall,
+            velX: newVelX,
+            velY: newVelY,
+        });
+    };
+
+    const handleOpacityChange = (e) => {
+        onUpdateSelectedBall({
+            ...selectedBall,
+            opacity: parseFloat(e.target.value),
+        });
+    };
+
+    return (
+        <div className="selected-ball-controls-panel">
+            <h3>Selected Ball</h3>
+            <details id="section-selected-appearance" open>
+                <summary>Appearance</summary>
+                <div className="section-body">
+                    <div className="control-group">
+                        <label>Color:</label>
+                        <input type="color" value={selectedBall.color} onChange={handleColorChange} />
+                    </div>
+                    <div className="control-group">
+                        <label>Shape:</label>
+                        <select value={selectedBall.shape} onChange={handleShapeChange}>
+                            <option value="circle">Circle</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="diamond">Diamond</option>
+                            <option value="pentagon">Pentagon</option>
+                            <option value="hexagon">Hexagon</option>
+                            <option value="octagon">Octagon</option>
+                            <option value="star">Star</option>
+                        </select>
+                    </div>
+                    <Slider
+                        label="Size"
+                        min={10}
+                        max={150}
+                        step={5}
+                        value={selectedBall.size}
+                        onChange={handleSizeChange}
+                        displayValue={`${selectedBall.size}px`}
+                    />
+                    <Slider
+                        label="Opacity"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={selectedBall.opacity}
+                        onChange={handleOpacityChange}
+                    />
+                </div>
+            </details>
+
+            <details id="section-selected-motion">
+                <summary>Motion</summary>
+                <div className="section-body">
+                    <Slider
+                        label="Velocity"
+                        min={1}
+                        max={15}
+                        step={1}
+                        value={Math.sqrt(selectedBall.velX * selectedBall.velX + selectedBall.velY * selectedBall.velY)}
+                        onChange={handleVelocityChange}
+                    />
+                    {/* Speed and Speed Multiplier controls would go here */}
+                </div>
+            </details>
+
+            <details id="section-selected-stats">
+                <summary>Stats</summary>
+                <div className="section-body">
+                    <div className="control-group">
+                        <label>Collision Count:</label>
+                        <span>{selectedBall.collisionCount}</span>
+                    </div>
+                    <div className="control-group">
+                        <label>Health:</label>
+                        <span>{Math.round(selectedBall.health)}</span>
+                    </div>
+                </div>
+            </details>
+
+            {/* Actions and Saved Balls sections would go here */}
+        </div>
+    );
+}
+
+export default SelectedBallControls;
