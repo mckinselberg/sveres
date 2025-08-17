@@ -1,4 +1,3 @@
-import React from 'react';
 import Slider from './Slider.jsx';
 import ColorSchemeManager from './ColorSchemeManager.jsx';
 import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
