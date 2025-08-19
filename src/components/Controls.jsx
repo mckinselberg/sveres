@@ -1,8 +1,26 @@
+import React, { useRef } from 'react';
 import Slider from './Slider.jsx';
 import ColorSchemeManager from './ColorSchemeManager.jsx';
 import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
+import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
 function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls }) {
+    const simulationRef = useRef(null);
+    const visualsRef = useRef(null);
+    const deformationRef = useRef(null);
+    const gameplayRef = useRef(null);
+    const objectsRef = useRef(null);
+    const presetsRef = useRef(null);
+
+    usePersistentDetails([
+        simulationRef,
+        visualsRef,
+        deformationRef,
+        gameplayRef,
+        objectsRef,
+        presetsRef,
+    ]);
+
     const handleSliderChange = (setting, value) => {
         onPhysicsSettingsChange({
             ...physicsSettings,
@@ -72,7 +90,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     return (
         <div className="controls-panel">
             <h2>Simulation Controls</h2>
-            <details id="section-simulation" open>
+            <details id="section-simulation" open ref={simulationRef}>
                 <summary>Simulation</summary>
                 <div className="section-body">
                     <Slider
@@ -82,6 +100,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                         step={1}
                         value={physicsSettings.ballCount}
                         onChange={(e) => handleSliderChange('ballCount', e.target.value)}
+                        logarithmic
                     />
                     <Slider
                         label="Ball Size"
@@ -121,7 +140,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 </div>
             </details>
 
-            <details id="section-visuals" open>
+            <details id="section-visuals" open ref={visualsRef}>
                 <summary>Visuals</summary>
                 <div className="section-body">
                     <div className="control-group">
@@ -151,7 +170,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 </div>
             </details>
 
-            <details id="section-deformation" open>
+            <details id="section-deformation" open ref={deformationRef}>
                 <summary>Deformation</summary>
                 <div className="section-body">
                     <div className="control-group">
@@ -208,7 +227,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 </div>
             </details>
 
-            <details id="section-gameplay" open>
+            <details id="section-gameplay" open ref={gameplayRef}>
                 <summary>Gameplay</summary>
                 <div className="section-body">
                     <div className="control-group">
@@ -252,7 +271,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 </div>
             </details>
 
-            <details id="section-objects" open>
+            <details id="section-objects" open ref={objectsRef}>
                 <summary>Objects</summary>
                 <div className="section-body">
                     <div className="control-group">
@@ -280,7 +299,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 </div>
             </details>
 
-            <details id="section-presets" open>
+            <details id="section-presets" open ref={presetsRef}>
                 <summary>Presets</summary>
                 <div className="section-body">
                     <ColorSchemeManager balls={balls} onApplyColorScheme={handleApplyColorScheme} currentBackgroundColor={physicsSettings.visuals.backgroundColor} />

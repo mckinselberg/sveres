@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { loop, initializeBalls } from '../utils/physics.jsx';
 
-function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall }) {
+function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused }) {
     const canvasRef = useRef(null);
+    const animationFrameId = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -12,14 +13,14 @@ function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
 
-        let animationFrameId;
-
         const render = () => {
-            loop(ctx, balls, canvas.width, canvas.height, physicsSettings, physicsSettings.visuals.backgroundColor, 1 - (physicsSettings.visuals.trailOpacity * 0.9), setGlobalScore, tempCtx);
-            animationFrameId = requestAnimationFrame(render);
+            loop(ctx, balls, canvas.width, canvas.height, physicsSettings, physicsSettings.visuals.backgroundColor, 1 - (physicsSettings.visuals.trailOpacity * 0.9), setGlobalScore, tempCtx, selectedBall);
+            animationFrameId.current = requestAnimationFrame(render);
         };
 
-        render();
+        if (!isPaused) {
+            render();
+        }
 
         const handleResize = () => {
             canvas.width = window.innerWidth;
@@ -49,12 +50,30 @@ function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall
         window.addEventListener('resize', handleResize);
         canvas.addEventListener('mousedown', handleMouseDown);
 
+        // Prevent zoom gestures on the canvas (mobile)
+        canvas.addEventListener('gesturestart', (e) => e.preventDefault());
+        canvas.addEventListener('gesturechange', (e) => e.preventDefault());
+        canvas.addEventListener('gestureend', (e) => e.preventDefault());
+        canvas.addEventListener('touchstart', function(e) {
+            if (e.touches && e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+        canvas.addEventListener('touchmove', function(e) {
+            if (e.touches && e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+        // Prevent double-tap to zoom
+        let _lastTouchEnd = 0;
+        canvas.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - _lastTouchEnd <= 300) e.preventDefault();
+            _lastTouchEnd = now;
+        }, { passive: false });
+
         return () => {
-            cancelAnimationFrame(animationFrameId);
+            cancelAnimationFrame(animationFrameId.current);
             window.removeEventListener('resize', handleResize);
             canvas.removeEventListener('mousedown', handleMouseDown);
         };
-    }, [balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall]);
+    }, [balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused]);
 
     return (
         <canvas ref={canvasRef} style={{ display: 'block' }} />

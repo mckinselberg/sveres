@@ -1,5 +1,6 @@
 import { DEFAULTS } from '../js/config.jsx';
 import { gsap } from 'gsap';
+import { getControlsPanel } from './dom.js';
 
 // Utility functions
 export function random(min, max) {
@@ -63,11 +64,16 @@ export class Ball {
         this.opacity = 1;
     }
 
-    draw(ctx) {
+    draw(ctx, selectedBall) {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.deformAngle);
         ctx.scale(this.scaleX, this.scaleY);
+
+        if (this === selectedBall) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = this.color;
+        }
 
         ctx.beginPath();
         ctx.fillStyle = colorWithAlpha(this.originalColor, this.opacity);
@@ -124,6 +130,14 @@ export class Ball {
             ctx.closePath();
         }
         ctx.fill();
+
+        if (this.health < this.maxHealth) {
+            const healthRatio = this.health / this.maxHealth;
+            const opacity = 1 - healthRatio;
+            ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
+            ctx.fill();
+        }
 
         ctx.restore();
     }
@@ -217,6 +231,36 @@ export class Ball {
         // Apply gravity if enabled
         if (gravityStrength > 0) {
             this.velY += gravityStrength;
+        }
+
+        const controlsPanel = getControlsPanel();
+        if (controlsPanel) {
+            const panelRect = controlsPanel.getBoundingClientRect();
+            let closestX = Math.max(panelRect.left, Math.min(this.x, panelRect.right));
+            let closestY = Math.max(panelRect.top, Math.min(this.y, panelRect.bottom));
+            const dx = this.x - closestX;
+            const dy = this.y - closestY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < this.size) {
+                const overlap = this.size - distance;
+                let normalX = dx / distance;
+                let normalY = dy / distance;
+
+                if (isNaN(normalX) || isNaN(normalY)) {
+                    normalX = 1;
+                    normalY = 0;
+                }
+
+                this.x += normalX * overlap;
+                this.y += normalY * overlap;
+
+                const dotProduct = (this.velX * normalX + this.velY * normalY) * 2;
+                this.velX -= dotProduct * normalX;
+                this.velY -= dotProduct * normalY;
+
+                this.applyWallDeformation(normalX, normalY, deformationSettings);
+            }
         }
 
         // Velocity limiting
@@ -574,7 +618,7 @@ export function detectCollisions(balls, healthSystemEnabled, healthDamageMultipl
     }
 }
 
-export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, currentBackgroundColor, currentClearAlpha, setGlobalScore, tempCtx) {
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, currentBackgroundColor, currentClearAlpha, setGlobalScore, tempCtx, selectedBall) {
     // Clear canvas with trail effect
     tempCtx.fillStyle = currentBackgroundColor;
     tempCtx.fillRect(0, 0, 1, 1);
@@ -587,11 +631,11 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, cur
         const ball = balls[i];
 
         if (ball.isSleeping) {
-            ball.draw(ctx);
+            ball.draw(ctx, selectedBall);
             continue;
         }
 
-        ball.draw(ctx);
+        ball.draw(ctx, selectedBall);
         ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation);
     }
 

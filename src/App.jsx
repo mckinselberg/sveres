@@ -13,6 +13,7 @@ function App() {
     const [globalScore, setGlobalScore] = useState(0);
     const [selectedBall, setSelectedBall] = useState(null); // New state for selected ball
     const [showControls, setShowControls] = useState(true); // State for controls visibility
+    const [isPaused, setIsPaused] = useState(false);
 
     // Initialize balls when component mounts or physics settings change
     useEffect(() => {
@@ -20,6 +21,61 @@ function App() {
         initializeBalls(initialBalls, physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, physicsSettings.ballShape);
         setBalls(initialBalls);
     }, [physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, physicsSettings.ballShape]);
+
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (selectedBall) {
+                const moveSpeed = 2;
+                switch (event.key) {
+                    case 'w':
+                    case 'ArrowUp':
+                        setSelectedBall({ ...selectedBall, velY: -moveSpeed });
+                        break;
+                    case 'a':
+                    case 'ArrowLeft':
+                        setSelectedBall({ ...selectedBall, velX: -moveSpeed });
+                        break;
+                    case 's':
+                    case 'ArrowDown':
+                        setSelectedBall({ ...selectedBall, velY: moveSpeed });
+                        break;
+                    case 'd':
+                    case 'ArrowRight':
+                        setSelectedBall({ ...selectedBall, velX: moveSpeed });
+                        break;
+                    case 'n':
+                        setSelectedBall({ ...selectedBall, velX: selectedBall.velX * 1.5, velY: selectedBall.velY * 1.5 });
+                        break;
+                    case 'm':
+                        setSelectedBall({ ...selectedBall, velX: selectedBall.velX / 1.5, velY: selectedBall.velY / 1.5 });
+                        break;
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [selectedBall]);
+
+    useEffect(() => {
+        const handleFocus = () => {
+            setIsPaused(false);
+        };
+
+        const handleBlur = () => {
+            setIsPaused(true);
+        };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('blur', handleBlur);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, []);
 
     const handlePhysicsSettingsChange = (newSettings) => {
         setPhysicsSettings(newSettings);
@@ -88,7 +144,7 @@ function App() {
     return (
         <div>
             <IntroOverlay />
-            <h1>Bouncing Spheres - React</h1>
+            <h1 className="page-title">Bouncing Spheres - React</h1>
             <div className="global-score">Global Score: <span>{globalScore}</span></div>
             <Canvas
                 balls={balls}
@@ -97,6 +153,7 @@ function App() {
                 setGlobalScore={setGlobalScore}
                 selectedBall={selectedBall}
                 setSelectedBall={setSelectedBall}
+                isPaused={isPaused}
             />
             {showControls && (
                 <Controls

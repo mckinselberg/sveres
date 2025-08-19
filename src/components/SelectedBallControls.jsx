@@ -1,7 +1,38 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Slider from './Slider.jsx';
+import { useDraggable } from '../hooks/useDraggable.js';
+import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
 function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
+    const controlsRef = useRef(null);
+    const handleRef = useRef(null);
+    const position = useDraggable(handleRef);
+
+    const appearanceRef = useRef(null);
+    const motionRef = useRef(null);
+    const statsRef = useRef(null);
+
+    usePersistentDetails([appearanceRef, motionRef, statsRef]);
+
+    useEffect(() => {
+        const savedPosition = JSON.parse(localStorage.getItem("selectedBallControlsPosition"));
+        if (savedPosition) {
+            controlsRef.current.style.left = savedPosition.left;
+            controlsRef.current.style.top = savedPosition.top;
+        }
+    }, []);
+
+    useEffect(() => {
+        if (controlsRef.current) {
+            const newPosition = {
+                left: controlsRef.current.style.left,
+                top: controlsRef.current.style.top,
+            };
+            localStorage.setItem("selectedBallControlsPosition", JSON.stringify(newPosition));
+        }
+    }, [position]);
+
+
     if (!selectedBall) {
         return null; // Don't render if no ball is selected
     }
@@ -60,9 +91,9 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
     };
 
     return (
-        <div className="selected-ball-controls-panel">
-            <h3>Selected Ball</h3>
-            <details id="section-selected-appearance" open>
+        <div ref={controlsRef} className="selected-ball-controls-panel" style={{ left: position.x, top: position.y }}>
+            <h3 ref={handleRef} style={{ cursor: 'grab' }}>Selected Ball</h3>
+            <details id="section-selected-appearance" open ref={appearanceRef}>
                 <summary>Appearance</summary>
                 <div className="section-body">
                     <div className="control-group">
@@ -102,7 +133,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                 </div>
             </details>
 
-            <details id="section-selected-motion">
+            <details id="section-selected-motion" ref={motionRef}>
                 <summary>Motion</summary>
                 <div className="section-body">
                     <Slider
@@ -117,7 +148,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                 </div>
             </details>
 
-            <details id="section-selected-stats">
+            <details id="section-selected-stats" ref={statsRef}>
                 <summary>Stats</summary>
                 <div className="section-body">
                     <div className="control-group">

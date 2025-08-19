@@ -1,9 +1,9 @@
 export const DEFAULTS = {
     bounceSpeed: 1,
-    enableGravity: true,
+    enableGravity: false,
     gravityStrength: 0.1,
     ballShape: 'circle',
-    ballSize: 30,
+    ballSize: 20,
     ballVelocity: 5,
     ballCount: 50,
     deformation: {
