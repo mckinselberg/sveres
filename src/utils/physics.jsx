@@ -492,7 +492,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
 export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight) {
     while(balls.length < ballCount) {
-        const size = random(ballSize - 20, ballSize + 20);
+        const size = Math.max(1, random(ballSize - 20, ballSize + 20));
         const ball = new Ball(
             random(0 + size, canvasWidth - size),
             random(0 + size, canvasHeight - size),
