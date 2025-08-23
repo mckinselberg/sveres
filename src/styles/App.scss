@@ -136,9 +136,6 @@ canvas {
 
 .selected-ball-controls-panel {
   @extend %panel;
-  display: block; // Hidden by default
-  right: 10px;
-  top: 65px;
   max-height: calc(100vh - 20px);
   overflow-y: auto;
 

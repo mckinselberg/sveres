@@ -27,6 +27,8 @@ function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall
             canvas.height = window.innerHeight;
         };
 
+        handleResize();
+
         const handleMouseDown = (e) => {
             const mouseX = e.clientX;
             const mouseY = e.clientY;
