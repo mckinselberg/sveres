@@ -5,7 +5,7 @@ import SelectedBallControls from './components/SelectedBallControls.jsx';
 import IntroOverlay from './components/IntroOverlay.jsx';
 import './styles/App.scss';
 import { DEFAULTS } from './js/config.jsx';
-import { initializeBalls, addNewBall, adjustBallCount, resetAllBalls, removeBall } from './utils/physics.jsx';
+import { initializeBalls, addNewBall, adjustBallCount, resetAllBalls, removeBall, adjustBallVelocities, Ball } from './utils/physics.jsx';
 
 function App() {
     const [physicsSettings, setPhysicsSettings] = useState(DEFAULTS);
@@ -20,7 +20,11 @@ function App() {
         const initialBalls = [];
         initializeBalls(initialBalls, physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, physicsSettings.ballShape);
         setBalls(initialBalls);
-    }, [physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, physicsSettings.ballShape]);
+    }, []);
+
+    
+
+    
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -78,7 +82,28 @@ function App() {
     }, []);
 
     const handlePhysicsSettingsChange = (newSettings) => {
+        const oldSettings = physicsSettings;
         setPhysicsSettings(newSettings);
+
+        if (newSettings.ballSize !== oldSettings.ballSize) {
+            const ratio = newSettings.ballSize / oldSettings.ballSize;
+            const newBalls = balls.map(ball => {
+                const newBall = new Ball(ball.x, ball.y, ball.velX, ball.velY, ball.color, ball.size * ratio, ball.shape);
+                newBall.originalSize = ball.originalSize * ratio;
+                return newBall;
+            });
+            setBalls(newBalls);
+        }
+
+        if (newSettings.ballCount !== oldSettings.ballCount) {
+            adjustBallCount(balls, newSettings.ballCount, newSettings.ballSize, newSettings.ballVelocity, window.innerWidth, window.innerHeight);
+            setBalls([...balls]);
+        }
+
+        if (newSettings.ballVelocity !== oldSettings.ballVelocity) {
+            adjustBallVelocities(balls, newSettings.ballVelocity);
+            setBalls([...balls]);
+        }
     };
 
     const handleAddBall = () => {
@@ -103,12 +128,20 @@ function App() {
     };
 
     const handleUpdateSelectedBall = (updatedBall) => {
-        setBalls(prevBalls =>
-            prevBalls.map(ball =>
-                ball === selectedBall ? updatedBall : ball
-            )
-        );
-        setSelectedBall(updatedBall); // Update the selectedBall state as well
+        const newBalls = balls.map(ball => {
+            if (ball === selectedBall) {
+                const newBall = new Ball(updatedBall.x, updatedBall.y, updatedBall.velX, updatedBall.velY, updatedBall.color, updatedBall.size, updatedBall.shape);
+                newBall.originalSize = updatedBall.originalSize;
+                newBall.collisionCount = updatedBall.collisionCount;
+                newBall.health = updatedBall.health;
+                newBall.opacity = updatedBall.opacity;
+                newBall._lastMultiplier = updatedBall._lastMultiplier;
+                return newBall;
+            }
+            return ball;
+        });
+        setBalls(newBalls);
+        setSelectedBall(newBalls.find(b => b.x === updatedBall.x && b.y === updatedBall.y));
     };
 
     const toggleControlsVisibility = () => {
