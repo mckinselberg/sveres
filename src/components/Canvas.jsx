@@ -1,7 +1,7 @@
-import React, { useRef, useEffect } from 'react';
-import { loop, initializeBalls } from '../utils/physics.jsx';
+import React, { useRef, useEffect, memo } from 'react';
+import { loop } from '../utils/physics.jsx';
 
-function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused }) {
+const Canvas = memo(({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused }) => {
     const canvasRef = useRef(null);
     const animationFrameId = useRef(null);
 
@@ -9,12 +9,8 @@ function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
 
-        // Create tempCanvas and tempCtx once
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-
         const render = () => {
-            loop(ctx, balls, canvas.width, canvas.height, physicsSettings, physicsSettings.visuals.backgroundColor, 1 - (physicsSettings.visuals.trailOpacity * 0.9), setGlobalScore, tempCtx, selectedBall);
+            loop(ctx, balls, canvas.width, canvas.height, physicsSettings, physicsSettings.visuals.backgroundColor, 1 - (physicsSettings.visuals.trailOpacity * 0.9), setGlobalScore, selectedBall);
             animationFrameId.current = requestAnimationFrame(render);
         };
 
@@ -80,6 +76,6 @@ function Canvas({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall
     return (
         <canvas ref={canvasRef} style={{ display: 'block' }} />
     );
-}
+});
 
 export default Canvas;

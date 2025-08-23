@@ -618,13 +618,9 @@ export function detectCollisions(balls, healthSystemEnabled, healthDamageMultipl
     }
 }
 
-export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, currentBackgroundColor, currentClearAlpha, setGlobalScore, tempCtx, selectedBall) {
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, currentBackgroundColor, currentClearAlpha, setGlobalScore, selectedBall) {
     // Clear canvas with trail effect
-    tempCtx.fillStyle = currentBackgroundColor;
-    tempCtx.fillRect(0, 0, 1, 1);
-    const imageData = tempCtx.getImageData(0, 0, 1, 1).data;
-    
-    ctx.fillStyle = `rgba(${imageData[0]}, ${imageData[1]}, ${imageData[2]}, ${currentClearAlpha})`;
+    ctx.fillStyle = colorWithAlpha(currentBackgroundColor, currentClearAlpha);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     for (let i = 0; i < balls.length; i++) {

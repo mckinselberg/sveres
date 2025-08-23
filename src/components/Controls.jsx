@@ -293,6 +293,15 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                     </div>
                     <div className="control-group">
                         <button onClick={onAddBall}>Add Ball</button>
+                        <Slider
+                            label="New Ball Size"
+                            min={10}
+                            max={150}
+                            step={1}
+                            value={physicsSettings.newBallSize}
+                            onChange={(e) => handleSliderChange('newBallSize', e.target.value)}
+                            displayValue={`${physicsSettings.newBallSize}px`}
+                        />
                         <button onClick={onRemoveBall}>Remove Ball</button>
                         <button onClick={onResetBalls}>Reset Balls</button>
                     </div>

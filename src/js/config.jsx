@@ -3,8 +3,9 @@ export const DEFAULTS = {
     enableGravity: false,
     gravityStrength: 0.1,
     ballShape: 'circle',
-    ballSize: 20,
-    ballVelocity: 5,
+    ballSize: 45,
+    ballVelocity: 7,
+    newBallSize: 45,
     ballCount: 50,
     deformation: {
         enabled: true,

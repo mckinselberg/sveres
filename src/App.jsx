@@ -108,7 +108,7 @@ function App() {
 
     const handleAddBall = () => {
         const newBalls = [...balls];
-        addNewBall(newBalls, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, null, null, physicsSettings.ballShape);
+        addNewBall(newBalls, physicsSettings.newBallSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, null, null, physicsSettings.ballShape);
         setBalls(newBalls);
     };
 

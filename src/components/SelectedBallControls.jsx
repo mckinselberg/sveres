@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import Slider from './Slider.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
+import { rgbToHex } from '../utils/colors.js';
+
 function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
     const controlsRef = useRef(null);
     const handleRef = useRef(null);
@@ -68,10 +70,6 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
         }
     }, [selectedBall]);
 
-    if (!selectedBall) {
-        return null; // Don't render if no ball is selected
-    }
-
     const handleColorChange = (e) => {
         onUpdateSelectedBall({
             ...selectedBall,
@@ -125,6 +123,10 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
         });
     };
 
+    if (!selectedBall) {
+        return null; // Don't render if no ball is selected
+    }
+
     return (
         <div ref={controlsRef} className="selected-ball-controls-panel">
             <h3 ref={handleRef} style={{ cursor: 'grab' }}>Selected Ball</h3>
@@ -133,7 +135,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                 <div className="section-body">
                     <div className="control-group">
                         <label>Color:</label>
-                        <input type="color" value={selectedBall.color} onChange={handleColorChange} />
+                        <input type="color" value={rgbToHex(selectedBall.color)} onChange={handleColorChange} />
                     </div>
                     <div className="control-group">
                         <label>Shape:</label>
