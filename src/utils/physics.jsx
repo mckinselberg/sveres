@@ -618,9 +618,8 @@ export function detectCollisions(balls, healthSystemEnabled, healthDamageMultipl
     }
 }
 
-export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, currentBackgroundColor, currentClearAlpha, setGlobalScore, selectedBall) {
-    // Clear canvas with trail effect
-    ctx.fillStyle = colorWithAlpha(currentBackgroundColor, currentClearAlpha);
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall) {
+    ctx.fillStyle = colorWithAlpha(backgroundColor, currentClearAlpha);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     for (let i = 0; i < balls.length; i++) {

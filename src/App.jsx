@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Controls from './components/Controls.jsx';
 import Canvas from './components/Canvas.jsx';
 import SelectedBallControls from './components/SelectedBallControls.jsx';
@@ -21,10 +21,6 @@ function App() {
         initializeBalls(initialBalls, physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, physicsSettings.ballShape);
         setBalls(initialBalls);
     }, []);
-
-    
-
-    
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -81,74 +77,88 @@ function App() {
         };
     }, []);
 
-    const handlePhysicsSettingsChange = (newSettings) => {
+    const handlePhysicsSettingsChange = useCallback((newSettings) => {
         const oldSettings = physicsSettings;
         setPhysicsSettings(newSettings);
 
         if (newSettings.ballSize !== oldSettings.ballSize) {
             const ratio = newSettings.ballSize / oldSettings.ballSize;
-            const newBalls = balls.map(ball => {
+            setBalls(prevBalls => prevBalls.map(ball => {
                 const newBall = new Ball(ball.x, ball.y, ball.velX, ball.velY, ball.color, ball.size * ratio, ball.shape);
                 newBall.originalSize = ball.originalSize * ratio;
                 return newBall;
-            });
-            setBalls(newBalls);
+            }));
         }
 
         if (newSettings.ballCount !== oldSettings.ballCount) {
-            adjustBallCount(balls, newSettings.ballCount, newSettings.ballSize, newSettings.ballVelocity, window.innerWidth, window.innerHeight);
-            setBalls([...balls]);
+            setBalls(prevBalls => {
+                const newBalls = [...prevBalls];
+                adjustBallCount(newBalls, newSettings.ballCount, newSettings.ballSize, newSettings.ballVelocity, window.innerWidth, window.innerHeight);
+                return newBalls;
+            });
         }
 
         if (newSettings.ballVelocity !== oldSettings.ballVelocity) {
-            adjustBallVelocities(balls, newSettings.ballVelocity);
-            setBalls([...balls]);
+            setBalls(prevBalls => {
+                const newBalls = [...prevBalls];
+                adjustBallVelocities(newBalls, newSettings.ballVelocity);
+                return newBalls;
+            });
         }
-    };
+    }, [physicsSettings]);
 
-    const handleAddBall = () => {
-        const newBalls = [...balls];
-        addNewBall(newBalls, physicsSettings.newBallSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, null, null, physicsSettings.ballShape);
-        setBalls(newBalls);
-    };
-
-    const handleRemoveBall = () => {
-        if (balls.length > 1) {
-            const newBalls = [...balls];
-            removeBall(newBalls, newBalls[newBalls.length - 1]); // Remove the last ball
-            setBalls(newBalls);
-        }
-    };
-
-    const handleResetBalls = () => {
-        const newBalls = [];
-        resetAllBalls(newBalls, physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, physicsSettings.ballShape);
-        setBalls(newBalls);
-        setGlobalScore(0); // Reset global score on ball reset
-    };
-
-    const handleUpdateSelectedBall = (updatedBall) => {
-        const newBalls = balls.map(ball => {
-            if (ball === selectedBall) {
-                const newBall = new Ball(updatedBall.x, updatedBall.y, updatedBall.velX, updatedBall.velY, updatedBall.color, updatedBall.size, updatedBall.shape);
-                newBall.originalSize = updatedBall.originalSize;
-                newBall.collisionCount = updatedBall.collisionCount;
-                newBall.health = updatedBall.health;
-                newBall.opacity = updatedBall.opacity;
-                newBall._lastMultiplier = updatedBall._lastMultiplier;
-                return newBall;
-            }
-            return ball;
+    const handleAddBall = useCallback(() => {
+        setBalls(prevBalls => {
+            const newBalls = [...prevBalls];
+            addNewBall(newBalls, physicsSettings.newBallSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, null, null, physicsSettings.ballShape);
+            return newBalls;
         });
-        setBalls(newBalls);
-        setSelectedBall(newBalls.find(b => b.x === updatedBall.x && b.y === updatedBall.y));
-    };
+    }, [physicsSettings]);
 
-    const toggleControlsVisibility = () => {
+    const handleRemoveBall = useCallback(() => {
+        setBalls(prevBalls => {
+            if (prevBalls.length > 1) {
+                const newBalls = [...prevBalls];
+                removeBall(newBalls, newBalls[newBalls.length - 1]); // Remove the last ball
+                return newBalls;
+            }
+            return prevBalls;
+        });
+    }, []);
+
+    const handleResetBalls = useCallback(() => {
+        setBalls(() => {
+            const newBalls = [];
+            resetAllBalls(newBalls, physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, physicsSettings.ballShape);
+            setGlobalScore(0); // Reset global score on ball reset
+            return newBalls;
+        });
+    }, [physicsSettings]);
+
+    const handleUpdateSelectedBall = useCallback((updatedBall) => {
+        setBalls(prevBalls => {
+            const newBalls = prevBalls.map(ball => {
+                if (ball === selectedBall) {
+                    const newBall = new Ball(updatedBall.x, updatedBall.y, updatedBall.velX, updatedBall.velY, updatedBall.color, updatedBall.size, updatedBall.shape);
+                    newBall.originalSize = updatedBall.originalSize;
+                    newBall.collisionCount = updatedBall.collisionCount;
+                    newBall.health = updatedBall.health;
+                    newBall.opacity = updatedBall.opacity;
+                    newBall._lastMultiplier = updatedBall._lastMultiplier;
+                    return newBall;
+                }
+                return ball;
+            });
+            setSelectedBall(newBalls.find(b => b.x === updatedBall.x && b.y === updatedBall.y));
+            return newBalls;
+        });
+    }, [selectedBall]);
+
+    const toggleControlsVisibility = useCallback(() => {
         setShowControls(!showControls);
-    };
+    }, [showControls]);
 
-    const handleApplyColorScheme = (scheme) => {
+    const handleApplyColorScheme = useCallback((scheme) => {
         // Update background color
         setPhysicsSettings(prevSettings => ({
             ...prevSettings,
@@ -168,11 +178,11 @@ function App() {
                 return ball;
             });
         });
-    };
+    }, []);
 
-    const handleApplyPhysicsSettings = (settings) => {
+    const handleApplyPhysicsSettings = useCallback((settings) => {
         setPhysicsSettings(settings);
-    };
+    }, []);
 
     return (
         <div>
@@ -181,7 +191,13 @@ function App() {
             <div className="global-score">Global Score: <span>{globalScore}</span></div>
             <Canvas
                 balls={balls}
-                physicsSettings={physicsSettings}
+                enableGravity={physicsSettings.enableGravity}
+                gravityStrength={physicsSettings.gravityStrength}
+                ballVelocity={physicsSettings.ballVelocity}
+                deformation={physicsSettings.deformation}
+                gameplay={physicsSettings.gameplay}
+                backgroundColor={physicsSettings.visuals.backgroundColor}
+                trailOpacity={physicsSettings.visuals.trailOpacity}
                 setBalls={setBalls}
                 setGlobalScore={setGlobalScore}
                 selectedBall={selectedBall}

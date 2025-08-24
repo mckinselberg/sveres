@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, memo } from 'react';
 import { loop } from '../utils/physics.jsx';
 
-const Canvas = memo(({ balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused }) => {
+const Canvas = memo(({ balls, enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused }) => {
     const canvasRef = useRef(null);
     const animationFrameId = useRef(null);
 
@@ -10,7 +10,7 @@ const Canvas = memo(({ balls, physicsSettings, setBalls, setGlobalScore, selecte
         const ctx = canvas.getContext('2d');
 
         const render = () => {
-            loop(ctx, balls, canvas.width, canvas.height, physicsSettings, physicsSettings.visuals.backgroundColor, 1 - (physicsSettings.visuals.trailOpacity * 0.9), setGlobalScore, selectedBall);
+                                    loop(ctx, balls, canvas.width, canvas.height, { enableGravity, gravityStrength, ballVelocity, deformation, gameplay }, backgroundColor, 1 - (trailOpacity * 0.9), setGlobalScore, selectedBall);
             animationFrameId.current = requestAnimationFrame(render);
         };
 
@@ -71,7 +71,7 @@ const Canvas = memo(({ balls, physicsSettings, setBalls, setGlobalScore, selecte
             window.removeEventListener('resize', handleResize);
             canvas.removeEventListener('mousedown', handleMouseDown);
         };
-    }, [balls, physicsSettings, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused]);
+    }, [balls, enableGravity, gravityStrength, ballVelocity, deformation, backgroundColor, trailOpacity, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused]);
 
     return (
         <canvas ref={canvasRef} style={{ display: 'block' }} />
