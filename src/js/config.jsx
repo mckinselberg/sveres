@@ -15,8 +15,8 @@ export const DEFAULTS = {
         easeOverride: ''
     },
     visuals: {
-        backgroundColor: '#000000',
-        trailOpacity: 0.1,
+        backgroundColor: '#222020',
+        trailOpacity: 0.6,
         uiOpacity: 0.8
     },
     gameplay: {

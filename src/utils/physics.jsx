@@ -426,6 +426,10 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
         ball2.health = Math.max(0, ball2.health);
     }
 
+    // 5. Collision Count: Increment collision count for both balls
+    ball1.collisionCount++;
+    ball2.collisionCount++;
+
     // 5. Scoring: Increment global score for every collision
     if (setGlobalScore) {
         setGlobalScore(prevScore => prevScore + 1);
