@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function ColorSchemeManager({ balls, onApplyColorScheme }) {
+function ColorSchemeManager({ balls, currentBackgroundColor, onApplyColorScheme }) {
     const [schemeName, setSchemeName] = useState('');
     const [schemes, setSchemes] = useState({});
     const [selectedScheme, setSelectedScheme] = useState('');
