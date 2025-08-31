@@ -3,6 +3,7 @@ import Controls from './components/Controls.jsx';
 import Canvas from './components/Canvas.jsx';
 import SelectedBallControls from './components/SelectedBallControls.jsx';
 import IntroOverlay from './components/IntroOverlay.jsx';
+import GauntletInstructionsOverlay from './components/GauntletInstructionsOverlay.jsx';
 import './styles/App.scss';
 import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
 import { decideGasDir } from './utils/inputDirection.js';
@@ -14,6 +15,7 @@ const LS_KEYS = {
     settingsGauntlet: 'sim:settings:gauntlet',
     showControls: 'ui:showControls',
     wasdEnabled: 'ui:wasdEnabled',
+    gauntletInstructionsDismissed: 'ui:gauntletInstructions:dismissed',
 };
 
 function loadJSON(key, fallback) {
@@ -70,6 +72,7 @@ function App() {
         const saved = loadJSON(LS_KEYS.wasdEnabled, null);
         return typeof saved === 'boolean' ? saved : true;
     });
+    const [showGauntletHelp, setShowGauntletHelp] = useState(false);
 
     // Reset counters and selection on true resets: level mode toggle, level type change, or ball shape change
     useEffect(() => {
@@ -91,6 +94,11 @@ function App() {
                 : loadJSON(LS_KEYS.settingsSandbox, null);
             const next = mergeDefaultsForMode(newMode, saved);
             setPhysicsSettings(next);
+            // If switching into gauntlet, show instructions unless dismissed before
+            if (newMode) {
+                const dismissed = loadJSON(LS_KEYS.gauntletInstructionsDismissed, false);
+                if (!dismissed) setShowGauntletHelp(true);
+            }
             return newMode;
         });
         setGlobalScore(0); // Reset score on mode change
@@ -414,6 +422,14 @@ function App() {
     setDidLose(false);
     }, []);
 
+    // Show gauntlet help on first load if mode is already gauntlet and not dismissed
+    useEffect(() => {
+        if (levelMode) {
+            const dismissed = loadJSON(LS_KEYS.gauntletInstructionsDismissed, false);
+            if (!dismissed) setShowGauntletHelp(true);
+        }
+    }, []);
+
     return (
         <div>
             <IntroOverlay />
@@ -460,6 +476,17 @@ function App() {
                     {wasdEnabled ? 'WASD: On' : 'WASD: Off'}
                 </button>
             )}
+            {levelMode && (
+                <button
+                    className="gauntlet-wasd-toggle"
+                    style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 112px)' }}
+                    onClick={() => setShowGauntletHelp(true)}
+                    aria-label="Show Gauntlet Instructions"
+                    title="Show Gauntlet Instructions"
+                >
+                    Instructions
+                </button>
+            )}
             {isPaused && <div className="pause-overlay">Paused (Space / P to resume)</div>}
             {didWin && (
                 <div className="pause-overlay" style={{ pointerEvents: 'auto' }}>
@@ -480,6 +507,15 @@ function App() {
                         </div>
                     </div>
                 </div>
+            )}
+            {levelMode && showGauntletHelp && (
+                <GauntletInstructionsOverlay
+                    onClose={() => {
+                        setShowGauntletHelp(false);
+                        try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
+                    }}
+                    onReset={handleResetGauntlet}
+                />
             )}
             <Canvas
                 ref={canvasRef}

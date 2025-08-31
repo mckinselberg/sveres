@@ -87,7 +87,12 @@ const Canvas = memo(forwardRef(function Canvas({
             const canvas = canvasRef.current;
             if (!canvas) return;
             ballsRef.current = [];
-            initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape);
+            const startingOverrideReset = (level && level.type === 'gravityGauntlet') ? 15 : undefined;
+            initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideReset);
+            if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+                ballsRef.current[0].size = 15;
+                ballsRef.current[0].originalSize = 15;
+            }
             if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
                 selectedBallIdRef.current = ballsRef.current[0].id;
                 if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ballsRef.current[0] });
@@ -149,9 +154,14 @@ const Canvas = memo(forwardRef(function Canvas({
         };
         handleResize();
 
-        // (Re)seed balls for new level/shape
-        ballsRef.current = [];
-        initializeBalls(ballsRef.current, ballCount, ballSize, settingsRef.current.ballVelocity, canvas.width, canvas.height, ballShape);
+    // (Re)seed balls for new level/shape
+    ballsRef.current = [];
+    const startingOverrideSeed = (level && level.type === 'gravityGauntlet') ? 15 : undefined;
+    initializeBalls(ballsRef.current, ballCount, ballSize, settingsRef.current.ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideSeed);
+    if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+        ballsRef.current[0].size = 15;
+        ballsRef.current[0].originalSize = 15;
+    }
         if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
             selectedBallIdRef.current = ballsRef.current[0].id;
             if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ballsRef.current[0] });
@@ -249,6 +259,23 @@ const Canvas = memo(forwardRef(function Canvas({
                 incRemoved,
                 () => { loseRef.current = true; }
             );
+
+            // Fallback: if physics missed the goal overlap due to edge cases, detect it here for the selected/player ball
+            if (!loseRef.current && level && level.type === 'gravityGauntlet' && selectedForDraw && level.goals && level.goals.length) {
+                for (let k = 0; k < level.goals.length; k++) {
+                    const g = level.goals[k];
+                    if (g.shape === 'circle') {
+                        const dx = g.x - selectedForDraw.x;
+                        const dy = g.y - selectedForDraw.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        const combined = (selectedForDraw.size) + (g.radius || 0);
+                        if (dist <= combined) {
+                            loseRef.current = true;
+                            break;
+                        }
+                    }
+                }
+            }
 
             // Report selected ball motion to App without triggering renders
             if (selectedForDraw && onSelectedBallMotionRef.current) {

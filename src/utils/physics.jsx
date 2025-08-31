@@ -247,12 +247,12 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                                 if (setRemovedBallsCount) setRemovedBallsCount(prev => prev + 1);
                             }
                         }
-                    } else if (staticObj.type === 'goal' && setGlobalScore) {
+            } else if (staticObj.type === 'goal') {
                         // Only score/remove non-starting balls; the starting ball is the player and should not be removed
                         const isControlled = selectedBall && ball.id === selectedBall.id;
                         const isPlayer = isControlled || ball.isStartingBall;
                         if (!isPlayer) {
-                            setGlobalScore(prevScore => prevScore + 1);
+                if (setGlobalScore) setGlobalScore(prevScore => prevScore + 1);
                             if (setScoredBallsCount) setScoredBallsCount(prev => prev + 1);
                             // Remove ball after scoring
                             const index = balls.indexOf(ball);
@@ -283,10 +283,11 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
  * @param {number} canvasHeight
  * @param {string} ballShape
  */
-export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight, ballShape) {
+export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight, ballShape, startingBallSizeOverride) {
     for (let i = 0; i < ballCount; i++) {
-        const size = Math.max(1, random(ballSize - 20, ballSize + 20));
-        const isStartingBall = i === 0;
+    const isStartingBall = i === 0;
+    const baseSize = Math.max(1, random(ballSize - 20, ballSize + 20));
+    const size = (isStartingBall && startingBallSizeOverride != null) ? startingBallSizeOverride : baseSize;
 
         const ball = new Ball(
             isStartingBall ? canvasWidth / 2 : random(0 + size, canvasWidth - size),
@@ -300,7 +301,7 @@ export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvas
         ball._lastMultiplier = 1;
         ball.isStartingBall = isStartingBall;
     ball.originalColor = ball.color;
-        balls.push(ball);
+    balls.push(ball);
     }
 }
 
