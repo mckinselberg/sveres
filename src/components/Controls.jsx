@@ -4,7 +4,7 @@ import ColorSchemeManager from './ColorSchemeManager.jsx';
 import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
-function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme }) {
+function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme, onResetToDefaults }) {
     const simulationRef = useRef(null);
     const visualsRef = useRef(null);
     const deformationRef = useRef(null);
@@ -96,6 +96,9 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
             <h2>Simulation Controls</h2>
             <button onClick={toggleLevelMode} className="button button--primary button--full" style={{ marginBottom: '10px' }}>
                 Switch to {levelMode ? 'Sandbox' : 'Gravity Gauntlet'} Mode
+            </button>
+            <button onClick={onResetToDefaults} className="button button--secondary button--full" style={{ marginBottom: '10px' }}>
+                Reset Settings to Defaults
             </button>
             <details id="section-simulation" open ref={simulationRef}>
                 <summary>Simulation</summary>

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState } from 'react';
 import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics';
 
 const Canvas = memo(forwardRef(function Canvas({
@@ -20,7 +20,10 @@ const Canvas = memo(forwardRef(function Canvas({
     ballCount,
     ballSize,
     ballShape,
-    newBallSize
+    newBallSize,
+    onWin,
+    onLose,
+    onSelectedBallMotion
 }, ref) {
     const canvasRef = useRef(null);
     const animationFrameId = useRef(null);
@@ -29,6 +32,9 @@ const Canvas = memo(forwardRef(function Canvas({
     const prevSettingsRef = useRef({ ballCount, ballSize, ballVelocity, ballShape });
     const settingsRef = useRef({ enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity });
     const onSelectedBallChangeRef = useRef(onSelectedBallChange);
+    const onSelectedBallMotionRef = useRef(onSelectedBallMotion);
+    const loseRef = useRef(false);
+    const [forceTick, setForceTick] = useState(0);
     // Frame-batched increments to reduce React updates inside RAF
     const scoreDeltaRef = useRef(0);
     const scoredBallsDeltaRef = useRef(0);
@@ -38,6 +44,9 @@ const Canvas = memo(forwardRef(function Canvas({
     useEffect(() => {
         onSelectedBallChangeRef.current = onSelectedBallChange;
     }, [onSelectedBallChange]);
+    useEffect(() => {
+        onSelectedBallMotionRef.current = onSelectedBallMotion;
+    }, [onSelectedBallMotion]);
 
     // Keep latest settings in a ref so the render loop reads fresh values without restarting effects
     useEffect(() => {
@@ -79,9 +88,16 @@ const Canvas = memo(forwardRef(function Canvas({
             if (!canvas) return;
             ballsRef.current = [];
             initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape);
-            selectedBallIdRef.current = null;
-            if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
+            if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+                selectedBallIdRef.current = ballsRef.current[0].id;
+                if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ballsRef.current[0] });
+            } else {
+                selectedBallIdRef.current = null;
+                if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
+            }
             emitSnapshot();
+            // Nudge the render loop to restart if it was stopped after a win/lose
+            setForceTick(prev => prev + 1);
         },
         applyColorScheme: (scheme) => {
             // Update ball colors
@@ -110,6 +126,14 @@ const Canvas = memo(forwardRef(function Canvas({
             if (typeof updated.health === 'number') ball.health = updated.health;
             if (updated._lastMultiplier != null) ball._lastMultiplier = updated._lastMultiplier;
             if (updated.originalSize != null) ball.originalSize = updated.originalSize;
+
+            // If velocity is being driven by input, wake the ball so movement applies even from sleep/zero
+            if (typeof updated.velX === 'number' || typeof updated.velY === 'number') {
+                const speed = Math.hypot(ball.velX || 0, ball.velY || 0);
+                if (speed > 0.01) {
+                    ball.isSleeping = false;
+                }
+            }
             if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ball });
             emitSnapshot();
         }
@@ -128,8 +152,13 @@ const Canvas = memo(forwardRef(function Canvas({
         // (Re)seed balls for new level/shape
         ballsRef.current = [];
         initializeBalls(ballsRef.current, ballCount, ballSize, settingsRef.current.ballVelocity, canvas.width, canvas.height, ballShape);
-        selectedBallIdRef.current = null;
-        if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
+        if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+            selectedBallIdRef.current = ballsRef.current[0].id;
+            if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ballsRef.current[0] });
+        } else {
+            selectedBallIdRef.current = null;
+            if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
+        }
         emitSnapshot();
 
         const handleMouseDown = (e) => {
@@ -217,19 +246,43 @@ const Canvas = memo(forwardRef(function Canvas({
                 selectedForDraw,
                 level,
                 incScored,
-                incRemoved
+                incRemoved,
+                () => { loseRef.current = true; }
             );
+
+            // Report selected ball motion to App without triggering renders
+            if (selectedForDraw && onSelectedBallMotionRef.current) {
+                onSelectedBallMotionRef.current({ id: selectedForDraw.id, velX: selectedForDraw.velX });
+            }
 
             // Flush accumulated increments once per frame
             if (scoreDeltaRef.current) setGlobalScore?.(prev => prev + scoreDeltaRef.current);
             if (scoredBallsDeltaRef.current) setScoredBallsCount?.(prev => prev + scoredBallsDeltaRef.current);
             if (removedBallsDeltaRef.current) setRemovedBallsCount?.(prev => prev + removedBallsDeltaRef.current);
 
+            // Gauntlet win condition: if in gauntlet and all remaining balls are the starting/player ball only, declare win
+            if (level && level.type === 'gravityGauntlet') {
+                const nonPlayer = ballsRef.current.filter(b => !b.isStartingBall);
+                if (nonPlayer.length === 0) {
+                    if (onWin) onWin();
+                    animationFrameId.current = null;
+                    return; // stop loop; App can show overlay
+                }
+            }
+
+            // Lose condition triggered in physics
+            if (loseRef.current) {
+                loseRef.current = false;
+                if (onLose) onLose();
+                animationFrameId.current = null;
+                return; // stop loop
+            }
+
             animationFrameId.current = requestAnimationFrame(render);
         };
         render();
         return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPaused, level]);
+    }, [isPaused, level, forceTick]);
 
     // Reconcile when count/size/velocity change (without full re-seed)
     useEffect(() => {

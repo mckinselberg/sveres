@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { getControlsPanel } from './dom.js';
+import { ENGINE_CONSTANTS } from '../js/physics.constants.js';
 
 let __BALL_ID_SEQ = 1;
 
@@ -110,15 +111,46 @@ export class Ball {
 
     ctx.fill();
 
+    // Health arc indicator near the perimeter
     if (this.health < 100) {
-      const healthBarWidth = this.size * 2;
-      const healthBarHeight = 5;
-      const healthPercentage = this.health / 100;
+      const pct = Math.max(0, Math.min(1, this.health / 100));
+      const radius = Math.max(4, this.size * 0.82);
+      const lw = Math.max(3, Math.min(10, this.size * 0.14));
+      const start = -Math.PI / 2; // top
+      const end = start + Math.PI * 2 * pct;
 
-      ctx.fillStyle = 'red';
-      ctx.fillRect(-this.size, this.size + 5, healthBarWidth, healthBarHeight);
-      ctx.fillStyle = 'green';
-      ctx.fillRect(-this.size, this.size + 5, healthBarWidth * healthPercentage, healthBarHeight);
+      // Track
+      ctx.beginPath();
+      ctx.lineCap = 'round';
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (pct > 0) {
+        // Remaining health with threshold coloring
+        const healthColor = pct <= 0.2
+          ? 'rgba(220,60,50,0.98)'   // critical (red)
+          : (pct <= 0.5
+              ? 'rgba(255,200,0,0.98)' // warning (yellow)
+              : 'rgba(0,200,70,0.95)'); // healthy (green)
+        ctx.beginPath();
+        ctx.strokeStyle = healthColor;
+        ctx.arc(0, 0, radius, start, end);
+        ctx.stroke();
+      }
+    }
+
+    // Two indicator circles 23% above center, spaced 13% of diameter apart
+    {
+      const y = -this.size * 0.23;
+  const sep = this.size * 0.74; // 37% of diameter (2*size)
+      const r = Math.max(2, Math.min(8, this.size * 0.12));
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath();
+      ctx.arc(-sep / 2, y, r, 0, Math.PI * 2);
+      ctx.arc(sep / 2, y, r, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     if (selectedBall && selectedBall === this) {
@@ -270,13 +302,13 @@ export class Ball {
 
     if ((this.x + effectiveRadius) >= canvasWidth) {
       const approachSpeed = this.velX;
-      isGrazingWall = Math.abs(approachSpeed) < 2;
+      isGrazingWall = Math.abs(approachSpeed) < ENGINE_CONSTANTS.WALL_GRAZING_THRESHOLD;
       if (isGrazingWall) {
-        this.velX = -Math.abs(this.velX) * 0.7;
-        this.x = canvasWidth - effectiveRadius - 1;
+    this.velX = -Math.abs(this.velX) * 0.7;
+    this.x = canvasWidth - effectiveRadius - 1;
       } else {
-        this.velX = -Math.abs(this.velX);
-        this.x = canvasWidth - effectiveRadius - 1;
+    this.velX = -Math.abs(this.velX);
+    this.x = canvasWidth - effectiveRadius - 1;
       }
       wallCollision = true;
       wallNormalX = -1;
@@ -285,13 +317,13 @@ export class Ball {
 
     if ((this.x - effectiveRadius) <= 0) {
       const approachSpeed = -this.velX;
-      isGrazingWall = Math.abs(approachSpeed) < 2;
+      isGrazingWall = Math.abs(approachSpeed) < ENGINE_CONSTANTS.WALL_GRAZING_THRESHOLD;
       if (isGrazingWall) {
-        this.velX = Math.abs(this.velX) * 0.7;
-        this.x = effectiveRadius + 1;
+    this.velX = Math.abs(this.velX) * 0.7;
+    this.x = effectiveRadius + 1;
       } else {
-        this.velX = Math.abs(this.velX);
-        this.x = effectiveRadius + 1;
+    this.velX = Math.abs(this.velX);
+    this.x = effectiveRadius + 1;
       }
       wallCollision = true;
       wallNormalX = 1;
@@ -300,13 +332,13 @@ export class Ball {
 
     if ((this.y + effectiveRadius) >= canvasHeight) {
       const approachSpeed = this.velY;
-      isGrazingWall = Math.abs(approachSpeed) < 2;
+      isGrazingWall = Math.abs(approachSpeed) < ENGINE_CONSTANTS.WALL_GRAZING_THRESHOLD;
       if (isGrazingWall) {
-        this.velY = -Math.abs(this.velY) * 0.7;
-        this.y = canvasHeight - effectiveRadius - 1;
+    this.velY = -Math.abs(this.velY) * 0.7;
+    this.y = canvasHeight - effectiveRadius - 1;
       } else {
-        this.velY = -Math.abs(this.velY);
-        this.y = canvasHeight - effectiveRadius - 1;
+    this.velY = -Math.abs(this.velY);
+    this.y = canvasHeight - effectiveRadius - 1;
       }
       wallCollision = true;
       wallNormalX = 0;
@@ -315,20 +347,20 @@ export class Ball {
 
     if ((this.y - effectiveRadius) <= 0) {
       const approachSpeed = -this.velY;
-      isGrazingWall = Math.abs(approachSpeed) < 2;
+      isGrazingWall = Math.abs(approachSpeed) < ENGINE_CONSTANTS.WALL_GRAZING_THRESHOLD;
       if (isGrazingWall) {
-        this.velY = Math.abs(this.velY) * 0.7;
-        this.y = effectiveRadius + 1;
+    this.velY = Math.abs(this.velY) * 0.7;
+    this.y = effectiveRadius + 1;
       } else {
-        this.velY = Math.abs(this.velY);
-        this.y = effectiveRadius + 1;
+    this.velY = Math.abs(this.velY);
+    this.y = effectiveRadius + 1;
       }
       wallCollision = true;
       wallNormalX = 0;
       wallNormalY = 1;
     }
 
-    if (wallCollision && !isGrazingWall) {
+  if (wallCollision && !isGrazingWall) {
       this.applyWallDeformation(wallNormalX, wallNormalY, deformationSettings);
     }
 
@@ -342,17 +374,22 @@ export class Ball {
     if (this.x < minPos) {
       this.x = minPos;
       this.velX = Math.abs(this.velX);
+      // Guarantee a minimum rebound for the player ball to avoid sticking
+  if ((this as any).isStartingBall && Math.abs(this.velX) < ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND) this.velX = ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND;
     } else if (this.x > maxPosX) {
       this.x = maxPosX;
       this.velX = -Math.abs(this.velX);
+  if ((this as any).isStartingBall && Math.abs(this.velX) < ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND) this.velX = -ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND;
     }
 
     if (this.y < minPos) {
       this.y = minPos;
       this.velY = Math.abs(this.velY);
+  if ((this as any).isStartingBall && Math.abs(this.velY) < ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND) this.velY = ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND;
     } else if (this.y > maxPosY) {
       this.y = maxPosY;
       this.velY = -Math.abs(this.velY);
+  if ((this as any).isStartingBall && Math.abs(this.velY) < ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND) this.velY = -ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND;
     }
 
     if (Math.abs(this.velX) < 0.1 && Math.abs(this.velY) < 0.1 && this.y > canvasHeight - this.size - 5) {

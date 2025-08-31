@@ -125,16 +125,44 @@ export class Ball {
 
         ctx.fill();
 
-        // Draw health bar if enabled
+        // Health arc indicator near the perimeter
         if (this.health < 100) {
-            const healthBarWidth = this.size * 2;
-            const healthBarHeight = 5;
-            const healthPercentage = this.health / 100;
+            const pct = Math.max(0, Math.min(1, this.health / 100));
+            const radius = Math.max(4, this.size * 0.82);
+            const lw = Math.max(3, Math.min(10, this.size * 0.14));
+            const start = -Math.PI / 2; // top
+            const end = start + Math.PI * 2 * pct;
 
-            ctx.fillStyle = 'red';
-            ctx.fillRect(-this.size, this.size + 5, healthBarWidth, healthBarHeight);
-            ctx.fillStyle = 'green';
-            ctx.fillRect(-this.size, this.size + 5, healthBarWidth * healthPercentage, healthBarHeight);
+            ctx.beginPath();
+            ctx.lineCap = 'round';
+            ctx.lineWidth = lw;
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            if (pct > 0) {
+                    const healthColor = pct <= 0.2
+                        ? 'rgba(220,60,50,0.98)'   // critical (red)
+                        : (pct <= 0.5
+                            ? 'rgba(255,200,0,0.98)' // warning (yellow)
+                            : 'rgba(0,200,70,0.95)'); // healthy (green)
+                    ctx.beginPath();
+                    ctx.strokeStyle = healthColor;
+                    ctx.arc(0, 0, radius, start, end);
+                    ctx.stroke();
+            }
+        }
+
+        // Two indicator circles 23% above center, spaced 13% of diameter apart
+        {
+            const y = -this.size * 0.23;
+            const sep = this.size * 0.74; // 37% of diameter (2*size)
+            const r = Math.max(2, Math.min(8, this.size * 0.12));
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.beginPath();
+            ctx.arc(-sep / 2, y, r, 0, Math.PI * 2);
+            ctx.arc(sep / 2, y, r, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         // Highlight selected ball

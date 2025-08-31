@@ -44,11 +44,8 @@ export const GRAVITY_GAUNTLET_DEFAULTS = {
     },
     level: { // New property to define level-specific elements
         type: 'gravityGauntlet',
-        hazards: [
-            // Example hazard: a static square wall
-            { x: 300, y: 200, width: 50, height: 150, color: 'red', shape: 'square', isStatic: true },
-            { x: 500, y: 400, width: 150, height: 50, color: 'red', shape: 'square', isStatic: true }
-        ],
+        constantsKey: 'gravityGauntlet',
+        hazards: [],
         goals: [
             // Example goal: a static circular target
             { x: 700, y: 550, radius: 40, color: 'lime', shape: 'circle', isStatic: true }

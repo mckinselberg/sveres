@@ -10,8 +10,9 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
     const appearanceRef = useRef(null);
     const motionRef = useRef(null);
     const statsRef = useRef(null);
+    const controlRef = useRef(null);
 
-    usePersistentDetails([appearanceRef, motionRef, statsRef]);
+    usePersistentDetails([appearanceRef, motionRef, statsRef, controlRef]);
 
     useEffect(() => {
         if (selectedBall) {
@@ -196,6 +197,60 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         <label>Health:</label>
                         <span>{Math.round(selectedBall.health)}</span>
                     </div>
+                </div>
+            </details>
+
+            <details id="section-selected-control" ref={controlRef}>
+                <summary>Control Tuning</summary>
+                <div className="section-body">
+                    <Slider
+                        label="Base Max Speed"
+                        min={0.5}
+                        max={8}
+                        step={0.1}
+                        value={selectedBall.controlTuning?.maxSpeedBase ?? 2.0}
+                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, maxSpeedBase: parseFloat(e.target.value) } })}
+                    />
+                    <Slider
+                        label="Boost Multiplier"
+                        min={1}
+                        max={4}
+                        step={0.1}
+                        value={selectedBall.controlTuning?.boostMultiplier ?? 2.0}
+                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, boostMultiplier: parseFloat(e.target.value) } })}
+                    />
+                    <Slider
+                        label="Acceleration Rate"
+                        min={0.05}
+                        max={1}
+                        step={0.05}
+                        value={selectedBall.controlTuning?.accelRate ?? 0.35}
+                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, accelRate: parseFloat(e.target.value) } })}
+                    />
+                    <Slider
+                        label="Accel Boost Multiplier"
+                        min={1}
+                        max={3}
+                        step={0.1}
+                        value={selectedBall.controlTuning?.accelBoostMultiplier ?? 1.4}
+                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, accelBoostMultiplier: parseFloat(e.target.value) } })}
+                    />
+                    <Slider
+                        label="Release Friction"
+                        min={0.5}
+                        max={0.99}
+                        step={0.01}
+                        value={selectedBall.controlTuning?.releaseFriction ?? 0.92}
+                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, releaseFriction: parseFloat(e.target.value) } })}
+                    />
+                    <Slider
+                        label="Brake Friction"
+                        min={0.3}
+                        max={0.95}
+                        step={0.01}
+                        value={selectedBall.controlTuning?.brakeFriction ?? 0.75}
+                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, brakeFriction: parseFloat(e.target.value) } })}
+                    />
                 </div>
             </details>
 

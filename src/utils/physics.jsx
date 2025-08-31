@@ -2,6 +2,12 @@ import { DEFAULTS } from '../js/config.jsx';
 import { gsap } from 'gsap';
 import { getControlsPanel } from './dom.js';
 import { Ball } from './Ball.ts';
+import { ENGINE_CONSTANTS } from '../js/physics.constants.js';
+import { GRAVITY_GAUNTLET_CONSTANTS } from '../js/levels/gravityGauntlet.constants.js';
+
+const LEVEL_CONSTANTS_MAP = {
+    gravityGauntlet: GRAVITY_GAUNTLET_CONSTANTS?.PHYSICS
+};
 
 // Utility functions
 export function random(min, max) {
@@ -57,7 +63,7 @@ function parseRgb(rgbString) {
 // Handles the collision response between two balls.
 // This function applies positional correction, resolves velocities based on elastic collision physics,
 // applies deformation effects, updates health, and increments the global score.
-export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore) {
+export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, physicsConsts = ENGINE_CONSTANTS) {
     // 1. Positional Correction: Separate balls to prevent sticking
     const overlap = combinedRadius - distance;
     const separationFactor = overlap / 2 + 0.5; // Add a small buffer
@@ -66,8 +72,10 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
     ball2.x += normalX * separationFactor;
     ball2.y += normalY * separationFactor;
 
-    // 2. Velocity Resolution: Apply elastic collision physics
-    const elasticity = 0.9; // Coefficient of restitution
+    // 2. Velocity Resolution: Apply elastic collision physics with mass proportional to size
+    const elasticity = (physicsConsts?.COLLISION_ELASTICITY ?? ENGINE_CONSTANTS.COLLISION_ELASTICITY);
+    const m1 = Math.max(1, ball1.size);
+    const m2 = Math.max(1, ball2.size);
     const tangentX = -normalY;
     const tangentY = normalX;
 
@@ -77,9 +85,12 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
     const v1t = ball1.velX * tangentX + ball1.velY * tangentY;
     const v2t = ball2.velX * tangentX + ball2.velY * tangentY;
 
-    // New normal velocities (using 1D collision formula for equal mass)
-    const v1n_final = (v1n * (1 - elasticity) + 2 * v2n) / 2;
-    const v2n_final = (v2n * (1 - elasticity) + 2 * v1n) / 2;
+    // New normal velocities using 1D collision formula for masses m1, m2
+    // v1' = ((m1 - e m2) v1 + (1+e) m2 v2) / (m1 + m2)
+    // v2' = ((m2 - e m1) v2 + (1+e) m1 v1) / (m1 + m2)
+    const denom = (m1 + m2) || 1;
+    const v1n_final = (((m1 - elasticity * m2) * v1n) + ((1 + elasticity) * m2 * v2n)) / denom;
+    const v2n_final = (((m2 - elasticity * m1) * v2n) + ((1 + elasticity) * m1 * v1n)) / denom;
 
     // Convert scalar normal and tangential velocities back to vectors
     ball1.velX = v1n_final * normalX + v1t * tangentX;
@@ -116,8 +127,9 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 // Iteratively solves collisions between all balls in the simulation.
 // This function performs multiple iterations to ensure stable collision resolution,
 // especially for stacked or multi-ball collisions.
-export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount) {
-    const iterations = 5; // Number of iterations for stable collision resolution
+export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal) {
+    const phys = (level && LEVEL_CONSTANTS_MAP[level.type]) || ENGINE_CONSTANTS;
+    const iterations = phys.COLLISION_ITERATIONS; // Number of iterations for stable collision resolution
     const dynamicBalls = balls.filter(ball => !ball.isStatic);
     const staticObjects = [];
 
@@ -179,7 +191,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                     const velAlongNormal = relativeVelX * normalX + relativeVelY * normalY;
 
                     if (velAlongNormal < 0) { // Only resolve if balls are moving towards each other
-                        handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore);
+                        handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, phys);
                     }
                 }
             }
@@ -234,12 +246,18 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                             }
                         }
                     } else if (staticObj.type === 'goal' && setGlobalScore) {
-                        setGlobalScore(prevScore => prevScore + 1);
-                        if (setScoredBallsCount) setScoredBallsCount(prev => prev + 1);
-                        // Remove ball after scoring
-                        const index = balls.indexOf(ball);
-                        if (index > -1) {
-                            balls.splice(index, 1);
+                        // Only score/remove non-starting balls; the starting ball is the player and should not be removed
+                        if (!ball.isStartingBall) {
+                            setGlobalScore(prevScore => prevScore + 1);
+                            if (setScoredBallsCount) setScoredBallsCount(prev => prev + 1);
+                            // Remove ball after scoring
+                            const index = balls.indexOf(ball);
+                            if (index > -1) {
+                                balls.splice(index, 1);
+                            }
+                        } else {
+                            // Player hit the goal -> lose condition
+                            if (onPlayerHitGoal) onPlayerHitGoal();
                         }
                     }
                 }
@@ -408,7 +426,7 @@ export function detectCollisions(balls, healthSystemEnabled, healthDamageMultipl
     }
 }
 
-export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level, setScoredBallsCount, setRemovedBallsCount) {
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal) {
     ctx.fillStyle = colorWithAlpha(backgroundColor, currentClearAlpha);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -454,5 +472,5 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         });
     }
 
-    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount);
+    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal);
 }
