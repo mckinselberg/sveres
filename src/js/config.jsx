@@ -6,7 +6,7 @@ export const DEFAULTS = {
     ballSize: 45,
     ballVelocity: 7,
     newBallSize: 45,
-    ballCount: 50,
+    ballCount: 15,
     deformation: {
         enabled: true,
         intensity: 0.5,
@@ -24,5 +24,34 @@ export const DEFAULTS = {
         sandbox: false,
         healthSystem: true,
         healthDamageMultiplier: 1
+    }
+};
+
+export const GRAVITY_GAUNTLET_DEFAULTS = {
+    ...DEFAULTS, // Inherit all default settings
+    enableGravity: true,
+    gravityStrength: 0.2, // Slightly stronger gravity for the gauntlet
+    ballCount: 5, // Fixed number of balls for the level
+    ballShape: 'mixed', // Mixed shapes for variety
+    ballSize: 30, // Smaller balls for more precise navigation
+    ballVelocity: 5, // Moderate velocity
+    gameplay: {
+        ...DEFAULTS.gameplay,
+        scoring: true,
+        sandbox: false, // Not a sandbox level
+        healthSystem: true,
+        healthDamageMultiplier: 0.2 // Each hit takes 20% health
+    },
+    level: { // New property to define level-specific elements
+        type: 'gravityGauntlet',
+        hazards: [
+            // Example hazard: a static square wall
+            { x: 300, y: 200, width: 50, height: 150, color: 'red', shape: 'square', isStatic: true },
+            { x: 500, y: 400, width: 150, height: 50, color: 'red', shape: 'square', isStatic: true }
+        ],
+        goals: [
+            // Example goal: a static circular target
+            { x: 700, y: 550, radius: 40, color: 'lime', shape: 'circle', isStatic: true }
+        ]
     }
 };

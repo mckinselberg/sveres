@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest"
   },
   "keywords": [
     "physics",
@@ -26,5 +27,8 @@
     "react-dom": "^18.3.1",
     "sass": "^1.90.0",
     "vite": "^5.4.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0"
   }
 }

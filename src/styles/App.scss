@@ -1,3 +1,5 @@
+@use './_mobile.scss';
+
 // Theme vars (alphabetized)
 $accent: #8a2be2;
 $accent-hover: #9b4dff;
@@ -40,10 +42,41 @@ canvas {
 
 .global-score {
   color: $text-color;
+  display: none;
   position: fixed;
   right: 10px;
   top: 10px;
   z-index: 1001;
+}
+
+.status-bar {
+  color: $text-color;
+  position: fixed;
+  left: 60px;
+  top: 18px;
+  z-index: 1001;
+  background: rgba(0,0,0,0.35);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.pause-overlay {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  color: $text-color;
+  display: flex;
+  font-size: 22px;
+  font-weight: 600;
+  height: 100vh;
+  justify-content: center;
+  left: 0;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: 100vw;
+  z-index: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 
 .container {
@@ -195,6 +228,34 @@ canvas {
   &::-webkit-scrollbar-thumb:hover {
     background: $scrollbar-thumb-hover;
   }
+}
+
+/* Themed buttons */
+.button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: $text-color;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px 12px;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.04s ease;
+
+  &:hover { border-color: rgba(255,255,255,0.35); }
+  &:active { transform: translateY(1px); }
+
+  &--primary {
+    background: $accent;
+    border-color: transparent;
+    &:hover { background: $accent-hover; }
+  }
+
+  &--full { width: 100%; }
 }
 
 /* Toggle button */
@@ -374,4 +435,4 @@ input[type="range"] {
   }
 }
 
-@import './_mobile.scss';
+// mobile rules are loaded at top via @use

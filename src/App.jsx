@@ -4,52 +4,95 @@ import Canvas from './components/Canvas.jsx';
 import SelectedBallControls from './components/SelectedBallControls.jsx';
 import IntroOverlay from './components/IntroOverlay.jsx';
 import './styles/App.scss';
-import { DEFAULTS } from './js/config.jsx';
-import { initializeBalls, addNewBall, adjustBallCount, resetAllBalls, removeBall, adjustBallVelocities, Ball } from './utils/physics.jsx';
+import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
 
 function App() {
-    const [physicsSettings, setPhysicsSettings] = useState(DEFAULTS);
-    const [balls, setBalls] = useState([]);
+    const [levelMode, setLevelMode] = useState(false); // false for sandbox, true for level
+    const [physicsSettings, setPhysicsSettings] = useState(levelMode ? GRAVITY_GAUNTLET_DEFAULTS : DEFAULTS);
+    const [balls, setBalls] = useState([]); // Deprecated for Canvas-owned state; kept for presets and managers until Phase 2 completes
     const [globalScore, setGlobalScore] = useState(0);
-    const [selectedBall, setSelectedBall] = useState(null); // New state for selected ball
+    const [initialBallCount, setInitialBallCount] = useState(0);
+    const [scoredBallsCount, setScoredBallsCount] = useState(0);
+    const [removedBallsCount, setRemovedBallsCount] = useState(0);
+    const [selectedBall, setSelectedBall] = useState(null); // Backward-compatible selected ball object (derived)
+    const [selectedBallId, setSelectedBallId] = useState(null); // Stable selection by id
     const [showControls, setShowControls] = useState(true); // State for controls visibility
     const [isPaused, setIsPaused] = useState(false);
 
-    // Initialize balls when component mounts or physics settings change
+    // Reset counters and selection on true resets: level mode toggle, level type change, or ball shape change
     useEffect(() => {
-        const initialBalls = [];
-        initializeBalls(initialBalls, physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, physicsSettings.ballShape);
-        setBalls(initialBalls);
+        if (physicsSettings.level && physicsSettings.level.type === 'gravityGauntlet') {
+            setInitialBallCount(physicsSettings.ballCount);
+            setScoredBallsCount(0);
+            setRemovedBallsCount(0);
+        }
+        setSelectedBall(null);
+        setSelectedBallId(null);
+    }, [levelMode, physicsSettings.level?.type, physicsSettings.ballShape]);
+
+    const toggleLevelMode = useCallback(() => {
+        setLevelMode(prevMode => {
+            const newMode = !prevMode;
+            setPhysicsSettings(newMode ? GRAVITY_GAUNTLET_DEFAULTS : DEFAULTS);
+            return newMode;
+        });
+        setGlobalScore(0); // Reset score on mode change
     }, []);
+
+    const canvasRef = React.useRef(null);
+    const handleUpdateSelectedBall = useCallback((updatedBall) => {
+        const payload = { ...updatedBall, id: updatedBall.id ?? selectedBallId };
+        canvasRef.current?.updateSelectedBall?.(payload);
+    }, [selectedBallId]);
 
     useEffect(() => {
         const handleKeyDown = (event) => {
+            if (event.key === ' ' || event.code === 'Space') {
+                event.preventDefault();
+                setIsPaused(prev => !prev);
+                return;
+            }
             if (selectedBall) {
                 const moveSpeed = 2;
+                let newVelX = selectedBall.velX;
+                let newVelY = selectedBall.velY;
+
                 switch (event.key) {
                     case 'w':
                     case 'ArrowUp':
-                        setSelectedBall({ ...selectedBall, velY: -moveSpeed });
+                        event.preventDefault();
+                        newVelY = -moveSpeed;
                         break;
                     case 'a':
                     case 'ArrowLeft':
-                        setSelectedBall({ ...selectedBall, velX: -moveSpeed });
+                        event.preventDefault();
+                        newVelX = -moveSpeed;
                         break;
                     case 's':
                     case 'ArrowDown':
-                        setSelectedBall({ ...selectedBall, velY: moveSpeed });
+                        event.preventDefault();
+                        newVelY = moveSpeed;
                         break;
                     case 'd':
                     case 'ArrowRight':
-                        setSelectedBall({ ...selectedBall, velX: moveSpeed });
-                        break;
-                    case 'n':
-                        setSelectedBall({ ...selectedBall, velX: selectedBall.velX * 1.5, velY: selectedBall.velY * 1.5 });
+                        event.preventDefault();
+                        newVelX = moveSpeed;
                         break;
                     case 'm':
-                        setSelectedBall({ ...selectedBall, velX: selectedBall.velX / 1.5, velY: selectedBall.velY / 1.5 });
+                        newVelX *= 1.5;
+                        newVelY *= 1.5;
                         break;
+                    case 'n':
+                        newVelX /= 1.5;
+                        newVelY /= 1.5;
+                        break;
+                    case 'p':
+                        // toggle pause
+                        event.preventDefault();
+                        setIsPaused(prev => !prev);
+                        return;
                 }
+                handleUpdateSelectedBall({ ...selectedBall, velX: newVelX, velY: newVelY, id: selectedBall.id });
             }
         };
 
@@ -57,109 +100,14 @@ function App() {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [selectedBall]);
-
-    useEffect(() => {
-        const handleFocus = () => {
-            setIsPaused(false);
-        };
-
-        const handleBlur = () => {
-            setIsPaused(true);
-        };
-
-        window.addEventListener('focus', handleFocus);
-        window.addEventListener('blur', handleBlur);
-
-        return () => {
-            window.removeEventListener('focus', handleFocus);
-            window.removeEventListener('blur', handleBlur);
-        };
-    }, []);
-
-    const handlePhysicsSettingsChange = useCallback((newSettings) => {
-        const oldSettings = physicsSettings;
-        setPhysicsSettings(newSettings);
-
-        if (newSettings.ballSize !== oldSettings.ballSize) {
-            const ratio = newSettings.ballSize / oldSettings.ballSize;
-            setBalls(prevBalls => prevBalls.map(ball => {
-                const newBall = new Ball(ball.x, ball.y, ball.velX, ball.velY, ball.color, ball.size * ratio, ball.shape);
-                newBall.originalSize = ball.originalSize * ratio;
-                return newBall;
-            }));
-        }
-
-        if (newSettings.ballCount !== oldSettings.ballCount) {
-            setBalls(prevBalls => {
-                const newBalls = [...prevBalls];
-                adjustBallCount(newBalls, newSettings.ballCount, newSettings.ballSize, newSettings.ballVelocity, window.innerWidth, window.innerHeight);
-                return newBalls;
-            });
-        }
-
-        if (newSettings.ballVelocity !== oldSettings.ballVelocity) {
-            setBalls(prevBalls => {
-                const newBalls = [...prevBalls];
-                adjustBallVelocities(newBalls, newSettings.ballVelocity);
-                return newBalls;
-            });
-        }
-    }, [physicsSettings]);
-
-    const handleAddBall = useCallback(() => {
-        setBalls(prevBalls => {
-            const newBalls = [...prevBalls];
-            addNewBall(newBalls, physicsSettings.newBallSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, null, null, physicsSettings.ballShape);
-            return newBalls;
-        });
-    }, [physicsSettings]);
-
-    const handleRemoveBall = useCallback(() => {
-        setBalls(prevBalls => {
-            if (prevBalls.length > 1) {
-                const newBalls = [...prevBalls];
-                removeBall(newBalls, newBalls[newBalls.length - 1]); // Remove the last ball
-                return newBalls;
-            }
-            return prevBalls;
-        });
-    }, []);
-
-    const handleResetBalls = useCallback(() => {
-        setBalls(() => {
-            const newBalls = [];
-            resetAllBalls(newBalls, physicsSettings.ballCount, physicsSettings.ballSize, physicsSettings.ballVelocity, window.innerWidth, window.innerHeight, physicsSettings.ballShape);
-            setGlobalScore(0); // Reset global score on ball reset
-            return newBalls;
-        });
-    }, [physicsSettings]);
-
-    const handleUpdateSelectedBall = useCallback((updatedBall) => {
-        setBalls(prevBalls => {
-            const newBalls = prevBalls.map(ball => {
-                if (ball === selectedBall) {
-                    const newBall = new Ball(updatedBall.x, updatedBall.y, updatedBall.velX, updatedBall.velY, updatedBall.color, updatedBall.size, updatedBall.shape);
-                    newBall.originalSize = updatedBall.originalSize;
-                    newBall.collisionCount = updatedBall.collisionCount;
-                    newBall.health = updatedBall.health;
-                    newBall.opacity = updatedBall.opacity;
-                    newBall._lastMultiplier = updatedBall._lastMultiplier;
-                    return newBall;
-                }
-                return ball;
-            });
-            setSelectedBall(newBalls.find(b => b.x === updatedBall.x && b.y === updatedBall.y));
-            return newBalls;
-        });
-    }, [selectedBall]);
+    }, [selectedBall, handleUpdateSelectedBall]);
 
     const toggleControlsVisibility = useCallback(() => {
         setShowControls(!showControls);
     }, [showControls]);
 
     const handleApplyColorScheme = useCallback((scheme) => {
-        // Update background color
+        // Update background color via physicsSettings
         setPhysicsSettings(prevSettings => ({
             ...prevSettings,
             visuals: {
@@ -167,30 +115,59 @@ function App() {
                 backgroundColor: scheme.backgroundColor
             }
         }));
-
-        // Update ball colors
-        setBalls(prevBalls => {
-            return prevBalls.map((ball, index) => {
-                if (scheme.ballColors[index]) {
-                    ball.color = scheme.ballColors[index];
-                    ball.originalColor = scheme.ballColors[index];
-                }
-                return ball;
-            });
-        });
+        // Apply ball colors via Canvas engine
+        canvasRef.current?.applyColorScheme?.(scheme);
     }, []);
 
     const handleApplyPhysicsSettings = useCallback((settings) => {
         setPhysicsSettings(settings);
     }, []);
 
+    const handlePhysicsSettingsChange = useCallback((newSettings) => {
+        // Let Canvas reconcile ball count/size/speed internally.
+        setPhysicsSettings(newSettings);
+    }, []);
+
+    // canvasRef declared earlier
+
+    const handleAddBall = useCallback(() => {
+        canvasRef.current?.addBall?.();
+    }, []);
+
+    const handleRemoveBall = useCallback(() => {
+        canvasRef.current?.removeBall?.();
+    }, []);
+
+    const handleResetBalls = useCallback(() => {
+        canvasRef.current?.resetBalls?.();
+        setGlobalScore(0);
+    }, []);
+
     return (
         <div>
             <IntroOverlay />
             <h1 className="page-title">Bouncing Spheres - React</h1>
+            <div className="status-bar" style={{ opacity: physicsSettings.visuals.uiOpacity }}>
+                <span>Mode: {levelMode ? 'Gravity Gauntlet' : 'Sandbox'}</span>
+                {physicsSettings.level && (
+                    <span style={{ marginLeft: 12 }}>
+                        Level: {physicsSettings.level.title || (physicsSettings.level.type === 'gravityGauntlet' ? 'Gravity Gauntlet' : physicsSettings.level.type)}
+                        {physicsSettings.level.difficulty ? ` · ${physicsSettings.level.difficulty}` : ''}
+                    </span>
+                )}
+                <span style={{ marginLeft: 12 }}>{isPaused ? 'Paused' : 'Running'}</span>
+            </div>
             <div className="global-score">Global Score: <span>{globalScore}</span></div>
+            {levelMode && (
+                <div className="ball-counters">
+                    <div>Balls Remaining: <span>{initialBallCount - scoredBallsCount - removedBallsCount}</span></div>
+                    <div>Scored: <span>{scoredBallsCount}</span></div>
+                    <div>Removed: <span>{removedBallsCount}</span></div>
+                </div>
+            )}
+            {isPaused && <div className="pause-overlay">Paused (Space / P to resume)</div>}
             <Canvas
-                balls={balls}
+                ref={canvasRef}
                 enableGravity={physicsSettings.enableGravity}
                 gravityStrength={physicsSettings.gravityStrength}
                 ballVelocity={physicsSettings.ballVelocity}
@@ -198,14 +175,24 @@ function App() {
                 gameplay={physicsSettings.gameplay}
                 backgroundColor={physicsSettings.visuals.backgroundColor}
                 trailOpacity={physicsSettings.visuals.trailOpacity}
-                setBalls={setBalls}
                 setGlobalScore={setGlobalScore}
                 selectedBall={selectedBall}
-                setSelectedBall={setSelectedBall}
+                onSelectedBallChange={useCallback((ball) => {
+                    setSelectedBall(ball);
+                    setSelectedBallId(ball ? ball.id : null);
+                }, [])}
+                onBallsSnapshot={setBalls}
                 isPaused={isPaused}
+                level={physicsSettings.level}
+                setScoredBallsCount={setScoredBallsCount}
+                setRemovedBallsCount={setRemovedBallsCount}
+                ballCount={physicsSettings.ballCount}
+                ballSize={physicsSettings.ballSize}
+                ballShape={physicsSettings.ballShape}
+                newBallSize={physicsSettings.newBallSize}
             />
             {showControls && (
-                <Controls
+                                <Controls
                     physicsSettings={physicsSettings}
                     onPhysicsSettingsChange={handlePhysicsSettingsChange}
                     onAddBall={handleAddBall}
@@ -214,13 +201,15 @@ function App() {
                     balls={balls}
                     onApplyColorScheme={handleApplyColorScheme}
                     onApplyPhysicsSettings={handleApplyPhysicsSettings}
+                    levelMode={levelMode}
+                    toggleLevelMode={toggleLevelMode}
                 />
             )}
             <SelectedBallControls
                 selectedBall={selectedBall}
                 onUpdateSelectedBall={handleUpdateSelectedBall}
             />
-            <button className="toggle-controls-button" onClick={toggleControlsVisibility}>⚙️</button>
+            <button className="toggle-controls-button" aria-label="Toggle Controls" onClick={toggleControlsVisibility}>⚙️</button>
         </div>
     );
 }

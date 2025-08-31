@@ -1,47 +1,156 @@
-import React, { useRef, useEffect, memo } from 'react';
-import { loop } from '../utils/physics.jsx';
+import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle } from 'react';
+import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics';
 
-const Canvas = memo(({ balls, enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused }) => {
+const Canvas = memo(forwardRef(function Canvas({
+    enableGravity,
+    gravityStrength,
+    ballVelocity,
+    deformation,
+    gameplay,
+    backgroundColor,
+    trailOpacity,
+    setGlobalScore,
+    selectedBall, // snapshot from App for display only
+    onSelectedBallChange, // callback(ball|null)
+    onBallsSnapshot, // callback(balls[])
+    isPaused,
+    level,
+    setScoredBallsCount,
+    setRemovedBallsCount,
+    ballCount,
+    ballSize,
+    ballShape,
+    newBallSize
+}, ref) {
     const canvasRef = useRef(null);
     const animationFrameId = useRef(null);
+    const ballsRef = useRef([]);
+    const selectedBallIdRef = useRef(null);
+    const prevSettingsRef = useRef({ ballCount, ballSize, ballVelocity, ballShape });
+    const settingsRef = useRef({ enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity });
+    const onSelectedBallChangeRef = useRef(onSelectedBallChange);
+    // Frame-batched increments to reduce React updates inside RAF
+    const scoreDeltaRef = useRef(0);
+    const scoredBallsDeltaRef = useRef(0);
+    const removedBallsDeltaRef = useRef(0);
 
+    // Keep latest callback refs to avoid re-running effects due to unstable identities
+    useEffect(() => {
+        onSelectedBallChangeRef.current = onSelectedBallChange;
+    }, [onSelectedBallChange]);
+
+    // Keep latest settings in a ref so the render loop reads fresh values without restarting effects
+    useEffect(() => {
+        settingsRef.current = { enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity };
+    }, [enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity]);
+
+    // Imperative API for App/Controls
+    const emitSnapshot = () => {
+        if (!onBallsSnapshot) return;
+        const snap = ballsRef.current.map(b => ({
+            id: b.id,
+            x: b.x,
+            y: b.y,
+            velX: b.velX,
+            velY: b.velY,
+            color: b.color,
+            originalColor: b.originalColor,
+            size: b.size,
+            shape: b.shape,
+            isStatic: b.isStatic,
+            health: b.health
+        }));
+        onBallsSnapshot(snap);
+    };
+
+    useImperativeHandle(ref, () => ({
+        addBall: () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            addNewBall(ballsRef.current, newBallSize ?? ballSize, ballVelocity, canvas.width, canvas.height, null, null, ballShape);
+            emitSnapshot();
+        },
+        removeBall: () => {
+            if (ballsRef.current.length > 0) ballsRef.current.pop();
+            emitSnapshot();
+        },
+        resetBalls: () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            ballsRef.current = [];
+            initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape);
+            selectedBallIdRef.current = null;
+            if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
+            emitSnapshot();
+        },
+        applyColorScheme: (scheme) => {
+            // Update ball colors
+            ballsRef.current.forEach((ball, index) => {
+                if (scheme.ballColors && scheme.ballColors[index]) {
+                    ball.color = scheme.ballColors[index];
+                    ball.originalColor = scheme.ballColors[index];
+                }
+            });
+            emitSnapshot();
+        },
+        updateSelectedBall: (updated) => {
+            const id = updated.id ?? selectedBallIdRef.current;
+            if (id == null) return;
+            const ball = ballsRef.current.find(b => b.id === id);
+            if (!ball) return;
+            // Mutate fields in place to keep engine references
+            if (typeof updated.x === 'number') ball.x = updated.x;
+            if (typeof updated.y === 'number') ball.y = updated.y;
+            if (typeof updated.velX === 'number') ball.velX = updated.velX;
+            if (typeof updated.velY === 'number') ball.velY = updated.velY;
+            if (typeof updated.color === 'string') ball.color = updated.color;
+            if (typeof updated.size === 'number') ball.size = updated.size;
+            if (typeof updated.shape === 'string') ball.shape = updated.shape;
+            if (typeof updated.isStatic === 'boolean') ball.isStatic = updated.isStatic;
+            if (typeof updated.health === 'number') ball.health = updated.health;
+            if (updated._lastMultiplier != null) ball._lastMultiplier = updated._lastMultiplier;
+            if (updated.originalSize != null) ball.originalSize = updated.originalSize;
+            if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ball });
+            emitSnapshot();
+        }
+    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, onSelectedBallChange]);
+
+    // Seed balls on mount and when level type or shape changes only
     useEffect(() => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-
-        const render = () => {
-                                    loop(ctx, balls, canvas.width, canvas.height, { enableGravity, gravityStrength, ballVelocity, deformation, gameplay }, backgroundColor, 1 - (trailOpacity * 0.9), setGlobalScore, selectedBall);
-            animationFrameId.current = requestAnimationFrame(render);
-        };
-
-        if (!isPaused) {
-            render();
-        }
 
         const handleResize = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         };
-
         handleResize();
+
+        // (Re)seed balls for new level/shape
+        ballsRef.current = [];
+        initializeBalls(ballsRef.current, ballCount, ballSize, settingsRef.current.ballVelocity, canvas.width, canvas.height, ballShape);
+        selectedBallIdRef.current = null;
+        if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
+        emitSnapshot();
 
         const handleMouseDown = (e) => {
             const mouseX = e.clientX;
             const mouseY = e.clientY;
 
             let ballClicked = false;
-            for (let i = balls.length - 1; i >= 0; i--) {
-                const ball = balls[i];
+            for (let i = ballsRef.current.length - 1; i >= 0; i--) {
+                const ball = ballsRef.current[i];
                 const distance = Math.sqrt((mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2);
                 if (distance < ball.size) {
-                    setSelectedBall(ball);
+                    selectedBallIdRef.current = ball.id;
+                    if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ball });
                     ballClicked = true;
                     break;
                 }
             }
 
-            if (!ballClicked && selectedBall) {
-                setSelectedBall(null); // Deselect if clicked outside
+            if (!ballClicked && selectedBallIdRef.current != null) {
+                selectedBallIdRef.current = null;
+                if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
             }
         };
 
@@ -67,15 +176,87 @@ const Canvas = memo(({ balls, enableGravity, gravityStrength, ballVelocity, defo
         }, { passive: false });
 
         return () => {
-            cancelAnimationFrame(animationFrameId.current);
             window.removeEventListener('resize', handleResize);
             canvas.removeEventListener('mousedown', handleMouseDown);
         };
-    }, [balls, enableGravity, gravityStrength, ballVelocity, deformation, backgroundColor, trailOpacity, setBalls, setGlobalScore, selectedBall, setSelectedBall, isPaused]);
+    }, [level?.type, ballShape]);
+
+    // Pause/resume the loop without re-seeding
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        if (isPaused) {
+            cancelAnimationFrame(animationFrameId.current);
+            return;
+        }
+        const ctx = canvas.getContext('2d');
+        // Ensure any prior loop is stopped before starting a new one
+        cancelAnimationFrame(animationFrameId.current);
+        const render = () => {
+            const selectedForDraw = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
+            const s = settingsRef.current;
+            // reset deltas
+            scoreDeltaRef.current = 0;
+            scoredBallsDeltaRef.current = 0;
+            removedBallsDeltaRef.current = 0;
+
+            // wrappers record increments from physics; physics uses prev => prev + 1
+            const incScore = () => { scoreDeltaRef.current += 1; };
+            const incScored = () => { scoredBallsDeltaRef.current += 1; };
+            const incRemoved = () => { removedBallsDeltaRef.current += 1; };
+
+            loop(
+                ctx,
+                ballsRef.current,
+                canvas.width,
+                canvas.height,
+                { enableGravity: s.enableGravity, gravityStrength: s.gravityStrength, ballVelocity: s.ballVelocity, deformation: s.deformation, gameplay: s.gameplay },
+                s.backgroundColor,
+                1 - (s.trailOpacity * 0.9),
+                incScore,
+                selectedForDraw,
+                level,
+                incScored,
+                incRemoved
+            );
+
+            // Flush accumulated increments once per frame
+            if (scoreDeltaRef.current) setGlobalScore?.(prev => prev + scoreDeltaRef.current);
+            if (scoredBallsDeltaRef.current) setScoredBallsCount?.(prev => prev + scoredBallsDeltaRef.current);
+            if (removedBallsDeltaRef.current) setRemovedBallsCount?.(prev => prev + removedBallsDeltaRef.current);
+
+            animationFrameId.current = requestAnimationFrame(render);
+        };
+        render();
+        return () => cancelAnimationFrame(animationFrameId.current);
+    }, [isPaused, level]);
+
+    // Reconcile when count/size/velocity change (without full re-seed)
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const prev = prevSettingsRef.current;
+        if (ballCount !== prev.ballCount) {
+            adjustBallCount(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height);
+            emitSnapshot();
+        }
+        if (ballVelocity !== prev.ballVelocity) {
+            adjustBallVelocities(ballsRef.current, ballVelocity);
+        }
+        if (ballSize !== prev.ballSize) {
+            const ratio = ballSize / (prev.ballSize || ballSize);
+            ballsRef.current.forEach(ball => {
+                ball.size *= ratio;
+                ball.originalSize = (ball.originalSize ?? ball.size) * ratio;
+            });
+            emitSnapshot();
+        }
+        prevSettingsRef.current = { ballCount, ballSize, ballVelocity, ballShape };
+    }, [ballCount, ballSize, ballVelocity, ballShape]);
 
     return (
         <canvas ref={canvasRef} style={{ display: 'block' }} />
     );
-});
+}));
 
 export default Canvas;

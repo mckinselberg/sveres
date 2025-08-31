@@ -1,6 +1,7 @@
 import { DEFAULTS } from '../js/config.jsx';
 import { gsap } from 'gsap';
 import { getControlsPanel } from './dom.js';
+import { Ball } from './Ball.ts';
 
 // Utility functions
 export function random(min, max) {
@@ -34,348 +35,24 @@ export function colorWithAlpha(color, alpha = 1) {
     }
 }
 
-// Ball class
-export class Ball {
-    constructor(x, y, velX, velY, color, size, shape = DEFAULTS.ballShape) {
-        this.x = x;
-        this.y = y;
-        this.velX = velX;
-        this.velY = velY;
-        this.collisionCount = 0;
-        this.health = 100;
-        this.maxHealth = 100;
-        this.color = color;
-        this.originalColor = color;
-        this.size = size;
-        this.originalSize = size;
-        this.shape = shape;
-        this.scaleX = 1;
-        this.scaleY = 1;
-        this.deformAngle = 0;
-        this.ripples = [];
-        this.rippleCenter = { x: 0, y: 0 };
-        this.isAnimating = false;
-        this.lastAnimationTime = 0;
-        this.lastCollisionTime = 0;
-        this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.02;
-        this.isSleeping = false;
-        this._lastMultiplier = 1;
-        this.opacity = 1;
+function parseRgb(rgbString) {
+    const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (match) {
+        return {
+            r: parseInt(match[1], 10),
+            g: parseInt(match[2], 10),
+            b: parseInt(match[3], 10)
+        };
     }
-
-    draw(ctx, selectedBall) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.deformAngle);
-        ctx.scale(this.scaleX, this.scaleY);
-
-        if (this === selectedBall) {
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = this.color;
-        }
-
-        ctx.beginPath();
-        ctx.fillStyle = colorWithAlpha(this.originalColor, this.opacity);
-
-        if (this.shape === 'circle') {
-            ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
-        } else if (this.shape === 'square') {
-            ctx.fillRect(-this.size, -this.size, this.size * 2, this.size * 2);
-        }
-        else if (this.shape === 'triangle') {
-            const halfSide = this.size * Math.sqrt(3) / 2;
-            const topY = -this.size;
-            const bottomY = this.size / 2;
-            ctx.moveTo(0, topY);
-            ctx.lineTo(-halfSide, bottomY);
-            ctx.lineTo(halfSide, bottomY);
-            ctx.closePath();
-        }
-        else if (this.shape === 'diamond') {
-            ctx.moveTo(0, -this.size);
-            ctx.lineTo(this.size, 0);
-            ctx.lineTo(0, this.size);
-            ctx.lineTo(-this.size, 0);
-            ctx.closePath();
-        }
-        else if (this.shape === 'pentagon') {
-            for (let i = 0; i < 5; i++) {
-                ctx.lineTo(this.size * Math.cos(i * 2 * Math.PI / 5), this.size * Math.sin(i * 2 * Math.PI / 5));
-            }
-            ctx.closePath();
-        }
-        else if (this.shape === 'hexagon') {
-            for (let i = 0; i < 6; i++) {
-                ctx.lineTo(this.size * Math.cos(i * 2 * Math.PI / 6), this.size * Math.sin(i * 2 * Math.PI / 6));
-            }
-            ctx.closePath();
-        }
-        else if (this.shape === 'octagon') {
-            for (let i = 0; i < 8; i++) {
-                ctx.lineTo(this.size * Math.cos(i * 2 * Math.PI / 8), this.size * Math.sin(i * 2 * Math.PI / 8));
-            }
-            ctx.closePath();
-        }
-        else if (this.shape === 'star') {
-            const outerRadius = this.size;
-            const innerRadius = this.size / 2;
-            const numPoints = 6;
-            ctx.moveTo(0, -outerRadius);
-            for (let i = 0; i < numPoints * 2; i++) {
-                const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                const angle = Math.PI / numPoints * i;
-                ctx.lineTo(radius * Math.sin(angle), -radius * Math.cos(angle));
-            }
-            ctx.closePath();
-        }
-        ctx.fill();
-
-        if (this.health < this.maxHealth) {
-            const healthRatio = this.health / this.maxHealth;
-            const opacity = 1 - healthRatio;
-            ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-            ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-
-        ctx.restore();
-    }
-
-    applyWallDeformation(normalX, normalY, deformationSettings) {
-        if (!deformationSettings.enabled) return;
-        if (this.isAnimating) return;
-
-        const { intensity, speed, ease, easeOverride } = deformationSettings;
-        const deformationEase = easeOverride || ease;
-
-        const velocityMagnitude = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
-        const impactIntensity = Math.pow(Math.min(velocityMagnitude / 18, 1), 2) * intensity;
-        const maxDeformation = 0.6;
-        const deformationAmount = Math.min(impactIntensity, maxDeformation);
-        const animationDuration = speed / (1 + impactIntensity * 2);
-
-        this.deformAngle = Math.atan2(normalY, normalX);
-        const compressionRatio = 1 - deformationAmount;
-        const stretchRatio = 1 / compressionRatio;
-
-        this.isAnimating = true;
-
-        const timeline = gsap.timeline({
-            onComplete: () => {
-                this.isAnimating = false;
-                this.lastAnimationTime = Date.now();
-                this.scaleX = 1;
-                this.scaleY = 1;
-            }
-        });
-
-        timeline
-            .to(this, {
-                scaleX: normalX !== 0 ? compressionRatio : stretchRatio,
-                scaleY: normalY !== 0 ? compressionRatio : stretchRatio,
-                duration: animationDuration,
-                ease: "power3.out"
-            })
-            .to(this, {
-                scaleX: 1,
-                scaleY: 1,
-                duration: animationDuration * 5,
-                ease: deformationEase
-            });
-    }
-
-    applyBallDeformation(normalX, normalY, intensity, deformationSettings) {
-        if (!deformationSettings.enabled) return;
-        if (this.isAnimating) return;
-
-        const { speed, ease, easeOverride } = deformationSettings;
-        const deformationEase = easeOverride || ease;
-
-        const impactIntensity = Math.pow(intensity, 2) * deformationSettings.intensity;
-        const maxDeformation = 0.6;
-        const deformationAmount = Math.min(impactIntensity, maxDeformation);
-        const animationDuration = speed / (1 + intensity * 2);
-
-        this.deformAngle = Math.atan2(normalY, normalX);
-        const compressionRatio = 1 - deformationAmount;
-        const stretchRatio = 1 / compressionRatio;
-
-        this.isAnimating = true;
-
-        const timeline = gsap.timeline({
-            onComplete: () => {
-                this.isAnimating = false;
-                this.lastAnimationTime = Date.now();
-                this.scaleX = 1;
-                this.scaleY = 1;
-            }
-        });
-
-        timeline
-            .to(this, {
-                scaleX: compressionRatio,
-                scaleY: stretchRatio,
-                duration: animationDuration,
-                ease: "power3.out"
-            })
-            .to(this, {
-                scaleX: 1,
-                scaleY: 1,
-                duration: animationDuration * 5,
-                ease: deformationEase
-            });
-    }
-
-    update(canvasWidth, canvasHeight, gravityStrength, maxVelocity, deformationSettings) {
-        // Apply gravity if enabled
-        if (gravityStrength > 0) {
-            this.velY += gravityStrength;
-        }
-
-        const controlsPanel = getControlsPanel();
-        if (controlsPanel) {
-            const panelRect = controlsPanel.getBoundingClientRect();
-            let closestX = Math.max(panelRect.left, Math.min(this.x, panelRect.right));
-            let closestY = Math.max(panelRect.top, Math.min(this.y, panelRect.bottom));
-            const dx = this.x - closestX;
-            const dy = this.y - closestY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < this.size) {
-                const overlap = this.size - distance;
-                let normalX = dx / distance;
-                let normalY = dy / distance;
-
-                if (isNaN(normalX) || isNaN(normalY)) {
-                    normalX = 1;
-                    normalY = 0;
-                }
-
-                this.x += normalX * overlap;
-                this.y += normalY * overlap;
-
-                const dotProduct = (this.velX * normalX + this.velY * normalY) * 2;
-                this.velX -= dotProduct * normalX;
-                this.velY -= dotProduct * normalY;
-
-                this.applyWallDeformation(normalX, normalY, deformationSettings);
-            }
-        }
-
-        // Velocity limiting
-        if (Math.abs(this.velX) > maxVelocity) {
-            this.velX = this.velX > 0 ? maxVelocity : -maxVelocity;
-        }
-        if (Math.abs(this.velY) > maxVelocity) {
-            this.velY = this.velY > 0 ? maxVelocity : -maxVelocity;
-        }
-
-        const effectiveRadius = this.size * Math.max(this.scaleX, this.scaleY);
-
-        let wallCollision = false;
-        let wallNormalX = 0;
-        let wallNormalY = 0;
-        let isGrazingWall = false;
-
-        // Right wall collision
-        if ((this.x + effectiveRadius) >= canvasWidth) {
-            const approachSpeed = this.velX;
-            isGrazingWall = Math.abs(approachSpeed) < 2;
-            if (isGrazingWall) {
-                this.velX = -Math.abs(this.velX) * 0.7;
-                this.x = canvasWidth - effectiveRadius - 1;
-            } else {
-                this.velX = -Math.abs(this.velX);
-                this.x = canvasWidth - effectiveRadius - 1;
-            }
-            wallCollision = true;
-            wallNormalX = -1;
-            wallNormalY = 0;
-        }
-
-        // Left wall collision
-        if ((this.x - effectiveRadius) <= 0) {
-            const approachSpeed = -this.velX;
-            isGrazingWall = Math.abs(approachSpeed) < 2;
-            if (isGrazingWall) {
-                this.velX = Math.abs(this.velX) * 0.7;
-                this.x = effectiveRadius + 1;
-            } else {
-                this.velX = Math.abs(this.velX);
-                this.x = effectiveRadius + 1;
-            }
-            wallCollision = true;
-            wallNormalX = 1;
-            wallNormalY = 0;
-        }
-
-        // Bottom wall collision
-        if ((this.y + effectiveRadius) >= canvasHeight) {
-            const approachSpeed = this.velY;
-            isGrazingWall = Math.abs(approachSpeed) < 2;
-            if (isGrazingWall) {
-                this.velY = -Math.abs(this.velY) * 0.7;
-                this.y = canvasHeight - effectiveRadius - 1;
-            } else {
-                this.velY = -Math.abs(this.velY);
-                this.y = canvasHeight - effectiveRadius - 1;
-            }
-            wallCollision = true;
-            wallNormalX = 0;
-            wallNormalY = -1;
-        }
-
-        // Top wall collision
-        if ((this.y - effectiveRadius) <= 0) {
-            const approachSpeed = -this.velY;
-            isGrazingWall = Math.abs(approachSpeed) < 2;
-            if (isGrazingWall) {
-                this.velY = Math.abs(this.velY) * 0.7;
-                this.y = effectiveRadius + 1;
-            } else {
-                this.velY = Math.abs(this.velY);
-                this.y = effectiveRadius + 1;
-            }
-            wallCollision = true;
-            wallNormalX = 0;
-            wallNormalY = 1;
-        }
-
-        if (wallCollision && !isGrazingWall) {
-            this.applyWallDeformation(wallNormalX, wallNormalY, deformationSettings);
-        }
-
-        this.x += this.velX;
-        this.y += this.velY;
-
-        // Safety check: ensure balls stay within bounds considering deformation
-        const minPos = effectiveRadius + 2;
-        const maxPosX = canvasWidth - effectiveRadius - 2;
-        const maxPosY = canvasHeight - effectiveRadius - 2;
-
-        if (this.x < minPos) {
-            this.x = minPos;
-            this.velX = Math.abs(this.velX);
-        } else if (this.x > maxPosX) {
-            this.x = maxPosX;
-            this.velX = -Math.abs(this.velX);
-        }
-
-        if (this.y < minPos) {
-            this.y = minPos;
-            this.velY = Math.abs(this.velY);
-        } else if (this.y > maxPosY) {
-            this.y = maxPosY;
-            this.velY = -Math.abs(this.velY);
-        }
-
-        // Check if the ball should be put to sleep
-        if (Math.abs(this.velX) < 0.1 && Math.abs(this.velY) < 0.1 && this.y > canvasHeight - this.size - 5) {
-            this.isSleeping = true;
-        }
-    }
+    return null;
 }
+
+// Ball class
+
+
+
+
+    
 
 // Handles the collision response between two balls.
 // This function applies positional correction, resolves velocities based on elastic collision physics,
@@ -439,54 +116,131 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 // Iteratively solves collisions between all balls in the simulation.
 // This function performs multiple iterations to ensure stable collision resolution,
 // especially for stacked or multi-ball collisions.
-export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore) {
+export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount) {
     const iterations = 5; // Number of iterations for stable collision resolution
+    const dynamicBalls = balls.filter(ball => !ball.isStatic);
+    const staticObjects = [];
+
+    if (level && level.hazards) {
+        level.hazards.forEach(hazard => {
+            staticObjects.push({
+                x: hazard.x,
+                y: hazard.y,
+                size: hazard.shape === 'circle' ? hazard.radius : Math.max(hazard.width, hazard.height) / 2, // Approximate size for collision
+                shape: hazard.shape,
+                color: hazard.color,
+                isStatic: true,
+                type: 'hazard'
+            });
+        });
+    }
+
+    if (level && level.goals) {
+        level.goals.forEach(goal => {
+            staticObjects.push({
+                x: goal.x,
+                y: goal.y,
+                size: goal.shape === 'circle' ? goal.radius : Math.max(goal.width, goal.height) / 2, // Approximate size for collision
+                shape: goal.shape,
+                color: goal.color,
+                isStatic: true,
+                type: 'goal'
+            });
+        });
+    }
+
     for (let k = 0; k < iterations; k++) {
-        for (let i = 0; i < balls.length; i++) {
-            for (let j = i + 1; j < balls.length; j++) {
-                const ball1 = balls[i];
-                const ball2 = balls[j];
+        // Collisions between dynamic balls
+        for (let i = 0; i < dynamicBalls.length; i++) {
+            for (let j = i + 1; j < dynamicBalls.length; j++) {
+                const ball1 = dynamicBalls[i];
+                const ball2 = dynamicBalls[j];
 
                 const dx = ball2.x - ball1.x;
                 const dy = ball2.y - ball1.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const combinedRadius = ball1.size + ball2.size;
 
-                // Check for collision
-                if (distance < combinedRadius) {
+                if (distance < combinedRadius && distance > 0) {
                     const overlap = combinedRadius - distance;
                     const normalX = dx / distance;
                     const normalY = dy / distance;
 
-                    // Separate the balls to prevent overlap
                     ball1.x -= normalX * overlap / 2;
                     ball1.y -= normalY * overlap / 2;
                     ball2.x += normalX * overlap / 2;
                     ball2.y += normalY * overlap / 2;
 
-                    // Wake up sleeping balls if they collide
                     if (ball1.isSleeping) ball1.isSleeping = false;
                     if (ball2.isSleeping) ball2.isSleeping = false;
 
                     const relativeVelX = ball2.velX - ball1.velX;
                     const relativeVelY = ball2.velY - ball1.velY;
-                    const relativeSpeed = Math.sqrt(relativeVelX * relativeVelX + relativeVelY * relativeVelY);
+                    const velAlongNormal = relativeVelX * normalX + relativeVelY * normalY;
 
-                    // Apply collision response based on relative speed
-                    if (relativeSpeed > 1) {
-                        // Dynamic collision response for high-speed collisions
+                    if (velAlongNormal < 0) { // Only resolve if balls are moving towards each other
                         handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore);
-                    } else {
-                        // Iterative solver for low-speed collisions (stacking) with friction
-                        const tangentX = -normalY;
-                        const tangentY = normalX;
-                        const tangentSpeed = relativeVelX * tangentX + relativeVelY * tangentY;
-                        const friction = Math.min(0.1 * relativeSpeed, 0.1); // Apply dynamic friction
-                        const frictionImpulse = tangentSpeed * friction;
-                        ball1.velX += tangentX * frictionImpulse;
-                        ball1.velY += tangentY * frictionImpulse;
-                        ball2.velX -= tangentX * frictionImpulse;
-                        ball2.velY -= tangentY * frictionImpulse;
+                    }
+                }
+            }
+        }
+
+        // Collisions between dynamic balls and static objects
+        for (let i = 0; i < dynamicBalls.length; i++) {
+            const ball = dynamicBalls[i];
+
+            for (let j = 0; j < staticObjects.length; j++) {
+                const staticObj = staticObjects[j];
+
+                const dx = staticObj.x - ball.x;
+                const dy = staticObj.y - ball.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const combinedRadius = ball.size + staticObj.size; // Using approximate size for static objects
+
+                if (distance < combinedRadius && distance > 0) {
+                    const overlap = combinedRadius - distance;
+                    const normalX = dx / distance;
+                    const normalY = dy / distance;
+
+                    // Separate the dynamic ball from the static object
+                    ball.x -= normalX * overlap;
+                    ball.y -= normalY * overlap;
+
+                    // Reflect velocity for dynamic ball
+                    const dotProduct = (ball.velX * normalX + ball.velY * normalY) * 2;
+                    ball.velX -= dotProduct * normalX;
+                    ball.velY -= dotProduct * normalY;
+
+                    // Apply deformation to the dynamic ball
+                    ball.applyWallDeformation(normalX, normalY, deformationSettings);
+
+                    if (staticObj.type === 'hazard' && healthSystemEnabled) {
+                        const damage = healthDamageMultiplier * 100; // Use 100 to make it a percentage
+                        ball.health -= damage;
+                        ball.health = Math.max(0, ball.health);
+                        // Flash the ball red
+                        const originalColor = ball.color;
+                        ball.color = 'red';
+                        setTimeout(() => {
+                            ball.color = originalColor;
+                        }, 200);
+
+                        // Remove ball if health is zero
+                        if (ball.health <= 0) {
+                            const index = balls.indexOf(ball);
+                            if (index > -1) {
+                                balls.splice(index, 1);
+                                if (setRemovedBallsCount) setRemovedBallsCount(prev => prev + 1);
+                            }
+                        }
+                    } else if (staticObj.type === 'goal' && setGlobalScore) {
+                        setGlobalScore(prevScore => prevScore + 1);
+                        if (setScoredBallsCount) setScoredBallsCount(prev => prev + 1);
+                        // Remove ball after scoring
+                        const index = balls.indexOf(ball);
+                        if (index > -1) {
+                            balls.splice(index, 1);
+                        }
                     }
                 }
             }
@@ -494,23 +248,44 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
     }
 }
 
-export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight) {
-    while(balls.length < ballCount) {
+/**
+ * @typedef {import('./Ball.jsx').Ball} BallClass
+ */
+
+/**
+ * @param {BallClass[]} balls
+ * @param {number} ballCount
+ * @param {number} ballSize
+ * @param {number} ballVelocity
+ * @param {number} canvasWidth
+ * @param {number} canvasHeight
+ * @param {string} ballShape
+ */
+export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight, ballShape) {
+    for (let i = 0; i < ballCount; i++) {
         const size = Math.max(1, random(ballSize - 20, ballSize + 20));
+        const isStartingBall = i === 0;
+
         const ball = new Ball(
-            random(0 + size, canvasWidth - size),
-            random(0 + size, canvasHeight - size),
-            random(-ballVelocity, ballVelocity),
-            random(-ballVelocity, ballVelocity),
+            isStartingBall ? canvasWidth / 2 : random(0 + size, canvasWidth - size),
+            isStartingBall ? size + 20 : random(0 + size, canvasHeight - size),
+            isStartingBall ? 0 : random(-ballVelocity, ballVelocity),
+            isStartingBall ? 0 : random(-ballVelocity, ballVelocity),
             'rgb(' + random(0, 255) + ',' + random(0, 255) + ',' + random(0, 255) + ')',
-            size
+            size,
+            ballShape
         );
         ball._lastMultiplier = 1;
+        ball.isStartingBall = isStartingBall;
+    ball.originalColor = ball.color;
         balls.push(ball);
     }
 }
 
-export function addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHeight, x = null, y = null, ballShape = DEFAULTS.ballShape) {
+/**
+ * @param {BallClass[]} balls
+ */
+export function addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHeight, x = null, y = null, ballShape = DEFAULTS.ballShape, isStatic = false) {
     const size = ballSize;
     let attempts = 0;
     let newX = x;
@@ -547,12 +322,17 @@ export function addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHei
         random(-ballVelocity, ballVelocity),
         'rgb(' + random(0, 255) + ',' + random(0, 255) + ',' + random(0, 255) + ')',
         size,
-        shapeToUse
+        shapeToUse,
+        isStatic
     );
     ball._lastMultiplier = 1;
+    ball.originalColor = ball.color;
     balls.push(ball);
 }
 
+/**
+ * @param {BallClass[]} balls
+ */
 export function adjustBallCount(balls, targetCount, ballSize, ballVelocity, canvasWidth, canvasHeight) {
     while (balls.length < targetCount) {
         addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHeight);
@@ -562,6 +342,9 @@ export function adjustBallCount(balls, targetCount, ballSize, ballVelocity, canv
     }
 }
 
+/**
+ * @param {BallClass[]} balls
+ */
 export function adjustBallVelocities(balls, maxVelocity) {
     balls.forEach(ball => {
         const currentSpeed = Math.sqrt(ball.velX * ball.velX + ball.velY * ball.velY);
@@ -576,6 +359,9 @@ export function adjustBallVelocities(balls, maxVelocity) {
     });
 }
 
+/**
+ * @param {BallClass[]} balls
+ */
 export function resetAllBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight, ballShape) {
     balls.length = 0;
     initializeBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight, ballShape);
@@ -622,9 +408,25 @@ export function detectCollisions(balls, healthSystemEnabled, healthDamageMultipl
     }
 }
 
-export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall) {
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level, setScoredBallsCount, setRemovedBallsCount) {
     ctx.fillStyle = colorWithAlpha(backgroundColor, currentClearAlpha);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Helper function to draw static shapes
+    const drawStaticShape = (shapeData) => {
+        ctx.save();
+        ctx.fillStyle = shapeData.color;
+        ctx.beginPath();
+
+        if (shapeData.shape === 'circle') {
+            ctx.arc(shapeData.x, shapeData.y, shapeData.radius, 0, 2 * Math.PI);
+        } else if (shapeData.shape === 'square') {
+            ctx.fillRect(shapeData.x - shapeData.width / 2, shapeData.y - shapeData.height / 2, shapeData.width, shapeData.height);
+        }
+        // Add more shapes as needed (triangle, diamond, etc.)
+        ctx.fill();
+        ctx.restore();
+    };
 
     for (let i = 0; i < balls.length; i++) {
         const ball = balls[i];
@@ -638,5 +440,19 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation);
     }
 
-    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore);
+    // Draw hazards
+    if (level && level.hazards) {
+        level.hazards.forEach(hazard => {
+            drawStaticShape(hazard);
+        });
+    }
+
+    // Draw goals
+    if (level && level.goals) {
+        level.goals.forEach(goal => {
+            drawStaticShape(goal);
+        });
+    }
+
+    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount);
 }

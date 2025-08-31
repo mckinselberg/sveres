@@ -40,6 +40,14 @@ function IntroOverlay() {
                     <li>Use the sliders to change size, speed, gravity, and more. Try Deformation for squishy fun.</li>
                     <li>On mobile, panels become bottom sheets and inputs are touch-friendly.</li>
                 </ul>
+                <h4>Gravity Gauntlet Mode:</h4>
+                <ul>
+                    <li>Toggle "GG" mode in the controls to play.</li>
+                    <li>The objective is to get all the balls into the green "goal" zones.</li>
+                    <li>The first ball is highlighted with a white stroke. This is your starting ball.</li>
+                    <li>Avoid the red "hazard" zones, or your balls will take damage and be removed.</li>
+                    <li>Use the WASD or arrow keys to control the selected ball. Use N and M to increase or decrease its velocity.</li>
+                </ul>
                 <div className="actions">
                     <button onClick={dismiss}>Got it</button>
                 </div>

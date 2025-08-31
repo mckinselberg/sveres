@@ -4,7 +4,7 @@ import ColorSchemeManager from './ColorSchemeManager.jsx';
 import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
-function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls }) {
+function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme }) {
     const simulationRef = useRef(null);
     const visualsRef = useRef(null);
     const deformationRef = useRef(null);
@@ -73,14 +73,18 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     };
 
     const handleApplyColorScheme = (scheme) => {
-        onPhysicsSettingsChange({
-            ...physicsSettings,
-            visuals: {
-                ...physicsSettings.visuals,
-                backgroundColor: scheme.backgroundColor
-            }
-        });
-        
+        if (onApplyColorScheme) {
+            onApplyColorScheme(scheme);
+        } else {
+            // Fallback: preserve previous behavior if parent didn't pass a handler
+            onPhysicsSettingsChange({
+                ...physicsSettings,
+                visuals: {
+                    ...physicsSettings.visuals,
+                    backgroundColor: scheme.backgroundColor
+                }
+            });
+        }
     };
 
     const handleApplyPhysicsSettings = (settings) => {
@@ -90,35 +94,42 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     return (
         <div className="controls-panel">
             <h2>Simulation Controls</h2>
+            <button onClick={toggleLevelMode} className="button button--primary button--full" style={{ marginBottom: '10px' }}>
+                Switch to {levelMode ? 'Sandbox' : 'Gravity Gauntlet'} Mode
+            </button>
             <details id="section-simulation" open ref={simulationRef}>
                 <summary>Simulation</summary>
                 <div className="section-body">
-                    <Slider
-                        label="Ball Count"
-                        min={3}
-                        max={500}
-                        step={1}
-                        value={physicsSettings.ballCount}
-                        onChange={(e) => handleSliderChange('ballCount', e.target.value)}
-                        logarithmic
-                    />
-                    <Slider
-                        label="Ball Size"
-                        min={10}
-                        max={150}
-                        step={1}
-                        value={physicsSettings.ballSize}
-                        onChange={(e) => handleSliderChange('ballSize', e.target.value)}
-                        displayValue={`${physicsSettings.ballSize}px`}
-                    />
-                    <Slider
-                        label="Ball Velocity"
-                        min={1}
-                        max={15}
-                        step={1}
-                        value={physicsSettings.ballVelocity}
-                        onChange={(e) => handleSliderChange('ballVelocity', e.target.value)}
-                    />
+                    {!levelMode && (
+                        <>
+                            <Slider
+                                label="Ball Count"
+                                min={3}
+                                max={500}
+                                step={1}
+                                value={physicsSettings.ballCount}
+                                onChange={(e) => handleSliderChange('ballCount', e.target.value)}
+                                logarithmic
+                            />
+                            <Slider
+                                label="Ball Size"
+                                min={10}
+                                max={150}
+                                step={1}
+                                value={physicsSettings.ballSize}
+                                onChange={(e) => handleSliderChange('ballSize', e.target.value)}
+                                displayValue={`${physicsSettings.ballSize}px`}
+                            />
+                            <Slider
+                                label="Ball Velocity"
+                                min={1}
+                                max={15}
+                                step={1}
+                                value={physicsSettings.ballVelocity}
+                                onChange={(e) => handleSliderChange('ballVelocity', e.target.value)}
+                            />
+                        </>
+                    )}
                     <Slider
                         label="Gravity Strength"
                         min={0}
@@ -126,6 +137,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                         step={0.01}
                         value={physicsSettings.gravityStrength}
                         onChange={(e) => handleSliderChange('gravityStrength', e.target.value)}
+                        disabled={levelMode && physicsSettings.enableGravity} // Disable if in level mode and gravity is enabled by level
                     />
                     <div className="control-group">
                         <label>
@@ -133,6 +145,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                                 type="checkbox"
                                 checked={physicsSettings.enableGravity}
                                 onChange={(e) => handleCheckboxChange('enableGravity', e.target.checked)}
+                                disabled={levelMode && physicsSettings.enableGravity} // Disable if in level mode and gravity is enabled by level
                             />
                             Enable Gravity
                         </label>
@@ -236,6 +249,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                                 type="checkbox"
                                 checked={physicsSettings.gameplay.scoring}
                                 onChange={(e) => handleGameplayChange('scoring', e.target.checked)}
+                                disabled={levelMode} // Disable in level mode
                             />
                             Enable Scoring
                         </label>
@@ -246,6 +260,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                                 type="checkbox"
                                 checked={physicsSettings.gameplay.sandbox}
                                 onChange={(e) => handleGameplayChange('sandbox', e.target.checked)}
+                                disabled={levelMode} // Disable in level mode
                             />
                             Sandbox Mode (No Ball Removal)
                         </label>
@@ -256,6 +271,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                                 type="checkbox"
                                 checked={physicsSettings.gameplay.healthSystem}
                                 onChange={(e) => handleGameplayChange('healthSystem', e.target.checked)}
+                                disabled={levelMode} // Disable in level mode
                             />
                             Enable Health System
                         </label>
@@ -267,6 +283,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                         step={0.01}
                         value={physicsSettings.gameplay.healthDamageMultiplier}
                         onChange={(e) => handleGameplayChange('healthDamageMultiplier', e.target.value)}
+                        disabled={levelMode} // Disable in level mode
                     />
                 </div>
             </details>
@@ -274,35 +291,39 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
             <details id="section-objects" open ref={objectsRef}>
                 <summary>Objects</summary>
                 <div className="section-body">
+                    {!levelMode && (
+                        <div className="control-group">
+                            <label>Ball Shape:</label>
+                            <select
+                                value={physicsSettings.ballShape}
+                                onChange={(e) => handleBallShapeChange(e.target.value)}
+                            >
+                                <option value="circle">Circle</option>
+                                <option value="square">Square</option>
+                                <option value="triangle">Triangle</option>
+                                <option value="diamond">Diamond</option>
+                                <option value="pentagon">Pentagon</option>
+                                <option value="hexagon">Hexagon</option>
+                                <option value="octagon">Octagon</option>
+                                <option value="star">Star</option>
+                                <option value="mixed">Mixed Shapes</option>
+                            </select>
+                        </div>
+                    )}
                     <div className="control-group">
-                        <label>Ball Shape:</label>
-                        <select
-                            value={physicsSettings.ballShape}
-                            onChange={(e) => handleBallShapeChange(e.target.value)}
-                        >
-                            <option value="circle">Circle</option>
-                            <option value="square">Square</option>
-                            <option value="triangle">Triangle</option>
-                            <option value="diamond">Diamond</option>
-                            <option value="pentagon">Pentagon</option>
-                            <option value="hexagon">Hexagon</option>
-                            <option value="octagon">Octagon</option>
-                            <option value="star">Star</option>
-                            <option value="mixed">Mixed Shapes</option>
-                        </select>
-                    </div>
-                    <div className="control-group">
-                        <button onClick={onAddBall}>Add Ball</button>
-                        <Slider
-                            label="New Ball Size"
-                            min={10}
-                            max={150}
-                            step={1}
-                            value={physicsSettings.newBallSize}
-                            onChange={(e) => handleSliderChange('newBallSize', e.target.value)}
-                            displayValue={`${physicsSettings.newBallSize}px`}
-                        />
-                        <button onClick={onRemoveBall}>Remove Ball</button>
+                        {!levelMode && <button onClick={onAddBall}>Add Ball</button>}
+                        {!levelMode && (
+                            <Slider
+                                label="New Ball Size"
+                                min={10}
+                                max={150}
+                                step={1}
+                                value={physicsSettings.newBallSize}
+                                onChange={(e) => handleSliderChange('newBallSize', e.target.value)}
+                                displayValue={`${physicsSettings.newBallSize}px`}
+                            />
+                        )}
+                        {!levelMode && <button onClick={onRemoveBall}>Remove Ball</button>}
                         <button onClick={onResetBalls}>Reset Balls</button>
                     </div>
                 </div>
