@@ -88,6 +88,25 @@ function App() {
         canvasRef.current?.jumpPlayer?.();
     }, [isGameOver]);
 
+    const handleShareURL = useCallback(async () => {
+        try {
+            // Overwrite or set the hash based on current localStorage
+            setHashFromLocalStorage(true);
+            const href = `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(href);
+            } else {
+                // Fallback: temporary textarea
+                const ta = document.createElement('textarea');
+                ta.value = href;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch {}
+                document.body.removeChild(ta);
+            }
+        } catch {}
+    }, []);
+
     // Reset counters and selection on true resets: level mode toggle, level type change, or ball shape change
     useEffect(() => {
         if (physicsSettings.level && physicsSettings.level.type === 'gravityGauntlet') {
@@ -533,7 +552,7 @@ function App() {
             <button
                 className="gauntlet-wasd-toggle"
                 style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 224px)' }}
-                onClick={() => setHashFromLocalStorage(true)}
+                onClick={handleShareURL}
                 aria-label="Append settings hash to URL"
                 title="Append settings hash to URL for bookmarking/sharing"
             >
