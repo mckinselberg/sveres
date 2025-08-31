@@ -73,6 +73,10 @@ function App() {
         return typeof saved === 'boolean' ? saved : true;
     });
     const [showGauntletHelp, setShowGauntletHelp] = useState(false);
+    const handleJump = useCallback(() => {
+        if (isGameOver) return;
+        canvasRef.current?.jumpPlayer?.();
+    }, [isGameOver]);
 
     // Reset counters and selection on true resets: level mode toggle, level type change, or ball shape change
     useEffect(() => {
@@ -158,10 +162,10 @@ function App() {
                 }
                 return;
             }
-            // Pause toggles
+            // Jump on Space if not pausing; keep P as pause key
             if (event.key === ' ' || event.code === 'Space') {
                 event.preventDefault();
-                setIsPaused(prev => !prev);
+                handleJump();
                 return;
             }
             if (event.key === 'p' || event.key === 'P') {
@@ -191,7 +195,7 @@ function App() {
             }
 
             // Track movement keys while held
-            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift']);
+            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift','j','J']);
             if (moveKeys.has(event.key)) {
                 // Respect WASD toggle
                 if (!wasdEnabled && (event.key === 'w' || event.key === 'a' || event.key === 's' || event.key === 'd')) {
@@ -206,6 +210,10 @@ function App() {
                     activeDirRef.current = -1;
                 } else if ((wasdEnabled && event.key === 'd') || event.key === 'ArrowRight') {
                     activeDirRef.current = 1;
+                }
+
+                if (event.key === 'j' || event.key === 'J') {
+                    handleJump();
                 }
             }
         };
@@ -494,6 +502,17 @@ function App() {
                     title="Show Gauntlet Instructions"
                 >
                     Instructions
+                </button>
+            )}
+            {levelMode && (
+                <button
+                    className="gauntlet-wasd-toggle"
+                    style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 168px)' }}
+                    onClick={handleJump}
+                    aria-label="Jump"
+                    title="Jump (Space/J)"
+                >
+                    Jump
                 </button>
             )}
             {isPaused && <div className="pause-overlay">Paused (Space / P to resume)</div>}

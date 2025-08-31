@@ -141,6 +141,27 @@ const Canvas = memo(forwardRef(function Canvas({
             }
             if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ball });
             emitSnapshot();
+        },
+        jumpPlayer: () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            // Choose player: selected or starting ball in gauntlet
+            const selected = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
+            let player = selected || ballsRef.current.find(b => b.isStartingBall);
+            if (!player) return;
+            const now = Date.now();
+            // Simple cooldown to prevent spamming
+            if (player._jumpCooldownUntil && player._jumpCooldownUntil > now) return;
+            const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
+            const grounded = (player.y + effR) >= (canvas.height - 3);
+            if (!grounded) return;
+            const s = settingsRef.current;
+            const g = Math.max(0.05, s.gravityStrength || 0.15);
+            // Jump velocity scaled by gravity for natural feel
+            const jumpVy = -Math.max(8, Math.min(18, g * 70));
+            player.velY = jumpVy;
+            player.isSleeping = false;
+            player._jumpCooldownUntil = now + 280; // ms
         }
     }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, onSelectedBallChange]);
 
