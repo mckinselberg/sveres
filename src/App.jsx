@@ -6,8 +6,9 @@ import IntroOverlay from './components/IntroOverlay.jsx';
 import GauntletInstructionsOverlay from './components/GauntletInstructionsOverlay.jsx';
 import './styles/App.scss';
 import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
+import { GAME_LEVELS, getLevelById } from './js/levels/levels.js';
 import { decideGasDir } from './utils/inputDirection.js';
-import { localStorageToJSONString, seedLocalStorageFromHash, setHashFromLocalStorage } from './utils/storage.js';
+import { localStorageToJSONString, seedLocalStorageFromHash, setHashFromLocalStorage, buildLevelJSON } from './utils/storage.js';
 
 // Expose handy debug helper to the browser console
 if (typeof window !== 'undefined') {
@@ -38,8 +39,10 @@ function loadJSON(key, fallback) {
 function mergeDefaultsForMode(mode, saved) {
     // Ensure any newly added fields get defaults while honoring saved values
     if (mode) {
-        // level mode (Gravity Gauntlet)
-        const merged = { ...GRAVITY_GAUNTLET_DEFAULTS, ...(saved || {}) };
+    // level mode (Game) — start from Level 1 (Gravity Gauntlet)
+    const level1 = getLevelById('gauntlet-1') || GAME_LEVELS[0];
+    const base = { ...GRAVITY_GAUNTLET_DEFAULTS, level: { type: level1.type, title: level1.title, difficulty: level1.difficulty, hazards: level1.hazards, goals: level1.goals, powerups: level1.powerups } };
+    const merged = { ...base, ...(saved || {}) };
         // Explicitly clear hazards in gauntlet mode
         if (merged.level && merged.level.type === 'gravityGauntlet') {
             merged.level = { ...merged.level, hazards: [] };
@@ -106,6 +109,18 @@ function App() {
             }
         } catch {}
     }, []);
+
+    const handleExportLevel = useCallback(async () => {
+        try {
+            const json = buildLevelJSON(physicsSettings.level);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(json);
+            }
+            // Optionally, also log it
+            // eslint-disable-next-line no-console
+            console.log(json);
+        } catch {}
+    }, [physicsSettings.level]);
 
     // Reset counters and selection on true resets: level mode toggle, level type change, or ball shape change
     useEffect(() => {
@@ -558,6 +573,17 @@ function App() {
             >
                 Share URL
             </button>
+            {levelMode && (
+                <button
+                    className="gauntlet-wasd-toggle"
+                    style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 280px)' }}
+                    onClick={handleExportLevel}
+                    aria-label="Export Level JSON"
+                    title="Copy current level JSON to clipboard"
+                >
+                    Export Level JSON
+                </button>
+            )}
             {isPaused && <div className="pause-overlay">Paused (Space / P to resume)</div>}
             {didWin && (
                 <div className="pause-overlay" style={{ pointerEvents: 'auto' }}>

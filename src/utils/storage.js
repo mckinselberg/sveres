@@ -146,3 +146,22 @@ export default {
   setHashFromLocalStorage,
   seedLocalStorageFromHash,
 };
+
+/**
+ * Build a minimal level JSON payload from an object similar to physicsSettings.level and engine defaults.
+ * This is a convenience to copy/paste into the levels registry.
+ */
+export function buildLevelJSON(levelLike) {
+  const level = levelLike || {};
+  const out = {
+    id: level.id || 'custom-level',
+    type: level.type || 'gravityGauntlet',
+    title: level.title || '',
+    difficulty: level.difficulty || '',
+    hazards: Array.isArray(level.hazards) ? level.hazards : [],
+    goals: Array.isArray(level.goals) ? level.goals : [],
+    powerups: Array.isArray(level.powerups) ? level.powerups : [],
+    physics: level.physics || undefined,
+  };
+  return JSON.stringify(out, null, 2);
+}
