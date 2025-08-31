@@ -7,11 +7,13 @@ import GauntletInstructionsOverlay from './components/GauntletInstructionsOverla
 import './styles/App.scss';
 import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
 import { decideGasDir } from './utils/inputDirection.js';
-import { localStorageToJSONString } from './utils/storage.js';
+import { localStorageToJSONString, seedLocalStorageFromHash, setHashFromLocalStorage } from './utils/storage.js';
 
 // Expose handy debug helper to the browser console
 if (typeof window !== 'undefined') {
     window.localStorageToJSONString = localStorageToJSONString;
+    window.sveresSeedFromHash = seedLocalStorageFromHash;
+    window.sveresSetHashFromLocalStorage = setHashFromLocalStorage;
 }
 
 // Local storage keys for persistence
@@ -49,6 +51,8 @@ function mergeDefaultsForMode(mode, saved) {
 }
 
 function App() {
+    // Seed from URL hash as early as possible
+    try { seedLocalStorageFromHash(); } catch {}
     // Hydrate level mode from storage first
     const initialLevelMode = loadJSON(LS_KEYS.levelMode, false);
     // Hydrate settings for the current mode; merge with defaults to fill gaps
