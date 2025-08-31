@@ -16,8 +16,8 @@ export const DEFAULTS = {
     },
     visuals: {
         backgroundColor: '#222020',
-        trailOpacity: 0.6,
-        uiOpacity: 0.8
+        trailOpacity: 1,
+        uiOpacity: 0.5
     },
     gameplay: {
         scoring: true,
@@ -30,7 +30,7 @@ export const DEFAULTS = {
 export const GRAVITY_GAUNTLET_DEFAULTS = {
     ...DEFAULTS, // Inherit all default settings
     enableGravity: true,
-    gravityStrength: 0.2, // Slightly stronger gravity for the gauntlet
+    gravityStrength: 0.19, // Slightly stronger gravity for the gauntlet
     ballCount: 5, // Fixed number of balls for the level
     ballShape: 'mixed', // Mixed shapes for variety
     ballSize: 30, // Smaller balls for more precise navigation

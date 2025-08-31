@@ -127,7 +127,7 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 // Iteratively solves collisions between all balls in the simulation.
 // This function performs multiple iterations to ensure stable collision resolution,
 // especially for stacked or multi-ball collisions.
-export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal) {
+export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall) {
     const phys = (level && LEVEL_CONSTANTS_MAP[level.type]) || ENGINE_CONSTANTS;
     const iterations = phys.COLLISION_ITERATIONS; // Number of iterations for stable collision resolution
     const dynamicBalls = balls.filter(ball => !ball.isStatic);
@@ -209,10 +209,12 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const combinedRadius = ball.size + staticObj.size; // Using approximate size for static objects
 
-                if (distance < combinedRadius && distance > 0) {
-                    const overlap = combinedRadius - distance;
-                    const normalX = dx / distance;
-                    const normalY = dy / distance;
+                if (distance < combinedRadius) {
+                    // Support distance === 0 by using a default normal and full overlap
+                    const overlap = distance === 0 ? combinedRadius : (combinedRadius - distance);
+                    const inv = distance === 0 ? 0 : 1 / distance;
+                    const normalX = distance === 0 ? 1 : dx * inv;
+                    const normalY = distance === 0 ? 0 : dy * inv;
 
                     // Separate the dynamic ball from the static object
                     ball.x -= normalX * overlap;
@@ -247,7 +249,9 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                         }
                     } else if (staticObj.type === 'goal' && setGlobalScore) {
                         // Only score/remove non-starting balls; the starting ball is the player and should not be removed
-                        if (!ball.isStartingBall) {
+                        const isControlled = selectedBall && ball.id === selectedBall.id;
+                        const isPlayer = isControlled || ball.isStartingBall;
+                        if (!isPlayer) {
                             setGlobalScore(prevScore => prevScore + 1);
                             if (setScoredBallsCount) setScoredBallsCount(prev => prev + 1);
                             // Remove ball after scoring
@@ -472,5 +476,5 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         });
     }
 
-    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal);
+    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall);
 }
