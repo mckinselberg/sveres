@@ -147,6 +147,10 @@ function App() {
                         setGlobalScore(0);
                         setScoredBallsCount(0);
                         setRemovedBallsCount(0);
+                        setDidWin(false);
+                        setDidLose(false);
+                        setShowGauntletHelp(false);
+                        try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
                     } else {
                         canvasRef.current?.resetBalls?.();
                         setGlobalScore(0);
@@ -175,6 +179,10 @@ function App() {
                     setGlobalScore(0);
                     setScoredBallsCount(0);
                     setRemovedBallsCount(0);
+                    setDidWin(false);
+                    setDidLose(false);
+                    setShowGauntletHelp(false);
+                    try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
                 } else {
                     canvasRef.current?.resetBalls?.();
                     setGlobalScore(0);
@@ -420,6 +428,8 @@ function App() {
         setRemovedBallsCount(0);
     setDidWin(false);
     setDidLose(false);
+    setShowGauntletHelp(false);
+    try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
     }, []);
 
     // Show gauntlet help on first load if mode is already gauntlet and not dismissed
@@ -457,8 +467,7 @@ function App() {
                     className="gauntlet-reset-button"
                     style={{ opacity: physicsSettings.visuals.uiOpacity }}
                     onClick={handleResetGauntlet}
-                    disabled={isGameOver}
-                    aria-disabled={isGameOver}
+                    
                     aria-label="Reset Gauntlet Level"
                     title="Reset Level"
                 >
