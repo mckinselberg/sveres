@@ -7,6 +7,12 @@ import GauntletInstructionsOverlay from './components/GauntletInstructionsOverla
 import './styles/App.scss';
 import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
 import { decideGasDir } from './utils/inputDirection.js';
+import { localStorageToJSONString } from './utils/storage.js';
+
+// Expose handy debug helper to the browser console
+if (typeof window !== 'undefined') {
+    window.localStorageToJSONString = localStorageToJSONString;
+}
 
 // Local storage keys for persistence
 const LS_KEYS = {
