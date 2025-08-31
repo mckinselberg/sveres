@@ -48,7 +48,7 @@ export const GRAVITY_GAUNTLET_DEFAULTS = {
         hazards: [],
         goals: [
             // Example goal: a static circular target
-            { x: 700, y: 550, radius: 40, color: 'lime', shape: 'circle', isStatic: true }
+            { x: 700, y: 550, radius: 40, color: 'red', shape: 'circle', isStatic: true }
         ],
         // New: static powerups for gravity gauntlet
         // Supported types: 'speed' (boost), 'shield' (prevent a single lose on goal), 'shrink' (temporarily smaller)

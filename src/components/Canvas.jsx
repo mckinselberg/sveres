@@ -87,6 +87,7 @@ const Canvas = memo(forwardRef(function Canvas({
             const canvas = canvasRef.current;
             if (!canvas) return;
             ballsRef.current = [];
+            loseRef.current = false;
             const startingOverrideReset = (level && level.type === 'gravityGauntlet') ? 15 : undefined;
             initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideReset);
             if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
@@ -281,32 +282,35 @@ const Canvas = memo(forwardRef(function Canvas({
                 () => { loseRef.current = true; }
             );
 
-            // Fallback: if physics missed the goal overlap due to edge cases, detect it here for the selected/player ball
-            if (!loseRef.current && level && level.type === 'gravityGauntlet' && selectedForDraw && level.goals && level.goals.length) {
-                for (let k = 0; k < level.goals.length; k++) {
-                    const g = level.goals[k];
-                    if (g.shape === 'circle') {
-                        const dx = g.x - selectedForDraw.x;
-                        const dy = g.y - selectedForDraw.y;
-                        const dist = Math.sqrt(dx*dx + dy*dy);
-                        const combined = (selectedForDraw.size) + (g.radius || 0);
-                        if (dist <= combined) {
-                            const now = Date.now();
-                            if (selectedForDraw.shieldUntil && selectedForDraw.shieldUntil > now) {
-                                // consume shield and reflect a bit
-                                selectedForDraw.shieldUntil = undefined;
-                                const inv = dist === 0 ? 0 : 1 / dist;
-                                const nx = dist === 0 ? 1 : dx * inv;
-                                const ny = dist === 0 ? 0 : dy * inv;
-                                const reflect = (selectedForDraw.velX * nx + selectedForDraw.velY * ny) * 2;
-                                selectedForDraw.velX -= reflect * nx;
-                                selectedForDraw.velY -= reflect * ny;
-                                selectedForDraw.x -= nx * (combined - dist + 2);
-                                selectedForDraw.y -= ny * (combined - dist + 2);
-                            } else {
-                                loseRef.current = true;
+            // Fallback: if physics missed the goal overlap due to edge cases, detect it here for the player (selected or starting)
+            if (!loseRef.current && level && level.type === 'gravityGauntlet' && level.goals && level.goals.length) {
+                const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
+                if (playerBall) {
+                    for (let k = 0; k < level.goals.length; k++) {
+                        const g = level.goals[k];
+                        if (g.shape === 'circle') {
+                            const dx = g.x - playerBall.x;
+                            const dy = g.y - playerBall.y;
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            const combined = (playerBall.size) + (g.radius || 0);
+                            if (dist <= combined) {
+                                const now = Date.now();
+                                if (playerBall.shieldUntil && playerBall.shieldUntil > now) {
+                                    // consume shield and reflect a bit
+                                    playerBall.shieldUntil = undefined;
+                                    const inv = dist === 0 ? 0 : 1 / dist;
+                                    const nx = dist === 0 ? 1 : dx * inv;
+                                    const ny = dist === 0 ? 0 : dy * inv;
+                                    const reflect = (playerBall.velX * nx + playerBall.velY * ny) * 2;
+                                    playerBall.velX -= reflect * nx;
+                                    playerBall.velY -= reflect * ny;
+                                    playerBall.x -= nx * (combined - dist + 2);
+                                    playerBall.y -= ny * (combined - dist + 2);
+                                } else {
+                                    loseRef.current = true;
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
                 }
