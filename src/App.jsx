@@ -288,7 +288,7 @@ function App() {
                 }
 
                 // Choose direction using pure helper for consistency and testability
-                const dirX = decideGasDir({
+                let dirX = decideGasDir({
                     hasLeft,
                     hasRight,
                     gas,
@@ -296,6 +296,10 @@ function App() {
                     activeDir: activeDirRef.current,
                     lastMotionDir: lastMotionDirRef.current,
                 });
+                // If gassing with no active direction or motion, choose a sane default to the right
+                if (gas && dirX === 0) {
+                    dirX = (lastMotionDirRef.current !== 0) ? lastMotionDirRef.current : 1;
+                }
                 const targetVX = dirX === 0 ? currentVX : dirX * maxSpeedX;
                 const targetVY = null; // Y not controlled by input
 
@@ -316,7 +320,8 @@ function App() {
                 } else if (gas) {
                     // accelerate toward target velocity with limited delta per frame (only if direction known)
                     if (dirX === 0) {
-                        newVX = currentVX; // no direction chosen; keep coasting
+                        // still no direction; nudge right to get moving
+                        newVX = moveTowards(currentVX, maxSpeedX, effectiveAccelX);
                     } else {
                         newVX = moveTowards(currentVX, targetVX, effectiveAccelX);
                     }
