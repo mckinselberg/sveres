@@ -1,0 +1,36 @@
+Title: Gravity Gauntlet mode, TS physics refactor, and UI/loop stability improvements
+
+Summary
+- Add Gravity Gauntlet mode with level objects (hazards/goals) and static rendering.
+- Refactor core physics to TypeScript (physics.ts) and introduce a typed Ball class (Ball.ts).
+- Improve loop stability: batch per-frame score/removal counters to reduce reflows.
+- UI updates: mode toggle in Controls, sandbox gating of controls, selected-ball highlight, intro overlay tips.
+- Build/CI: add Vitest unit tests, GitHub Actions CI, and tsconfig; fix Sass @use ordering; add favicon.
+
+Details
+- Level mode
+  - New GRAVITY_GAUNTLET_DEFAULTS in src/js/config.jsx
+  - Draw hazards/goals; level-aware collisions and scoring/removal
+  - Seed a “starting ball” for clear control focus
+- Physics
+  - physics.ts: types, collision solver, level interactions, exported helpers
+  - Ball.ts: entity class with deformation helpers and draw/update logic
+- Canvas/UI
+  - Batch score/scored-removed increments once per RAF
+  - Controls: mode toggle; disable sandbox-only controls in level mode; color scheme handoff
+  - IntroOverlay: adds Gravity Gauntlet quick tips
+  - App.scss: @use fix, status bar, pause overlay, themed buttons
+- Tooling
+  - tests/*: basic physics and collision tests (Vitest)
+  - .github/workflows/ci.yml: test + build on Node 18/20
+  - tsconfig.json added; favicon.svg to remove 404
+
+Validation
+- Tests: 2 files, 4 tests — passing locally.
+- Build: succeeds locally (Vite).
+- Manual run: animations stable; no maximum update depth loops; fewer reflow warnings.
+
+Follow-ups
+- Optional: add type-check step in CI.
+- Consider throttling UI counters to 10–20 fps if needed.
+- Expand level variety and add more static shapes.
