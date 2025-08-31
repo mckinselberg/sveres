@@ -358,12 +358,13 @@ export class Ball {
     if ((this.y + effectiveRadius) >= canvasHeight) {
       const approachSpeed = this.velY;
       isGrazingWall = Math.abs(approachSpeed) < ENGINE_CONSTANTS.WALL_GRAZING_THRESHOLD;
+      const e = ENGINE_CONSTANTS.WALL_RESTITUTION; // decay bounce height over time
       if (isGrazingWall) {
-    this.velY = -Math.abs(this.velY) * 0.7;
-    this.y = canvasHeight - effectiveRadius - 1;
+        this.velY = -Math.abs(this.velY) * Math.min(0.9, e * 0.85);
+        this.y = canvasHeight - effectiveRadius - 1;
       } else {
-    this.velY = -Math.abs(this.velY);
-    this.y = canvasHeight - effectiveRadius - 1;
+        this.velY = -Math.abs(this.velY) * e;
+        this.y = canvasHeight - effectiveRadius - 1;
       }
       wallCollision = true;
       wallNormalX = 0;
@@ -373,12 +374,13 @@ export class Ball {
     if ((this.y - effectiveRadius) <= 0) {
       const approachSpeed = -this.velY;
       isGrazingWall = Math.abs(approachSpeed) < ENGINE_CONSTANTS.WALL_GRAZING_THRESHOLD;
+      const e = ENGINE_CONSTANTS.WALL_RESTITUTION;
       if (isGrazingWall) {
-    this.velY = Math.abs(this.velY) * 0.7;
-    this.y = effectiveRadius + 1;
+        this.velY = Math.abs(this.velY) * Math.min(0.9, e * 0.85);
+        this.y = effectiveRadius + 1;
       } else {
-    this.velY = Math.abs(this.velY);
-    this.y = effectiveRadius + 1;
+        this.velY = Math.abs(this.velY) * e;
+        this.y = effectiveRadius + 1;
       }
       wallCollision = true;
       wallNormalX = 0;
@@ -409,12 +411,10 @@ export class Ball {
 
     if (this.y < minPos) {
       this.y = minPos;
-      this.velY = Math.abs(this.velY);
-  if ((this as any).isStartingBall && Math.abs(this.velY) < ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND) this.velY = ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND;
+      this.velY = Math.abs(this.velY) * ENGINE_CONSTANTS.WALL_RESTITUTION;
     } else if (this.y > maxPosY) {
       this.y = maxPosY;
-      this.velY = -Math.abs(this.velY);
-  if ((this as any).isStartingBall && Math.abs(this.velY) < ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND) this.velY = -ENGINE_CONSTANTS.PLAYER_MIN_WALL_REBOUND;
+      this.velY = -Math.abs(this.velY) * ENGINE_CONSTANTS.WALL_RESTITUTION;
     }
 
     if (Math.abs(this.velX) < 0.1 && Math.abs(this.velY) < 0.1 && this.y > canvasHeight - this.size - 5) {
