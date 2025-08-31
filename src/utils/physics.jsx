@@ -209,7 +209,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const combinedRadius = ball.size + staticObj.size; // Using approximate size for static objects
 
-                if (distance < combinedRadius) {
+                    if (distance < combinedRadius) {
                     // Support distance === 0 by using a default normal and full overlap
                     const overlap = distance === 0 ? combinedRadius : (combinedRadius - distance);
                     const inv = distance === 0 ? 0 : 1 / distance;
@@ -260,8 +260,22 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                                 balls.splice(index, 1);
                             }
                         } else {
-                            // Player hit the goal -> lose condition
-                            if (onPlayerHitGoal) onPlayerHitGoal();
+                            // Player hit the goal -> lose condition, unless shield is active (consume it)
+                            const now = Date.now();
+                            if (ball.shieldUntil && ball.shieldUntil > now) {
+                                // consume shield
+                                ball.shieldUntil = undefined;
+                                // bounce player slightly away
+                                const reflect = (ball.velX * normalX + ball.velY * normalY) * 2;
+                                ball.velX -= reflect * normalX;
+                                ball.velY -= reflect * normalY;
+                                // small nudge
+                                ball.x -= normalX * (overlap + 2);
+                                ball.y -= normalY * (overlap + 2);
+                                ball.applyWallDeformation(normalX, normalY, deformationSettings);
+                            } else {
+                                if (onPlayerHitGoal) onPlayerHitGoal();
+                            }
                         }
                     }
                 }
@@ -475,6 +489,54 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         level.goals.forEach(goal => {
             drawStaticShape(goal);
         });
+    }
+
+    // Draw powerups
+    if (level && level.powerups) {
+        level.powerups.forEach(pu => {
+            // simple visual: colored ring with inner white core
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle = pu.color || 'gold';
+            ctx.lineWidth = 3;
+            if (pu.shape === 'circle') {
+                ctx.arc(pu.x, pu.y, pu.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.arc(pu.x, pu.y, Math.max(2, pu.radius * 0.4), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        });
+    }
+
+    // Handle powerup pickups by player before collisions (so shield can save within same frame)
+    if (level && level.powerups) {
+        const now = Date.now();
+        for (let i = level.powerups.length - 1; i >= 0; i--) {
+            const pu = level.powerups[i];
+            if (pu.shape !== 'circle') continue; // only circle support for now
+            // Player = selected or starting ball
+            const player = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
+            if (!player) continue;
+            const dx = pu.x - player.x;
+            const dy = pu.y - player.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist <= (player.size + pu.radius)) {
+                // apply and remove from level
+                if (pu.type === 'shield') {
+                    player.shieldUntil = now + 8000; // 8s
+                } else if (pu.type === 'speed') {
+                    player.speedUntil = now + 6000; // 6s
+                } else if (pu.type === 'shrink') {
+                    player.baseSize = player.baseSize || player.size;
+                    player.size = Math.max(6, Math.round(player.baseSize * 0.65));
+                    player.shrinkUntil = now + 7000; // 7s
+                }
+                level.powerups.splice(i, 1);
+            }
+        }
     }
 
     solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall);

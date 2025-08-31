@@ -270,7 +270,21 @@ const Canvas = memo(forwardRef(function Canvas({
                         const dist = Math.sqrt(dx*dx + dy*dy);
                         const combined = (selectedForDraw.size) + (g.radius || 0);
                         if (dist <= combined) {
-                            loseRef.current = true;
+                            const now = Date.now();
+                            if (selectedForDraw.shieldUntil && selectedForDraw.shieldUntil > now) {
+                                // consume shield and reflect a bit
+                                selectedForDraw.shieldUntil = undefined;
+                                const inv = dist === 0 ? 0 : 1 / dist;
+                                const nx = dist === 0 ? 1 : dx * inv;
+                                const ny = dist === 0 ? 0 : dy * inv;
+                                const reflect = (selectedForDraw.velX * nx + selectedForDraw.velY * ny) * 2;
+                                selectedForDraw.velX -= reflect * nx;
+                                selectedForDraw.velY -= reflect * ny;
+                                selectedForDraw.x -= nx * (combined - dist + 2);
+                                selectedForDraw.y -= ny * (combined - dist + 2);
+                            } else {
+                                loseRef.current = true;
+                            }
                             break;
                         }
                     }

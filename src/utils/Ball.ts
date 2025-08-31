@@ -36,6 +36,11 @@ export class Ball {
   isSleeping: boolean = false;
   isStartingBall?: boolean;
   _lastMultiplier?: number;
+  // Powerup state
+  shieldUntil?: number; // timestamp ms
+  speedUntil?: number;  // timestamp ms
+  shrinkUntil?: number; // timestamp ms
+  baseSize?: number;    // remember natural size for shrink restore
 
   constructor(x: number, y: number, velX: number, velY: number, color: string, size: number, shape: ShapeName = 'circle', isStatic: boolean = false) {
     this.id = __BALL_ID_SEQ++;
@@ -110,6 +115,17 @@ export class Ball {
     }
 
     ctx.fill();
+
+    // Shield ring indicator if active
+    const now = Date.now();
+    if (this.shieldUntil && this.shieldUntil > now) {
+      const ringR = this.size + Math.max(3, this.size * 0.18);
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(0,200,255,0.9)';
+      ctx.lineWidth = Math.max(2, this.size * 0.12);
+      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     // Health arc indicator near the perimeter
     if (this.health < 100) {
@@ -252,6 +268,15 @@ export class Ball {
   }
 
   update(canvasWidth: number, canvasHeight: number, gravityStrength: number, maxVelocity: number, deformationSettings: DeformationSettings) {
+    const now = Date.now();
+    // Expire powerups and restore size
+    if (this.shrinkUntil && this.shrinkUntil <= now) {
+      if (this.baseSize) this.size = this.baseSize;
+      this.shrinkUntil = undefined;
+    }
+
+    // Effective velocity cap may be boosted under speed
+    const boostedMax = (this.speedUntil && this.speedUntil > now) ? maxVelocity * 1.6 : maxVelocity;
     if (gravityStrength > 0) {
       this.velY += gravityStrength;
     }
@@ -286,11 +311,11 @@ export class Ball {
       }
     }
 
-    if (Math.abs(this.velX) > maxVelocity) {
-      this.velX = this.velX > 0 ? maxVelocity : -maxVelocity;
+    if (Math.abs(this.velX) > boostedMax) {
+      this.velX = this.velX > 0 ? boostedMax : -boostedMax;
     }
-    if (Math.abs(this.velY) > maxVelocity) {
-      this.velY = this.velY > 0 ? maxVelocity : -maxVelocity;
+    if (Math.abs(this.velY) > boostedMax) {
+      this.velY = this.velY > 0 ? boostedMax : -boostedMax;
     }
 
     const effectiveRadius = this.size * Math.max(this.scaleX, this.scaleY);
