@@ -471,12 +471,12 @@ function App() {
                     </div>
                 </div>
             )}
-            {didLose && (
+            {levelMode && didLose && (
                 <div className="pause-overlay" style={{ pointerEvents: 'auto' }}>
                     <div style={{ background: 'rgba(0,0,0,0.6)', padding: 16, borderRadius: 8 }}>
-                        <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 10 }}>You lose!</div>
+                        <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 10, textAlign: 'center' }}>you lost, reset to play again</div>
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                            <button className="button button--primary" onClick={handleResetGauntlet}>Try Again</button>
+                            <button className="button button--primary" onClick={handleResetGauntlet} aria-label="Reset Level">Reset</button>
                         </div>
                     </div>
                 </div>
