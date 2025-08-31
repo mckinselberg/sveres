@@ -260,6 +260,14 @@ const Canvas = memo(forwardRef(function Canvas({
             if (scoredBallsDeltaRef.current) setScoredBallsCount?.(prev => prev + scoredBallsDeltaRef.current);
             if (removedBallsDeltaRef.current) setRemovedBallsCount?.(prev => prev + removedBallsDeltaRef.current);
 
+            // Lose condition triggered in physics — take precedence over win if both occur same frame
+            if (loseRef.current) {
+                loseRef.current = false;
+                if (onLose) onLose();
+                animationFrameId.current = null;
+                return; // stop loop
+            }
+
             // Gauntlet win condition: if in gauntlet and all remaining balls are the starting/player ball only, declare win
             if (level && level.type === 'gravityGauntlet') {
                 const nonPlayer = ballsRef.current.filter(b => !b.isStartingBall);
@@ -268,14 +276,6 @@ const Canvas = memo(forwardRef(function Canvas({
                     animationFrameId.current = null;
                     return; // stop loop; App can show overlay
                 }
-            }
-
-            // Lose condition triggered in physics
-            if (loseRef.current) {
-                loseRef.current = false;
-                if (onLose) onLose();
-                animationFrameId.current = null;
-                return; // stop loop
             }
 
             animationFrameId.current = requestAnimationFrame(render);
