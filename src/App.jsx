@@ -530,6 +530,15 @@ function App() {
                     Jump
                 </button>
             )}
+            <button
+                className="gauntlet-wasd-toggle"
+                style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 224px)' }}
+                onClick={() => setHashFromLocalStorage(true)}
+                aria-label="Append settings hash to URL"
+                title="Append settings hash to URL for bookmarking/sharing"
+            >
+                Share URL
+            </button>
             {isPaused && <div className="pause-overlay">Paused (Space / P to resume)</div>}
             {didWin && (
                 <div className="pause-overlay" style={{ pointerEvents: 'auto' }}>
