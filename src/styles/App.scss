@@ -103,22 +103,22 @@ canvas {
 // Shared panel base
 %panel {
   background: $panel-bg;
-  border-radius: 8px;
+  // border-radius: 8px;
   color: $text-color;
   font-family: Arial, sans-serif;
   padding: 15px;
   position: fixed;
-  width: 300px;
+  width: 33%;
   z-index: 1000;
 }
 
 /* Panels */
 .controls-panel {
   @extend %panel;
-  left: 10px;
+  left: 0px;
   max-height: calc(100vh - 20px);
   overflow-y: auto;
-  top: 45px;
+  top: 0px;
 
   // Custom scrollbar styling
   &::-webkit-scrollbar {
@@ -187,6 +187,7 @@ canvas {
   @extend %panel;
   max-height: calc(100vh - 20px);
   overflow-y: auto;
+  width: 20%;
 
   // Section styling
   h3 {

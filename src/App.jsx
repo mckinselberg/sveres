@@ -56,7 +56,7 @@ function mergeDefaultsForMode(mode, saved) {
 
 function App() {
     // Seed from URL hash as early as possible
-    try { seedLocalStorageFromHash(); } catch {}
+    try { seedLocalStorageFromHash(); } catch (e) { /* noop */ void 0; }
     // Hydrate level mode from storage first
     const initialLevelMode = loadJSON(LS_KEYS.levelMode, false);
     // Hydrate settings for the current mode; merge with defaults to fill gaps
@@ -113,10 +113,10 @@ function App() {
                 ta.value = href;
                 document.body.appendChild(ta);
                 ta.select();
-                try { document.execCommand('copy'); } catch {}
+                try { document.execCommand('copy'); } catch (e) { /* noop */ void 0; }
                 document.body.removeChild(ta);
             }
-        } catch {}
+    } catch (e) { /* noop */ void 0; }
     }, []);
 
     const handleExportLevel = useCallback(async () => {
@@ -128,7 +128,7 @@ function App() {
             // Optionally, also log it
             // eslint-disable-next-line no-console
             console.log(json);
-        } catch {}
+    } catch (e) { /* noop */ void 0; }
     }, [physicsSettings.level]);
 
     const handleImportLevel = useCallback(async () => {
@@ -148,7 +148,7 @@ function App() {
                     }
                 }));
             }
-        } catch {}
+    } catch (e) { /* noop */ void 0; }
     }, []);
 
     const openImportModal = useCallback(() => {
@@ -290,7 +290,7 @@ function App() {
                         setDidWin(false);
                         setDidLose(false);
                         setShowGauntletHelp(false);
-                        try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
+                        try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
                     } else {
                         canvasRef.current?.resetBalls?.();
                         setGlobalScore(0);
@@ -322,7 +322,7 @@ function App() {
                     setDidWin(false);
                     setDidLose(false);
                     setShowGauntletHelp(false);
-                    try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
+                    try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
                 } else {
                     canvasRef.current?.resetBalls?.();
                     setGlobalScore(0);
@@ -508,17 +508,17 @@ function App() {
 
     // Persist controls visibility
     useEffect(() => {
-        try { localStorage.setItem(LS_KEYS.showControls, JSON.stringify(showControls)); } catch {}
+    try { localStorage.setItem(LS_KEYS.showControls, JSON.stringify(showControls)); } catch (e) { /* noop */ void 0; }
     }, [showControls]);
 
     // Persist WASD toggle
     useEffect(() => {
-        try { localStorage.setItem(LS_KEYS.wasdEnabled, JSON.stringify(wasdEnabled)); } catch {}
+    try { localStorage.setItem(LS_KEYS.wasdEnabled, JSON.stringify(wasdEnabled)); } catch (e) { /* noop */ void 0; }
     }, [wasdEnabled]);
 
     // Persist current level id
     useEffect(() => {
-        try { localStorage.setItem(LS_KEYS.currentLevelId, JSON.stringify(currentLevelId)); } catch {}
+    try { localStorage.setItem(LS_KEYS.currentLevelId, JSON.stringify(currentLevelId)); } catch (e) { /* noop */ void 0; }
     }, [currentLevelId]);
 
     const handleApplyColorScheme = useCallback((scheme) => {
@@ -547,9 +547,9 @@ function App() {
         const defaults = levelMode ? GRAVITY_GAUNTLET_DEFAULTS : DEFAULTS;
         setPhysicsSettings(defaults);
         // Clear saved settings for this mode to avoid reloading old values later
-        try {
+    try {
             localStorage.removeItem(levelMode ? LS_KEYS.settingsGauntlet : LS_KEYS.settingsSandbox);
-        } catch {}
+    } catch (e) { /* noop */ void 0; }
     }, [levelMode]);
 
     // Persist settings whenever they change (per mode)
@@ -557,14 +557,14 @@ function App() {
         const key = levelMode ? LS_KEYS.settingsGauntlet : LS_KEYS.settingsSandbox;
         try {
             localStorage.setItem(key, JSON.stringify(physicsSettings));
-        } catch {}
+        } catch (e) { /* noop */ void 0; }
     }, [physicsSettings, levelMode]);
 
     // Persist level mode toggle
     useEffect(() => {
         try {
             localStorage.setItem(LS_KEYS.levelMode, JSON.stringify(levelMode));
-        } catch {}
+        } catch (e) { /* noop */ void 0; }
     }, [levelMode]);
 
     // canvasRef declared earlier
@@ -614,7 +614,7 @@ function App() {
     setDidWin(false);
     setDidLose(false);
     setShowGauntletHelp(false);
-    try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
+    try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
     }, []);
 
     // Show gauntlet help on first load if mode is already gauntlet and not dismissed
@@ -783,7 +783,7 @@ function App() {
                 <GauntletInstructionsOverlay
                     onClose={() => {
                         setShowGauntletHelp(false);
-                        try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch {}
+                        try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
                     }}
                     onReset={handleResetGauntlet}
                 />
