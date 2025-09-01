@@ -5,6 +5,7 @@ const Sound = (() => {
   let ctx = null;
   let enabled = true;
   let lastPlayAt = 0;
+  let confirmedOnce = false;
 
   function ensureContext() {
     if (ctx) return ctx;
@@ -20,11 +21,18 @@ const Sound = (() => {
     if (c.state === 'running') return;
     const resume = () => {
       c.resume && c.resume();
+      // Tiny confirmation blip so users know sound is active
+      if (!confirmedOnce) {
+        try { blip({ freq: 660, dur: 0.06, type: 'sine', gain: 0.06 }); } catch {}
+        confirmedOnce = true;
+      }
       window.removeEventListener('pointerdown', resume);
+      window.removeEventListener('click', resume);
       window.removeEventListener('keydown', resume);
       window.removeEventListener('touchstart', resume, { passive: true });
     };
     window.addEventListener('pointerdown', resume, { once: true });
+    window.addEventListener('click', resume, { once: true });
     window.addEventListener('keydown', resume, { once: true });
     window.addEventListener('touchstart', resume, { once: true, passive: true });
   }
@@ -32,10 +40,11 @@ const Sound = (() => {
   function setEnabled(v) { enabled = !!v; }
 
   // Simple percussive note
-  function blip({ freq = 440, dur = 0.08, type = 'sine', gain = 0.06, pan = 0 }) {
+  function blip({ freq = 440, dur = 0.08, type = 'sine', gain = 0.08, pan = 0 }) {
     if (!enabled) return;
     const c = ensureContext();
     if (!c) return;
+    if (c.state !== 'running') resumeOnGestureOnce();
 
     const now = c.currentTime;
     const osc = c.createOscillator();
@@ -63,10 +72,11 @@ const Sound = (() => {
   }
 
   // White noise hit for rough impacts
-  function noiseHit({ dur = 0.05, gain = 0.04 }) {
+  function noiseHit({ dur = 0.05, gain = 0.06 }) {
     if (!enabled) return;
     const c = ensureContext();
     if (!c) return;
+    if (c.state !== 'running') resumeOnGestureOnce();
 
     const bufferSize = 0.05 * c.sampleRate;
     const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
@@ -93,19 +103,19 @@ const Sound = (() => {
 
     const clamped = Math.max(0, Math.min(1, intensity));
     const base = 160 + clamped * 420; // higher freq for harder hits
-    const gain = 0.03 + clamped * 0.05;
+    const gain = 0.05 + clamped * 0.06;
     blip({ freq: base, dur: 0.05 + clamped * 0.04, type: 'square', gain });
-    if (clamped > 0.6) noiseHit({ dur: 0.04 + clamped * 0.04, gain: 0.02 + clamped * 0.05 });
+    if (clamped > 0.5) noiseHit({ dur: 0.04 + clamped * 0.04, gain: 0.03 + clamped * 0.06 });
   }
 
   function playWall(intensity = 0.25) {
     const clamped = Math.max(0, Math.min(1, intensity));
-    blip({ freq: 220 + clamped * 180, dur: 0.04 + clamped * 0.03, type: 'triangle', gain: 0.04 + clamped * 0.04 });
+    blip({ freq: 220 + clamped * 180, dur: 0.05 + clamped * 0.03, type: 'triangle', gain: 0.06 + clamped * 0.05 });
   }
 
-  function playScore() { blip({ freq: 720, dur: 0.06, type: 'sine', gain: 0.05 }); blip({ freq: 980, dur: 0.06, type: 'sine', gain: 0.04 }); }
-  function playWin() { blip({ freq: 600, dur: 0.09, type: 'sine', gain: 0.05 }); blip({ freq: 800, dur: 0.12, type: 'sine', gain: 0.05 }); blip({ freq: 1000, dur: 0.16, type: 'sine', gain: 0.05 }); }
-  function playLose() { blip({ freq: 220, dur: 0.14, type: 'sawtooth', gain: 0.06 }); blip({ freq: 160, dur: 0.18, type: 'sawtooth', gain: 0.05 }); }
+  function playScore() { blip({ freq: 720, dur: 0.07, type: 'sine', gain: 0.07 }); blip({ freq: 980, dur: 0.07, type: 'sine', gain: 0.06 }); }
+  function playWin() { blip({ freq: 600, dur: 0.10, type: 'sine', gain: 0.07 }); blip({ freq: 800, dur: 0.14, type: 'sine', gain: 0.07 }); blip({ freq: 1000, dur: 0.18, type: 'sine', gain: 0.07 }); }
+  function playLose() { blip({ freq: 220, dur: 0.16, type: 'sawtooth', gain: 0.08 }); blip({ freq: 160, dur: 0.20, type: 'sawtooth', gain: 0.07 }); }
   function playPowerup(type = 'shield') {
     if (type === 'speed') blip({ freq: 880, dur: 0.06, type: 'triangle', gain: 0.05 });
     else if (type === 'shrink') blip({ freq: 500, dur: 0.06, type: 'sine', gain: 0.05 });

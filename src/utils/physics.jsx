@@ -106,7 +106,7 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
     ball1.applyBallDeformation(normalX, normalY, intensity, deformationSettings);
     ball2.applyBallDeformation(-normalX, -normalY, intensity, deformationSettings);
     // Play a collision sound for sufficiently strong impacts
-    if (intensity > 0.12) Sound.playCollision(intensity);
+    if (intensity > 0.06) Sound.playCollision(intensity);
 
     // 4. Health System: Apply damage if enabled
     if (healthSystemEnabled) {
@@ -534,12 +534,15 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
                 // apply and remove from level
                 if (pu.type === 'shield') {
                     player.shieldUntil = now + 8000; // 8s
+                    Sound.playPowerup('shield');
                 } else if (pu.type === 'speed') {
                     player.speedUntil = now + 6000; // 6s
+                    Sound.playPowerup('speed');
                 } else if (pu.type === 'shrink') {
                     player.baseSize = player.baseSize || player.size;
                     player.size = Math.max(6, Math.round(player.baseSize * 0.65));
                     player.shrinkUntil = now + 7000; // 7s
+                    Sound.playPowerup('shrink');
                 }
                 level.powerups.splice(i, 1);
             }
