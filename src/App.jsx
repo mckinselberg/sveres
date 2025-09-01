@@ -271,6 +271,13 @@ function App() {
 
     useEffect(() => {
     const handleKeyDown = (event) => {
+            // Don't hijack browser/system shortcuts or typing in inputs
+            const t = event.target;
+            const tag = t && t.tagName ? String(t.tagName).toLowerCase() : '';
+            const isEditable = (t && (t.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select'));
+            if (event.ctrlKey || event.metaKey || event.altKey || isEditable) {
+                return;
+            }
             // During game over, only honor Reset (R)
             if (isGameOver) {
                 if (event.key === 'r' || event.key === 'R') {
@@ -348,6 +355,13 @@ function App() {
         };
 
         const handleKeyUp = (event) => {
+            // Don't hijack browser/system shortcuts or typing in inputs
+            const t = event.target;
+            const tag = t && t.tagName ? String(t.tagName).toLowerCase() : '';
+            const isEditable = (t && (t.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select'));
+            if (event.ctrlKey || event.metaKey || event.altKey || isEditable) {
+                return;
+            }
             if (isGameOver) return;
             const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift']);
             if (moveKeys.has(event.key)) {
