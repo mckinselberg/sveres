@@ -5,6 +5,8 @@ import SelectedBallControls from './components/SelectedBallControls.jsx';
 import IntroOverlay from './components/IntroOverlay.jsx';
 import GauntletInstructionsOverlay from './components/GauntletInstructionsOverlay.jsx';
 import './styles/App.scss';
+import Sound from './utils/sound';
+import Countdown from './components/Countdown.jsx';
 import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
 import { GAME_LEVELS, getLevelById } from './js/levels/levels.js';
 import { decideGasDir } from './utils/inputDirection.js';
@@ -95,6 +97,13 @@ function App() {
     const [showImportModal, setShowImportModal] = useState(false);
     const [importText, setImportText] = useState('');
     const [importError, setImportError] = useState('');
+    const [soundOn, setSoundOn] = useState(() => {
+        try { const raw = localStorage.getItem('ui:soundOn'); if (raw == null) return true; return JSON.parse(raw); } catch { return true; }
+    });
+    useEffect(() => {
+        Sound.setEnabled(soundOn);
+        try { localStorage.setItem('ui:soundOn', JSON.stringify(soundOn)); } catch {}
+    }, [soundOn]);
     const handleJump = useCallback(() => {
         if (isGameOver) return;
         canvasRef.current?.jumpPlayer?.();
@@ -666,6 +675,14 @@ function App() {
                         >
                             {wasdEnabled ? 'WASD: On' : 'WASD: Off'}
                         </button>
+                        <button
+                            className="gauntlet-wasd-toggle"
+                            onClick={() => setSoundOn(v => !v)}
+                            aria-label="Toggle Sound"
+                            title="Toggle Sound"
+                        >
+                            {soundOn ? 'Sound: On' : 'Sound: Off'}
+                        </button>
                     </div>
                 )}
                 {levelMode && (
@@ -824,6 +841,41 @@ function App() {
                     }
                 }, [])}
             />
+            {/* Lightweight HUD: show active powerups on the player with countdowns */}
+            {levelMode && selectedBall && (
+                (() => {
+                    const now = Date.now();
+                    const items = [];
+                    if (selectedBall.shieldUntil && selectedBall.shieldUntil > now) {
+                        items.push({ key: 'shield', label: 'Shield', until: selectedBall.shieldUntil });
+                    }
+                    if (selectedBall.speedUntil && selectedBall.speedUntil > now) {
+                        items.push({ key: 'speed', label: 'Speed', until: selectedBall.speedUntil });
+                    }
+                    if (selectedBall.shrinkUntil && selectedBall.shrinkUntil > now) {
+                        items.push({ key: 'shrink', label: 'Shrink', until: selectedBall.shrinkUntil });
+                    }
+                    if (!items.length) return null;
+                    return (
+                        <div
+                            className="hud hud--powerups"
+                            aria-live="polite"
+                            style={{
+                                position: 'fixed', top: 12, left: 12, display: 'flex', gap: 8,
+                                background: 'rgba(0,0,0,0.35)', padding: '6px 8px', borderRadius: 8,
+                                pointerEvents: 'none', backdropFilter: 'blur(4px)'
+                            }}
+                        >
+                            {items.map(it => (
+                                <div key={it.key} className={`hud-pill hud-pill--${it.key}`} style={{ color: 'white', fontSize: 13 }}>
+                                    <span className="hud-pill__name" style={{ marginRight: 6, opacity: 0.9 }}>{it.label}</span>
+                                    <Countdown until={it.until} onExpireBeep={() => Sound.playPowerup('expire')} />
+                                </div>
+                            ))}
+                        </div>
+                    );
+                })()
+            )}
             {showControls && (
                 <Controls
                     physicsSettings={physicsSettings}

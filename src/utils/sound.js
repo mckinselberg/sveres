@@ -38,6 +38,7 @@ const Sound = (() => {
   }
 
   function setEnabled(v) { enabled = !!v; }
+  function isEnabled() { return !!enabled; }
 
   // Simple percussive note
   function blip({ freq = 440, dur = 0.08, type = 'sine', gain = 0.08, pan = 0 }) {
@@ -119,12 +120,13 @@ const Sound = (() => {
   function playPowerup(type = 'shield') {
     if (type === 'speed') blip({ freq: 880, dur: 0.06, type: 'triangle', gain: 0.05 });
     else if (type === 'shrink') blip({ freq: 500, dur: 0.06, type: 'sine', gain: 0.05 });
+    else if (type === 'expire') blip({ freq: 420, dur: 0.07, type: 'sine', gain: 0.055 });
     else blip({ freq: 760, dur: 0.06, type: 'sine', gain: 0.05 });
   }
 
   function init() { ensureContext(); resumeOnGestureOnce(); }
 
-  return { init, setEnabled, playCollision, playWall, playScore, playWin, playLose, playPowerup };
+  return { init, setEnabled, isEnabled, playCollision, playWall, playScore, playWin, playLose, playPowerup };
 })();
 
 export default Sound;

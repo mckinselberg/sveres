@@ -14,9 +14,10 @@ export const GAME_LEVELS = [
       { x: 700, y: 550, radius: 40, color: 'red', shape: 'circle', isStatic: true }
     ],
     powerups: [
-      { type: 'speed',  x: 280, y: 200, radius: 14, color: 'gold',       shape: 'circle' },
-      { type: 'shield', x: 560, y: 260, radius: 14, color: 'deepskyblue', shape: 'circle' },
-      { type: 'shrink', x: 900, y: 360, radius: 14, color: 'magenta',     shape: 'circle' }
+      // Place within easy reach of the player spawn (center-top area)
+      { type: 'speed',  x: 420, y: 180, radius: 14, color: 'gold',       shape: 'circle' },
+      { type: 'shield', x: 600, y: 220, radius: 14, color: 'deepskyblue', shape: 'circle' },
+      { type: 'shrink', x: 360, y: 260, radius: 14, color: 'magenta',     shape: 'circle' }
     ],
     // Optional per-level physics overrides
     physics: {

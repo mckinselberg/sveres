@@ -41,6 +41,7 @@ const Canvas = memo(forwardRef(function Canvas({
     const scoreDeltaRef = useRef(0);
     const scoredBallsDeltaRef = useRef(0);
     const removedBallsDeltaRef = useRef(0);
+    const lastPowerupsRef = useRef({ shieldUntil: 0, speedUntil: 0, shrinkUntil: 0 });
 
     // Keep latest callback refs to avoid re-running effects due to unstable identities
     useEffect(() => {
@@ -330,6 +331,19 @@ const Canvas = memo(forwardRef(function Canvas({
             // Report selected ball motion to App without triggering renders
             if (selectedForDraw && onSelectedBallMotionRef.current) {
                 onSelectedBallMotionRef.current({ id: selectedForDraw.id, velX: selectedForDraw.velX });
+            }
+
+            // If player powerup timers changed, push a lightweight selection update so HUD can reflect it
+            if (selectedForDraw && onSelectedBallChangeRef.current) {
+                const lp = lastPowerupsRef.current;
+                const su = selectedForDraw.shieldUntil || 0;
+                const pu = selectedForDraw.speedUntil || 0;
+                const ku = selectedForDraw.shrinkUntil || 0;
+                if (su !== lp.shieldUntil || pu !== lp.speedUntil || ku !== lp.shrinkUntil) {
+                    lastPowerupsRef.current = { shieldUntil: su, speedUntil: pu, shrinkUntil: ku };
+                    // Send only the fields that matter plus id to minimize churn
+                    onSelectedBallChangeRef.current({ id: selectedForDraw.id, shieldUntil: su, speedUntil: pu, shrinkUntil: ku });
+                }
             }
 
             // Flush accumulated increments once per frame

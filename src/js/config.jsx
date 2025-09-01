@@ -53,9 +53,10 @@ export const GRAVITY_GAUNTLET_DEFAULTS = {
         // New: static powerups for gravity gauntlet
         // Supported types: 'speed' (boost), 'shield' (prevent a single lose on goal), 'shrink' (temporarily smaller)
         powerups: [
-            { type: 'speed',  x: 280, y: 200, radius: 14, color: 'gold',   shape: 'circle' },
-            { type: 'shield', x: 560, y: 260, radius: 14, color: 'deepskyblue', shape: 'circle' },
-            { type: 'shrink', x: 900, y: 360, radius: 14, color: 'magenta', shape: 'circle' }
+            // Near player spawn so they’re achievable with a few moves
+            { type: 'speed',  x: 420, y: 180, radius: 14, color: 'gold', shape: 'circle' },
+            { type: 'shield', x: 600, y: 220, radius: 14, color: 'deepskyblue', shape: 'circle' },
+            { type: 'shrink', x: 360, y: 260, radius: 14, color: 'magenta', shape: 'circle' }
         ]
     }
 };

@@ -63,6 +63,14 @@ export class Ball {
 
     ctx.beginPath();
     ctx.fillStyle = this.color;
+    // Powerup glow for speed/shrink
+    const now = Date.now();
+    let hadGlow = false;
+    if ((this.speedUntil && this.speedUntil > now) || (this.shrinkUntil && this.shrinkUntil > now)) {
+      hadGlow = true;
+      ctx.shadowBlur = Math.max(8, this.size * 0.6);
+      ctx.shadowColor = this.speedUntil && this.speedUntil > now ? 'rgba(255,200,0,0.8)' : 'rgba(255,0,200,0.8)';
+    }
 
     switch (this.shape) {
       case 'circle':
@@ -115,9 +123,14 @@ export class Ball {
     }
 
     ctx.fill();
+    if (hadGlow) {
+      // Reset shadow so subsequent strokes (health/shield) aren't blurred
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'transparent';
+    }
 
     // Shield ring indicator if active
-    const now = Date.now();
+    // const now defined above
     if (this.shieldUntil && this.shieldUntil > now) {
       const ringR = this.size + Math.max(3, this.size * 0.18);
       ctx.beginPath();
