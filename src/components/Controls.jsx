@@ -1,10 +1,69 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Slider from './Slider.jsx';
 import ColorSchemeManager from './ColorSchemeManager.jsx';
 import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
 function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme, onResetToDefaults }) {
+    // Persisted resizable width for the controls panel
+    const LS_KEY_PANEL_WIDTH = 'ui:controlsPanelWidth';
+    const readSavedWidth = () => {
+        try {
+            const raw = localStorage.getItem(LS_KEY_PANEL_WIDTH);
+            if (!raw) return null;
+            const n = parseInt(raw, 10);
+            return Number.isFinite(n) ? n : null;
+        } catch {
+            return null;
+        }
+    };
+    const clampWidth = (w) => {
+        const min = 280;
+        const max = Math.floor(window.innerWidth * 0.7);
+        return Math.max(min, Math.min(max, w));
+    };
+    const [panelWidth, setPanelWidth] = useState(() => {
+        const saved = readSavedWidth();
+        const fallback = clampWidth(Math.floor(window.innerWidth * 0.33));
+        return clampWidth(saved ?? fallback);
+    });
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEY_PANEL_WIDTH, String(panelWidth)); } catch {}
+    }, [panelWidth]);
+    // Re-clamp on window resize (rare edge)
+    useEffect(() => {
+        const onWinResize = () => setPanelWidth((w) => clampWidth(w));
+        window.addEventListener('resize', onWinResize);
+        return () => window.removeEventListener('resize', onWinResize);
+    }, []);
+
+    const draggingRef = useRef(false);
+    const startXRef = useRef(0);
+    const startWRef = useRef(0);
+    const getClientX = (ev) => (ev.touches && ev.touches[0]?.clientX) || ev.clientX;
+    const onMove = useCallback((ev) => {
+        if (!draggingRef.current) return;
+        if (ev.touches) ev.preventDefault();
+        const dx = getClientX(ev) - startXRef.current;
+        setPanelWidth(clampWidth(startWRef.current + dx));
+    }, []);
+    const teardown = useCallback(() => {
+        draggingRef.current = false;
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', teardown);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('touchend', teardown);
+    }, [onMove]);
+    const onHandleDown = useCallback((ev) => {
+        ev.preventDefault();
+        draggingRef.current = true;
+        startXRef.current = getClientX(ev);
+        startWRef.current = panelWidth;
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', teardown);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', teardown);
+    }, [panelWidth, onMove, teardown]);
     const simulationRef = useRef(null);
     const visualsRef = useRef(null);
     const deformationRef = useRef(null);
@@ -92,7 +151,15 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     };
 
     return (
-        <div className="controls-panel">
+        <div className="controls-panel" style={{ width: panelWidth }}>
+            <div
+                className="resize-handle"
+                onMouseDown={onHandleDown}
+                onTouchStart={onHandleDown}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize controls panel"
+            />
             <h2>Simulation Controls</h2>
             <button onClick={toggleLevelMode} className="button button--primary button--full" style={{ marginBottom: '10px' }}>
                 Switch to {levelMode ? 'Sandbox' : 'Gravity Gauntlet'} Mode

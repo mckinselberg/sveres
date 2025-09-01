@@ -119,6 +119,18 @@ canvas {
   max-height: calc(100vh - 20px);
   overflow-y: auto;
   top: 0px;
+  position: fixed;
+  // width now controlled inline via style
+  .resize-handle {
+    position: absolute;
+    top: 0;
+    right: -4px; // extends a bit outside to ease grabbing
+    width: 8px;
+    height: 100%;
+    cursor: ew-resize;
+    background: transparent;
+    z-index: 1001;
+  }
 
   // Custom scrollbar styling
   &::-webkit-scrollbar {
