@@ -4,6 +4,7 @@ import { getControlsPanel } from './dom.js';
 import { Ball } from './Ball.ts';
 import { ENGINE_CONSTANTS } from '../js/physics.constants.js';
 import { GRAVITY_GAUNTLET_CONSTANTS } from '../js/levels/gravityGauntlet.constants.js';
+import Sound from './sound.js';
 
 const LEVEL_CONSTANTS_MAP = {
     gravityGauntlet: GRAVITY_GAUNTLET_CONSTANTS?.PHYSICS
@@ -104,6 +105,8 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 
     ball1.applyBallDeformation(normalX, normalY, intensity, deformationSettings);
     ball2.applyBallDeformation(-normalX, -normalY, intensity, deformationSettings);
+    // Play a collision sound for sufficiently strong impacts
+    if (intensity > 0.12) Sound.playCollision(intensity);
 
     // 4. Health System: Apply damage if enabled
     if (healthSystemEnabled) {
@@ -227,6 +230,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
                     // Apply deformation to the dynamic ball
                     ball.applyWallDeformation(normalX, normalY, deformationSettings);
+                    Sound.playWall(Math.min(1, Math.hypot(ball.velX, ball.velY) / 20));
 
                     if (staticObj.type === 'hazard' && healthSystemEnabled) {
                         const damage = healthDamageMultiplier * 100; // Use 100 to make it a percentage
@@ -238,6 +242,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                         setTimeout(() => {
                             ball.color = originalColor;
                         }, 200);
+                        Sound.playCollision(0.6);
 
                         // Remove ball if health is zero
                         if (ball.health <= 0) {
@@ -254,6 +259,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                         if (!isPlayer) {
                 if (setGlobalScore) setGlobalScore(prevScore => prevScore + 1);
                             if (setScoredBallsCount) setScoredBallsCount(prev => prev + 1);
+                            Sound.playScore();
                             // Remove ball after scoring
                             const index = balls.indexOf(ball);
                             if (index > -1) {
@@ -273,6 +279,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                                 ball.x -= normalX * (overlap + 2);
                                 ball.y -= normalY * (overlap + 2);
                                 ball.applyWallDeformation(normalX, normalY, deformationSettings);
+                                Sound.playCollision(0.4);
                             } else {
                                 if (onPlayerHitGoal) onPlayerHitGoal();
                             }

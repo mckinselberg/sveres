@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState } from 'react';
 import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics';
+import Sound from '../utils/sound';
 
 const Canvas = memo(forwardRef(function Canvas({
     enableGravity,
@@ -175,6 +176,8 @@ const Canvas = memo(forwardRef(function Canvas({
 
     // Seed balls on mount and when level type or shape changes only
     useEffect(() => {
+    // Initialize WebAudio on first user gesture
+    Sound.init();
         const canvas = canvasRef.current;
 
         const handleResize = () => {
@@ -336,6 +339,7 @@ const Canvas = memo(forwardRef(function Canvas({
             // Lose condition triggered in physics — take precedence over win if both occur same frame
             if (loseRef.current) {
                 loseRef.current = false;
+                Sound.playLose();
                 if (onLose) onLose();
                 animationFrameId.current = null;
                 return; // stop loop
@@ -345,6 +349,7 @@ const Canvas = memo(forwardRef(function Canvas({
             if (level && level.type === 'gravityGauntlet') {
                 const nonPlayer = ballsRef.current.filter(b => !b.isStartingBall);
                 if (nonPlayer.length === 0) {
+                    Sound.playWin();
                     if (onWin) onWin();
                     animationFrameId.current = null;
                     return; // stop loop; App can show overlay
