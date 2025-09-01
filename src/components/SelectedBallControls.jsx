@@ -73,25 +73,19 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
 
     const handleColorChange = (e) => {
         onUpdateSelectedBall({
-            ...selectedBall,
+            id: selectedBall.id,
             color: e.target.value,
-            originalColor: e.target.value, // Update original color too
+            originalColor: e.target.value,
         });
     };
 
     const handleSizeChange = (e) => {
-        onUpdateSelectedBall({
-            ...selectedBall,
-            size: parseInt(e.target.value),
-            originalSize: parseInt(e.target.value), // Update original size too
-        });
+        const v = parseInt(e.target.value);
+        onUpdateSelectedBall({ id: selectedBall.id, size: v, originalSize: v });
     };
 
     const handleShapeChange = (e) => {
-        onUpdateSelectedBall({
-            ...selectedBall,
-            shape: e.target.value,
-        });
+        onUpdateSelectedBall({ id: selectedBall.id, shape: e.target.value });
     };
 
     const handleVelocityChange = (e) => {
@@ -110,18 +104,11 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
             newVelY = (Math.random() - 0.5) * 2 * newVelocity;
         }
 
-        onUpdateSelectedBall({
-            ...selectedBall,
-            velX: newVelX,
-            velY: newVelY,
-        });
+    onUpdateSelectedBall({ id: selectedBall.id, velX: newVelX, velY: newVelY });
     };
 
     const handleOpacityChange = (e) => {
-        onUpdateSelectedBall({
-            ...selectedBall,
-            opacity: parseFloat(e.target.value),
-        });
+        onUpdateSelectedBall({ id: selectedBall.id, opacity: parseFloat(e.target.value) });
     };
 
     if (!selectedBall) {
@@ -209,7 +196,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         max={8}
                         step={0.1}
                         value={selectedBall.controlTuning?.maxSpeedBase ?? 2.0}
-                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, maxSpeedBase: parseFloat(e.target.value) } })}
+                        onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, maxSpeedBase: parseFloat(e.target.value) } })}
                     />
                     <Slider
                         label="Boost Multiplier"
@@ -217,7 +204,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         max={4}
                         step={0.1}
                         value={selectedBall.controlTuning?.boostMultiplier ?? 2.0}
-                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, boostMultiplier: parseFloat(e.target.value) } })}
+                        onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, boostMultiplier: parseFloat(e.target.value) } })}
                     />
                     <Slider
                         label="Acceleration Rate"
@@ -225,7 +212,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         max={1}
                         step={0.05}
                         value={selectedBall.controlTuning?.accelRate ?? 0.35}
-                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, accelRate: parseFloat(e.target.value) } })}
+                        onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, accelRate: parseFloat(e.target.value) } })}
                     />
                     <Slider
                         label="Accel Boost Multiplier"
@@ -233,7 +220,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         max={3}
                         step={0.1}
                         value={selectedBall.controlTuning?.accelBoostMultiplier ?? 1.4}
-                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, accelBoostMultiplier: parseFloat(e.target.value) } })}
+                        onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, accelBoostMultiplier: parseFloat(e.target.value) } })}
                     />
                     <Slider
                         label="Release Friction"
@@ -241,7 +228,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         max={0.99}
                         step={0.01}
                         value={selectedBall.controlTuning?.releaseFriction ?? 0.92}
-                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, releaseFriction: parseFloat(e.target.value) } })}
+                        onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, releaseFriction: parseFloat(e.target.value) } })}
                     />
                     <Slider
                         label="Brake Friction"
@@ -249,7 +236,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         max={0.95}
                         step={0.01}
                         value={selectedBall.controlTuning?.brakeFriction ?? 0.75}
-                        onChange={(e) => onUpdateSelectedBall({ ...selectedBall, controlTuning: { ...selectedBall.controlTuning, brakeFriction: parseFloat(e.target.value) } })}
+                        onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, brakeFriction: parseFloat(e.target.value) } })}
                     />
                 </div>
             </details>

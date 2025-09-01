@@ -66,6 +66,8 @@ const Canvas = memo(forwardRef(function Canvas({
             originalColor: b.originalColor,
             size: b.size,
             shape: b.shape,
+            opacity: b.opacity,
+            controlTuning: b.controlTuning,
             isStatic: b.isStatic,
             health: b.health
         }));
@@ -121,8 +123,11 @@ const Canvas = memo(forwardRef(function Canvas({
             const ball = ballsRef.current.find(b => b.id === id);
             if (!ball) return;
             // Mutate fields in place to keep engine references
-            if (typeof updated.x === 'number') ball.x = updated.x;
-            if (typeof updated.y === 'number') ball.y = updated.y;
+            // Only allow explicit position overrides when requested
+            if (updated.__allowXY === true) {
+                if (typeof updated.x === 'number') ball.x = updated.x;
+                if (typeof updated.y === 'number') ball.y = updated.y;
+            }
             if (typeof updated.velX === 'number') ball.velX = updated.velX;
             if (typeof updated.velY === 'number') ball.velY = updated.velY;
             if (typeof updated.color === 'string') ball.color = updated.color;
@@ -130,6 +135,8 @@ const Canvas = memo(forwardRef(function Canvas({
             if (typeof updated.shape === 'string') ball.shape = updated.shape;
             if (typeof updated.isStatic === 'boolean') ball.isStatic = updated.isStatic;
             if (typeof updated.health === 'number') ball.health = updated.health;
+            if (typeof updated.opacity === 'number') ball.opacity = updated.opacity;
+            if (typeof updated.controlTuning === 'object') ball.controlTuning = { ...(ball.controlTuning || {}), ...updated.controlTuning };
             if (updated._lastMultiplier != null) ball._lastMultiplier = updated._lastMultiplier;
             if (updated.originalSize != null) ball.originalSize = updated.originalSize;
 

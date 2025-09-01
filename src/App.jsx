@@ -20,6 +20,7 @@ if (typeof window !== 'undefined') {
 // Local storage keys for persistence
 const LS_KEYS = {
     levelMode: 'sim:levelMode',
+    currentLevelId: 'sim:currentLevelId',
     settingsSandbox: 'sim:settings:sandbox',
     settingsGauntlet: 'sim:settings:gauntlet',
     showControls: 'ui:showControls',
@@ -39,7 +40,7 @@ function loadJSON(key, fallback) {
 function mergeDefaultsForMode(mode, saved) {
     // Ensure any newly added fields get defaults while honoring saved values
     if (mode) {
-    // level mode (Game) — start from Level 1 (Gravity Gauntlet)
+    // level mode (Game) — start from Level 1 (Gravity Gauntlet) by default
     const level1 = getLevelById('gauntlet-1') || GAME_LEVELS[0];
     const base = { ...GRAVITY_GAUNTLET_DEFAULTS, level: { type: level1.type, title: level1.title, difficulty: level1.difficulty, hazards: level1.hazards, goals: level1.goals, powerups: level1.powerups } };
     const merged = { ...base, ...(saved || {}) };
@@ -66,6 +67,11 @@ function App() {
 
     const [levelMode, setLevelMode] = useState(initialLevelMode); // false for sandbox, true for level
     const [physicsSettings, setPhysicsSettings] = useState(initialSettings);
+    // Persisted current level selection (for game mode)
+    const [currentLevelId, setCurrentLevelId] = useState(() => {
+        const saved = loadJSON(LS_KEYS.currentLevelId, null);
+        return saved || (GAME_LEVELS[0]?.id || 'gauntlet-1');
+    });
     const [balls, setBalls] = useState([]); // Deprecated for Canvas-owned state; kept for presets and managers until Phase 2 completes
     const [globalScore, setGlobalScore] = useState(0);
     const [initialBallCount, setInitialBallCount] = useState(0);
@@ -86,6 +92,9 @@ function App() {
         return typeof saved === 'boolean' ? saved : true;
     });
     const [showGauntletHelp, setShowGauntletHelp] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importText, setImportText] = useState('');
+    const [importError, setImportError] = useState('');
     const handleJump = useCallback(() => {
         if (isGameOver) return;
         canvasRef.current?.jumpPlayer?.();
@@ -122,6 +131,61 @@ function App() {
         } catch {}
     }, [physicsSettings.level]);
 
+    const handleImportLevel = useCallback(async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            const obj = JSON.parse(text);
+            if (obj && typeof obj === 'object') {
+                setPhysicsSettings(prev => ({
+                    ...prev,
+                    level: {
+                        type: obj.type || prev.level?.type || 'gravityGauntlet',
+                        title: obj.title || prev.level?.title || 'Imported Level',
+                        difficulty: obj.difficulty || prev.level?.difficulty || 'custom',
+                        hazards: Array.isArray(obj.hazards) ? obj.hazards : [],
+                        goals: Array.isArray(obj.goals) ? obj.goals : [],
+                        powerups: Array.isArray(obj.powerups) ? obj.powerups : [],
+                    }
+                }));
+            }
+        } catch {}
+    }, []);
+
+    const openImportModal = useCallback(() => {
+        setImportError('');
+        setImportText('');
+        setShowImportModal(true);
+    }, []);
+
+    const closeImportModal = useCallback(() => {
+        setShowImportModal(false);
+    }, []);
+
+    const confirmImportModal = useCallback(() => {
+        try {
+            setImportError('');
+            const obj = JSON.parse(importText);
+            if (!obj || typeof obj !== 'object') {
+                setImportError('Invalid JSON payload.');
+                return;
+            }
+            setPhysicsSettings(prev => ({
+                ...prev,
+                level: {
+                    type: obj.type || prev.level?.type || 'gravityGauntlet',
+                    title: obj.title || prev.level?.title || 'Imported Level',
+                    difficulty: obj.difficulty || prev.level?.difficulty || 'custom',
+                    hazards: Array.isArray(obj.hazards) ? obj.hazards : [],
+                    goals: Array.isArray(obj.goals) ? obj.goals : [],
+                    powerups: Array.isArray(obj.powerups) ? obj.powerups : [],
+                }
+            }));
+            setShowImportModal(false);
+        } catch (e) {
+            setImportError('JSON parse error: ' + (e?.message || 'Unknown error'));
+        }
+    }, [importText]);
+
     // Reset counters and selection on true resets: level mode toggle, level type change, or ball shape change
     useEffect(() => {
         if (physicsSettings.level && physicsSettings.level.type === 'gravityGauntlet') {
@@ -156,8 +220,29 @@ function App() {
 
     const canvasRef = React.useRef(null);
     const handleUpdateSelectedBall = useCallback((updatedBall) => {
-        const payload = { ...updatedBall, id: updatedBall.id ?? selectedBallId };
-        canvasRef.current?.updateSelectedBall?.(payload);
+        const id = updatedBall.id ?? selectedBallId;
+        if (id == null) return;
+        // Whitelist fields to avoid accidentally sending stale x/y from snapshots
+        const allowed = {};
+        const assignIf = (k) => { if (updatedBall[k] !== undefined) allowed[k] = updatedBall[k]; };
+        assignIf('color');
+        assignIf('originalColor');
+        assignIf('size');
+        assignIf('originalSize');
+        assignIf('shape');
+        assignIf('isStatic');
+        assignIf('health');
+        assignIf('opacity');
+        if (typeof updatedBall.controlTuning === 'object') allowed.controlTuning = updatedBall.controlTuning;
+        if (typeof updatedBall.velX === 'number') allowed.velX = updatedBall.velX;
+        if (typeof updatedBall.velY === 'number') allowed.velY = updatedBall.velY;
+        if (updatedBall._lastMultiplier != null) allowed._lastMultiplier = updatedBall._lastMultiplier;
+        // Only include x/y if an explicit control intends to move the ball (not used currently)
+        if (updatedBall.__allowXY === true) {
+            if (typeof updatedBall.x === 'number') allowed.x = updatedBall.x;
+            if (typeof updatedBall.y === 'number') allowed.y = updatedBall.y;
+        }
+        canvasRef.current?.updateSelectedBall?.({ id, ...allowed });
     }, [selectedBallId]);
 
     const keysDownRef = React.useRef(new Set());
@@ -417,6 +502,11 @@ function App() {
         try { localStorage.setItem(LS_KEYS.wasdEnabled, JSON.stringify(wasdEnabled)); } catch {}
     }, [wasdEnabled]);
 
+    // Persist current level id
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.currentLevelId, JSON.stringify(currentLevelId)); } catch {}
+    }, [currentLevelId]);
+
     const handleApplyColorScheme = useCallback((scheme) => {
         // Update background color via physicsSettings
         setPhysicsSettings(prevSettings => ({
@@ -469,6 +559,30 @@ function App() {
         canvasRef.current?.addBall?.();
     }, []);
 
+    // When in game mode or when level selection changes, apply the selected level into physics settings
+    useEffect(() => {
+        if (!levelMode) return;
+        const sel = getLevelById(currentLevelId) || GAME_LEVELS[0];
+        if (!sel) return;
+        const nextLevel = {
+            type: sel.type,
+            title: sel.title,
+            difficulty: sel.difficulty,
+            hazards: sel.hazards,
+            goals: sel.goals,
+            powerups: sel.powerups,
+        };
+        setPhysicsSettings(prev => {
+            // Avoid unnecessary updates if identical by shallow compare on the fields we set
+            const same = prev.level &&
+                prev.level.type === nextLevel.type &&
+                prev.level.title === nextLevel.title &&
+                prev.level.difficulty === nextLevel.difficulty;
+            const mergedLevel = (nextLevel.type === 'gravityGauntlet') ? { ...nextLevel, hazards: [] } : nextLevel;
+            return same ? prev : { ...prev, level: mergedLevel };
+        });
+    }, [levelMode, currentLevelId]);
+
     const handleRemoveBall = useCallback(() => {
         canvasRef.current?.removeBall?.();
     }, []);
@@ -501,6 +615,7 @@ function App() {
         <div>
             <IntroOverlay />
             <h1 className="page-title">Bouncing Spheres - React</h1>
+            {/* <div className="global-score">Global Score: <span>{globalScore}</span></div> */}
             <div className="status-bar" style={{ opacity: physicsSettings.visuals.uiOpacity }}>
                 <span>Mode: {levelMode ? 'Gravity Gauntlet' : 'Sandbox'}</span>
                 {physicsSettings.level && (
@@ -511,78 +626,123 @@ function App() {
                 )}
                 <span style={{ marginLeft: 12 }}>{isPaused ? 'Paused' : 'Running'}</span>
             </div>
-            <div className="global-score">Global Score: <span>{globalScore}</span></div>
-            {levelMode && (
+            {/* {levelMode && (
                 <div className="ball-counters">
                     <div>Balls Remaining: <span>{initialBallCount - scoredBallsCount - removedBallsCount}</span></div>
                     <div>Scored: <span>{scoredBallsCount}</span></div>
                     <div>Removed: <span>{removedBallsCount}</span></div>
                 </div>
-            )}
-            {levelMode && (
-                <button
-                    className="gauntlet-reset-button"
-                    style={{ opacity: physicsSettings.visuals.uiOpacity }}
-                    onClick={handleResetGauntlet}
-                    
-                    aria-label="Reset Gauntlet Level"
-                    title="Reset Level"
-                >
-                    ↻ Reset
-                </button>
-            )}
-            {levelMode && (
-                <button
-                    className="gauntlet-wasd-toggle"
-                    style={{ opacity: physicsSettings.visuals.uiOpacity }}
-                    onClick={() => setWasdEnabled(v => !v)}
-                    aria-label="Toggle WASD input"
-                    title="Toggle WASD input"
-                >
-                    {wasdEnabled ? 'WASD: On' : 'WASD: Off'}
-                </button>
-            )}
-            {levelMode && (
-                <button
-                    className="gauntlet-wasd-toggle"
-                    style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 112px)' }}
-                    onClick={() => setShowGauntletHelp(true)}
-                    aria-label="Show Gauntlet Instructions"
-                    title="Show Gauntlet Instructions"
-                >
-                    Instructions
-                </button>
-            )}
-            {levelMode && (
-                <button
-                    className="gauntlet-wasd-toggle"
-                    style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 168px)' }}
-                    onClick={handleJump}
-                    aria-label="Jump"
-                    title="Jump (Space/J)"
-                >
-                    Jump
-                </button>
-            )}
-            <button
-                className="gauntlet-wasd-toggle"
-                style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 224px)' }}
-                onClick={handleShareURL}
-                aria-label="Append settings hash to URL"
-                title="Append settings hash to URL for bookmarking/sharing"
-            >
-                Share URL
-            </button>
-            {levelMode && (
-                <button
-                    className="gauntlet-wasd-toggle"
-                    style={{ opacity: physicsSettings.visuals.uiOpacity, top: 'calc(50% + 280px)' }}
-                    onClick={handleExportLevel}
-                    aria-label="Export Level JSON"
-                    title="Copy current level JSON to clipboard"
-                >
-                    Export Level JSON
-                </button>
+            )} */}
+            <div className="right-controls" style={{ opacity: physicsSettings.visuals.uiOpacity }}>
+                {levelMode && (
+                    <div className="rc-group">
+                        <button
+                            className="gauntlet-reset-button"
+                            onClick={handleResetGauntlet}
+                            aria-label="Reset Gauntlet Level"
+                            title="Reset Level"
+                        >
+                            ↻ Reset
+                        </button>
+                        <button
+                            className="gauntlet-wasd-toggle"
+                            onClick={() => setWasdEnabled(v => !v)}
+                            aria-label="Toggle WASD input"
+                            title="Toggle WASD input"
+                        >
+                            {wasdEnabled ? 'WASD: On' : 'WASD: Off'}
+                        </button>
+                    </div>
+                )}
+                {levelMode && (
+                    <div className="rc-group">
+                        <button
+                            className="gauntlet-wasd-toggle"
+                            onClick={() => setShowGauntletHelp(true)}
+                            aria-label="Show Gauntlet Instructions"
+                            title="Show Gauntlet Instructions"
+                        >
+                            Instructions
+                        </button>
+                        <button
+                            className="gauntlet-wasd-toggle"
+                            onClick={handleJump}
+                            aria-label="Jump"
+                            title="Jump (Space/J)"
+                        >
+                            Jump
+                        </button>
+                    </div>
+                )}
+                <div className="rc-group">
+                    <button
+                        className="gauntlet-wasd-toggle"
+                        onClick={handleShareURL}
+                        aria-label="Append settings hash to URL"
+                        title="Append settings hash to URL for bookmarking/sharing"
+                    >
+                        Share URL
+                    </button>
+                    {levelMode && (
+                        <button
+                            className="gauntlet-wasd-toggle"
+                            onClick={handleExportLevel}
+                            aria-label="Export Level JSON"
+                            title="Copy current level JSON to clipboard"
+                        >
+                            Export Level JSON
+                        </button>
+                    )}
+                </div>
+                {levelMode && (
+                    <div className="rc-group">
+                        <select
+                            className="gauntlet-wasd-toggle"
+                            style={{ width: 220 }}
+                            value={currentLevelId}
+                            onChange={(e) => setCurrentLevelId(e.target.value)}
+                            aria-label="Select Level"
+                            title="Select Level"
+                        >
+                            {GAME_LEVELS.map(l => (
+                                <option key={l.id} value={l.id}>{l.title || l.id}{l.difficulty ? ` · ${l.difficulty}` : ''}</option>
+                            ))}
+                        </select>
+                        <button
+                            className="gauntlet-wasd-toggle"
+                            onClick={openImportModal}
+                            aria-label="Import Level JSON from clipboard"
+                            title="Open Import Level JSON modal"
+                        >
+                            Import Level JSON
+                        </button>
+                    </div>
+                )}
+            </div>
+            {showImportModal && (
+                <div className="modal-overlay" role="dialog" aria-modal="true">
+                    <div className="modal-card">
+                        <h3>Import Level JSON</h3>
+                        <p>Paste a level JSON object below. On import, the current session will use it immediately.</p>
+                        <textarea
+                            value={importText}
+                            onChange={(e) => setImportText(e.target.value)}
+                            placeholder={'{ "type": "gravityGauntlet", "title": "My Level", "hazards": [], "goals": [], "powerups": [] }'}
+                            aria-label="Level JSON"
+                        />
+                        <div className="error" aria-live="polite">{importError}</div>
+                        <div className="actions">
+                            <button className="secondary" onClick={closeImportModal}>Cancel</button>
+                            <button onClick={() => {
+                                if (!importText.trim()) {
+                                    setImportError('Please paste a JSON payload.');
+                                    return;
+                                }
+                                confirmImportModal();
+                            }}>Import</button>
+                        </div>
+                    </div>
+                </div>
             )}
             {isPaused && <div className="pause-overlay">Paused (Space / P to resume)</div>}
             {didWin && (
@@ -651,7 +811,7 @@ function App() {
                 }, [])}
             />
             {showControls && (
-                                <Controls
+                <Controls
                     physicsSettings={physicsSettings}
                     onPhysicsSettingsChange={handlePhysicsSettingsChange}
                     onAddBall={handleAddBall}
