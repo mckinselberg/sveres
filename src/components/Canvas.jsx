@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState } from 'react';
-import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics';
+// Use the JS physics module (with sound hooks) explicitly
+import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
 import Sound from '../utils/sound';
 
 const Canvas = memo(forwardRef(function Canvas({
