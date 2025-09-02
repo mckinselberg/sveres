@@ -11,7 +11,7 @@ export const GAME_LEVELS = [
     // Visual objects
     hazards: [],
     goals: [
-      { x: "center", y: 850, radius: 40, color: 'yellow', shape: 'circle', isStatic: true }
+      { x: "center", y: "bottom - 80", radius: 40, color: 'yellow', shape: 'circle', isStatic: true }
     ],
     powerups: [
       // Place within easy reach of the player spawn (center-top area)
@@ -35,16 +35,16 @@ export const GAME_LEVELS = [
         x: '20%'
         y: 'bottom-5%'
       */
-      { type: 'speed',  x: 420, y: 'bottom', radius: 14, color: 'gold',       shape: 'circle' },
-      { type: 'shield', x: 600, y: 'bottom', radius: 14, color: 'deepskyblue', shape: 'circle' },
-      { type: 'shrink', x: 360, y: 'bottom', radius: 14, color: 'magenta',     shape: 'circle' }
+      { type: 'speed',  x: "left", y: 'bottom - 10', radius: 14, color: 'gold',        shape: 'circle' },
+      { type: 'shield', x: "right", y: 'bottom - 10', radius: 14, color: 'deepskyblue', shape: 'circle' },
+      { type: 'shrink', x: "center", y: 'bottom', radius: 14, color: 'magenta',     shape: 'circle' }
     ],
     // Optional per-level physics overrides
     physics: {
       COLLISION_ELASTICITY: 0.9,
       COLLISION_ITERATIONS: 5,
-      WALL_GRAZING_THRESHOLD: 2,
       PLAYER_MIN_WALL_REBOUND: 1.2,
+      WALL_GRAZING_THRESHOLD: 2,
     }
   }
 ];

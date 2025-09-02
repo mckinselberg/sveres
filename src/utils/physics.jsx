@@ -130,41 +130,42 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 // Iteratively solves collisions between all balls in the simulation.
 // This function performs multiple iterations to ensure stable collision resolution,
 // especially for stacked or multi-ball collisions.
-export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall) {
+export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall, preResolvedStaticObjects) {
     const phys = (level && LEVEL_CONSTANTS_MAP[level.type]) || ENGINE_CONSTANTS;
     const iterations = phys.COLLISION_ITERATIONS; // Number of iterations for stable collision resolution
     const dynamicBalls = balls.filter(ball => !ball.isStatic);
-    const staticObjects = [];
-
-    if (level && level.hazards) {
-        level.hazards.forEach(hazard => {
-            const p = resolveLevelPos(hazard, canvasWidth, canvasHeight);
-            staticObjects.push({
-                x: p.x,
-                y: p.y,
-                size: hazard.shape === 'circle' ? hazard.radius : Math.max(hazard.width, hazard.height) / 2, // Approximate size for collision
-                shape: hazard.shape,
-                color: hazard.color,
-                isStatic: true,
-                type: 'hazard'
+    const staticObjects = preResolvedStaticObjects || (() => {
+        const arr = [];
+        if (level && level.hazards) {
+            level.hazards.forEach(hazard => {
+                const p = resolveLevelPos(hazard, canvasWidth, canvasHeight);
+                arr.push({
+                    x: p.x,
+                    y: p.y,
+                    size: hazard.shape === 'circle' ? hazard.radius : Math.max(hazard.width, hazard.height) / 2,
+                    shape: hazard.shape,
+                    color: hazard.color,
+                    isStatic: true,
+                    type: 'hazard'
+                });
             });
-        });
-    }
-
-    if (level && level.goals) {
-        level.goals.forEach(goal => {
-            const p = resolveLevelPos(goal, canvasWidth, canvasHeight);
-            staticObjects.push({
-                x: p.x,
-                y: p.y,
-                size: goal.shape === 'circle' ? goal.radius : Math.max(goal.width, goal.height) / 2, // Approximate size for collision
-                shape: goal.shape,
-                color: goal.color,
-                isStatic: true,
-                type: 'goal'
+        }
+        if (level && level.goals) {
+            level.goals.forEach(goal => {
+                const p = resolveLevelPos(goal, canvasWidth, canvasHeight);
+                arr.push({
+                    x: p.x,
+                    y: p.y,
+                    size: goal.shape === 'circle' ? goal.radius : Math.max(goal.width, goal.height) / 2,
+                    shape: goal.shape,
+                    color: goal.color,
+                    isStatic: true,
+                    type: 'goal'
+                });
             });
-        });
-    }
+        }
+        return arr;
+    })();
 
     for (let k = 0; k < iterations; k++) {
         // Collisions between dynamic balls
@@ -175,10 +176,12 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
                 const dx = ball2.x - ball1.x;
                 const dy = ball2.y - ball1.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distSq = dx * dx + dy * dy;
                 const combinedRadius = ball1.size + ball2.size;
+                const threshSq = combinedRadius * combinedRadius;
 
-                if (distance < combinedRadius && distance > 0) {
+                if (distSq < threshSq) {
+                    const distance = Math.sqrt(distSq) || 0;
                     const overlap = combinedRadius - distance;
                     const normalX = dx / distance;
                     const normalY = dy / distance;
@@ -211,10 +214,12 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
                 const dx = staticObj.x - ball.x;
                 const dy = staticObj.y - ball.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distSq = dx * dx + dy * dy;
                 const combinedRadius = ball.size + staticObj.size; // Using approximate size for static objects
+                const threshSq = combinedRadius * combinedRadius;
 
-                    if (distance < combinedRadius) {
+                    if (distSq < threshSq) {
+                    const distance = Math.sqrt(distSq) || 0;
                     // Support distance === 0 by using a default normal and full overlap
                     const overlap = distance === 0 ? combinedRadius : (combinedRadius - distance);
                     const inv = distance === 0 ? 0 : 1 / distance;
@@ -585,41 +590,62 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation);
     }
 
+    // Pre-resolve static positions once per frame
+    const resolvedHazards = [];
+    const resolvedGoals = [];
+    const resolvedPowerups = [];
+    if (level) {
+        if (level.hazards) {
+            for (let i = 0; i < level.hazards.length; i++) {
+                const hz = level.hazards[i];
+                const p = resolveLevelPos(hz, canvasWidth, canvasHeight);
+                resolvedHazards.push({ ...hz, x: p.x, y: p.y });
+            }
+        }
+        if (level.goals) {
+            for (let i = 0; i < level.goals.length; i++) {
+                const g = level.goals[i];
+                const p = resolveLevelPos(g, canvasWidth, canvasHeight);
+                resolvedGoals.push({ ...g, x: p.x, y: p.y });
+            }
+        }
+        if (level.powerups) {
+            for (let i = 0; i < level.powerups.length; i++) {
+                const pu = level.powerups[i];
+                const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
+                resolvedPowerups.push({ ...pu, x: p.x, y: p.y });
+            }
+        }
+    }
+
     // Draw hazards
-    if (level && level.hazards) {
-        level.hazards.forEach(hazard => {
-            const p = resolveLevelPos(hazard, canvasWidth, canvasHeight);
-            drawStaticShape({ ...hazard, x: p.x, y: p.y });
-        });
+    for (let i = 0; i < resolvedHazards.length; i++) {
+        drawStaticShape(resolvedHazards[i]);
     }
 
     // Draw goals
-    if (level && level.goals) {
-        level.goals.forEach(goal => {
-            const p = resolveLevelPos(goal, canvasWidth, canvasHeight);
-            drawStaticShape({ ...goal, x: p.x, y: p.y });
-        });
+    for (let i = 0; i < resolvedGoals.length; i++) {
+        drawStaticShape(resolvedGoals[i]);
     }
 
     // Draw powerups
-    if (level && level.powerups) {
-        level.powerups.forEach(pu => {
-            const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
-            // simple visual: colored ring with inner white core
+    if (resolvedPowerups.length) {
+        for (let i = 0; i < resolvedPowerups.length; i++) {
+            const pu = resolvedPowerups[i];
             ctx.save();
             ctx.beginPath();
             ctx.strokeStyle = pu.color || 'gold';
             ctx.lineWidth = 3;
             if (pu.shape === 'circle') {
-                ctx.arc(p.x, p.y, pu.radius, 0, Math.PI * 2);
+                ctx.arc(pu.x, pu.y, pu.radius, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.fillStyle = 'rgba(255,255,255,0.9)';
-                ctx.arc(p.x, p.y, Math.max(2, pu.radius * 0.4), 0, Math.PI * 2);
+                ctx.arc(pu.x, pu.y, Math.max(2, pu.radius * 0.4), 0, Math.PI * 2);
                 ctx.fill();
             }
             ctx.restore();
-        });
+        }
     }
 
     // Handle powerup pickups by player before collisions (so shield can save within same frame)
@@ -631,11 +657,11 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
             // Player = selected or starting ball
             const player = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
             if (!player) continue;
-            const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
+            const p = resolvedPowerups[i];
             const dx = p.x - player.x;
             const dy = p.y - player.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist <= (player.size + pu.radius)) {
+            const thresh = player.size + pu.radius;
+            if ((dx*dx + dy*dy) <= (thresh * thresh)) {
                 // apply and remove from level
                 if (pu.type === 'shield') {
                     player.shieldUntil = now + 8000; // 8s
@@ -654,5 +680,30 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         }
     }
 
-    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall);
+    // Pass pre-resolved objects to avoid recomputing positions in the solver
+    const preResolvedStatics = [];
+    for (let i = 0; i < resolvedHazards.length; i++) {
+        const h = resolvedHazards[i];
+        preResolvedStatics.push({ x: h.x, y: h.y, size: h.shape === 'circle' ? h.radius : Math.max(h.width, h.height) / 2, shape: h.shape, color: h.color, isStatic: true, type: 'hazard' });
+    }
+    for (let i = 0; i < resolvedGoals.length; i++) {
+        const g = resolvedGoals[i];
+        preResolvedStatics.push({ x: g.x, y: g.y, size: g.shape === 'circle' ? g.radius : Math.max(g.width, g.height) / 2, shape: g.shape, color: g.color, isStatic: true, type: 'goal' });
+    }
+
+    solveCollisions(
+        balls,
+        physicsSettings.gameplay.healthSystem,
+        physicsSettings.gameplay.healthDamageMultiplier,
+        physicsSettings.deformation,
+        canvasWidth,
+        canvasHeight,
+        setGlobalScore,
+        level,
+        setScoredBallsCount,
+        setRemovedBallsCount,
+        onPlayerHitGoal,
+        selectedBall,
+        preResolvedStatics
+    );
 }

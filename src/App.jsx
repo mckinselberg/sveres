@@ -408,23 +408,21 @@ function App() {
                 // Up/Down are ignored for Y control so gravity governs Y
                 const hasUp = false;
                 const hasDown = false;
-                const gas = keys.has('m') || keys.has('Shift');
-                const brake = keys.has('n');
+                // Accelerators: 'n' pushes left, 'm' pushes right; Shift also accelerates using current/arrow direction
+                const gasLeft = keys.has('n');
+                const gasRight = keys.has('m');
+                const gas = gasLeft || gasRight || keys.has('Shift');
 
         // Tunables from selected ball (with sensible defaults)
         const ct = selectedBall.controlTuning || {};
-        const baseMaxSpeed = ct.maxSpeedBase ?? 2.0;         // px/frame
-        const boostMultiplier = ct.boostMultiplier ?? 2.0;    // gas boost
-        const accelRate = ct.accelRate ?? 0.35;               // px/frame^2 toward target
-        const accelBoostMultiplier = ct.accelBoostMultiplier ?? 1.4; // stronger accel while gassing
-        const releaseFriction = ct.releaseFriction ?? 0.92;   // when no input
-        const brakeFriction = ct.brakeFriction ?? 0.75;       // while braking
-        const epsilon = 0.03;                                 // snap-to-zero threshold
+    const baseMaxSpeed = ct.maxSpeedBase ?? 2.0;         // px/frame
+    const boostMultiplier = ct.boostMultiplier ?? 2.0;    // gas boost
+    const accelRate = ct.accelRate ?? 0.35;               // px/frame^2 toward target
+    const accelBoostMultiplier = ct.accelBoostMultiplier ?? 1.4; // stronger accel while gassing
+    const epsilon = 0.03;                                 // snap-to-zero threshold
 
                 const maxSpeedX = gas ? baseMaxSpeed * boostMultiplier : baseMaxSpeed; // gas only affects X
-                const maxSpeedY = baseMaxSpeed; // Y unaffected by gas (gravity domain)
                 const effectiveAccelX = gas ? accelRate * accelBoostMultiplier : accelRate;
-                const effectiveAccelY = accelRate; // Y accel not boosted
 
                 // Determine active direction obeying physics
                 // Prefer live velocity from Canvas over possibly stale selectedBall snapshot
@@ -442,23 +440,26 @@ function App() {
                 }
 
                 // Choose direction using pure helper for consistency and testability
-                let dirX = decideGasDir({
-                    hasLeft,
-                    hasRight,
-                    gas,
-                    velSign,
-                    activeDir: activeDirRef.current,
-                    lastMotionDir: lastMotionDirRef.current,
-                });
-                // If gassing with no active direction or motion, choose a sane default to the right
-                if (gas && dirX === 0) {
-                    dirX = (lastMotionDirRef.current !== 0) ? lastMotionDirRef.current : 1;
+                // Primary direction from accelerators; fallback to arrows/WASD when using Shift as gas
+                let dirX = 0;
+                if (gasLeft && !gasRight) dirX = -1;
+                else if (gasRight && !gasLeft) dirX = 1;
+                else if (gas) {
+                    dirX = decideGasDir({
+                        hasLeft,
+                        hasRight,
+                        gas,
+                        velSign,
+                        activeDir: activeDirRef.current,
+                        lastMotionDir: lastMotionDirRef.current,
+                    });
+                    if (dirX === 0) dirX = (lastMotionDirRef.current !== 0) ? lastMotionDirRef.current : 1;
                 }
                 const targetVX = dirX === 0 ? currentVX : dirX * maxSpeedX;
-                const targetVY = null; // Y not controlled by input
+                // Y not controlled by input
 
                 let newVX = currentVX;
-                let newVY = selectedBall.velY;
+                // let newVY = selectedBall.velY; // Y axis is governed by gravity only
 
                 // Helper to move current toward target by up to delta per frame
                 const moveTowards = (current, target, delta) => {
@@ -469,9 +470,7 @@ function App() {
 
                 // Overrides
                 // X-axis: gas/brake control speed, left/right control direction only
-                if (brake) {
-                    newVX = 0;
-                } else if (gas) {
+                if (gas) {
                     // accelerate toward target velocity with limited delta per frame (only if direction known)
                     if (dirX === 0) {
                         // still no direction; nudge right to get moving
@@ -487,14 +486,13 @@ function App() {
                 }
 
                 // Y-axis untouched by input so gravity in physics loop governs it
-                newVY = selectedBall.velY;
 
                 // Always push an update when gas/brake is held, or when velocity changed
                 const changedX = Math.abs(newVX - currentVX) > 1e-3;
-                const changedY = Math.abs(newVY - selectedBall.velY) > 1e-3;
+                // const changedY = Math.abs(newVY - selectedBall.velY) > 1e-3;
                 const payload = { id: selectedBall.id };
                 // Always send X when brake/gas held or X changed
-                if ((brake || gas) && dirX !== 0 || changedX) Object.assign(payload, { velX: newVX });
+                if (gas && dirX !== 0 || changedX) Object.assign(payload, { velX: newVX });
                 // Never send Y (no vertical input control)
                 if (Object.keys(payload).length > 1) {
                     canvasRef.current?.updateSelectedBall?.(payload);
@@ -511,7 +509,7 @@ function App() {
             window.removeEventListener('keyup', handleKeyUp);
             if (movementRafRef.current) cancelAnimationFrame(movementRafRef.current);
         };
-    }, [selectedBall, levelMode, setGlobalScore, setScoredBallsCount, setRemovedBallsCount, isGameOver, wasdEnabled]);
+    }, [selectedBall, levelMode, setGlobalScore, setScoredBallsCount, setRemovedBallsCount, isGameOver, wasdEnabled, handleJump]);
 
     const toggleControlsVisibility = useCallback(() => {
         setShowControls(!showControls);
@@ -631,7 +629,7 @@ function App() {
             const dismissed = loadJSON(LS_KEYS.gauntletInstructionsDismissed, false);
             if (!dismissed) setShowGauntletHelp(true);
         }
-    }, []);
+    }, [levelMode]);
 
     return (
         <div>
