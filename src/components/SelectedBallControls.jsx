@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars -- used in JSX
 import Slider from './Slider.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
@@ -108,7 +109,8 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
     };
 
     const handleOpacityChange = (e) => {
-        onUpdateSelectedBall({ id: selectedBall.id, opacity: parseFloat(e.target.value) });
+    const v = parseFloat(e.target.value);
+    onUpdateSelectedBall({ id: selectedBall.id, opacity: Number.isFinite(v) ? v : 1 });
     };
 
     if (!selectedBall) {
@@ -123,7 +125,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                 <div className="section-body">
                     <div className="control-group">
                         <label>Color:</label>
-                        <input type="color" value={rgbToHex(selectedBall.color)} onChange={handleColorChange} />
+                        <input type="color" value={rgbToHex(selectedBall.color || '#ffffff')} onChange={handleColorChange} />
                     </div>
                     <div className="control-group">
                         <label>Shape:</label>
@@ -143,16 +145,16 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={10}
                         max={150}
                         step={5}
-                        value={selectedBall.size}
+                        value={Number.isFinite(Number(selectedBall.size)) ? Number(selectedBall.size) : 20}
                         onChange={handleSizeChange}
-                        displayValue={`${selectedBall.size}px`}
+                        displayValue={`${Number.isFinite(Number(selectedBall.size)) ? Number(selectedBall.size) : 20}px`}
                     />
                     <Slider
                         label="Opacity"
                         min={0}
                         max={1}
                         step={0.05}
-                        value={selectedBall.opacity}
+                        value={Number.isFinite(Number(selectedBall.opacity)) ? Number(selectedBall.opacity) : 1}
                         onChange={handleOpacityChange}
                     />
                 </div>
@@ -166,7 +168,12 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={1}
                         max={15}
                         step={1}
-                        value={Math.sqrt(selectedBall.velX * selectedBall.velX + selectedBall.velY * selectedBall.velY)}
+                        value={(() => {
+                            const vx = Number.isFinite(Number(selectedBall.velX)) ? Number(selectedBall.velX) : 0;
+                            const vy = Number.isFinite(Number(selectedBall.velY)) ? Number(selectedBall.velY) : 0;
+                            const speed = Math.sqrt(vx * vx + vy * vy);
+                            return Number.isFinite(speed) ? speed : 0;
+                        })()}
                         onChange={handleVelocityChange}
                     />
                     {/* Speed and Speed Multiplier controls would go here */}
@@ -178,11 +185,14 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                 <div className="section-body">
                     <div className="control-group">
                         <label>Collision Count:</label>
-                        <span>{selectedBall.collisionCount}</span>
+                        <span>{Number.isFinite(Number(selectedBall.collisionCount)) ? Number(selectedBall.collisionCount) : 0}</span>
                     </div>
                     <div className="control-group">
                         <label>Health:</label>
-                        <span>{Math.round(selectedBall.health)}</span>
+                        <span>{(() => {
+                            const h = Number(selectedBall.health);
+                            return Number.isFinite(h) ? Math.round(h) : 0;
+                        })()}</span>
                     </div>
                 </div>
             </details>
@@ -195,7 +205,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={0.5}
                         max={8}
                         step={0.1}
-                        value={selectedBall.controlTuning?.maxSpeedBase ?? 2.0}
+                        value={Number.isFinite(Number(selectedBall.controlTuning?.maxSpeedBase)) ? Number(selectedBall.controlTuning?.maxSpeedBase) : 2.0}
                         onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, maxSpeedBase: parseFloat(e.target.value) } })}
                     />
                     <Slider
@@ -203,7 +213,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={1}
                         max={4}
                         step={0.1}
-                        value={selectedBall.controlTuning?.boostMultiplier ?? 2.0}
+                        value={Number.isFinite(Number(selectedBall.controlTuning?.boostMultiplier)) ? Number(selectedBall.controlTuning?.boostMultiplier) : 2.0}
                         onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, boostMultiplier: parseFloat(e.target.value) } })}
                     />
                     <Slider
@@ -211,7 +221,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={0.05}
                         max={1}
                         step={0.05}
-                        value={selectedBall.controlTuning?.accelRate ?? 0.35}
+                        value={Number.isFinite(Number(selectedBall.controlTuning?.accelRate)) ? Number(selectedBall.controlTuning?.accelRate) : 0.35}
                         onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, accelRate: parseFloat(e.target.value) } })}
                     />
                     <Slider
@@ -219,7 +229,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={1}
                         max={3}
                         step={0.1}
-                        value={selectedBall.controlTuning?.accelBoostMultiplier ?? 1.4}
+                        value={Number.isFinite(Number(selectedBall.controlTuning?.accelBoostMultiplier)) ? Number(selectedBall.controlTuning?.accelBoostMultiplier) : 1.4}
                         onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, accelBoostMultiplier: parseFloat(e.target.value) } })}
                     />
                     <Slider
@@ -227,7 +237,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={0.5}
                         max={0.99}
                         step={0.01}
-                        value={selectedBall.controlTuning?.releaseFriction ?? 0.92}
+                        value={Number.isFinite(Number(selectedBall.controlTuning?.releaseFriction)) ? Number(selectedBall.controlTuning?.releaseFriction) : 0.92}
                         onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, releaseFriction: parseFloat(e.target.value) } })}
                     />
                     <Slider
@@ -235,7 +245,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         min={0.3}
                         max={0.95}
                         step={0.01}
-                        value={selectedBall.controlTuning?.brakeFriction ?? 0.75}
+                        value={Number.isFinite(Number(selectedBall.controlTuning?.brakeFriction)) ? Number(selectedBall.controlTuning?.brakeFriction) : 0.75}
                         onChange={(e) => onUpdateSelectedBall({ id: selectedBall.id, controlTuning: { ...selectedBall.controlTuning, brakeFriction: parseFloat(e.target.value) } })}
                     />
                 </div>

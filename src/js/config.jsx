@@ -30,7 +30,7 @@ export const DEFAULTS = {
 export const GRAVITY_GAUNTLET_DEFAULTS = {
     ...DEFAULTS, // Inherit all default settings
     enableGravity: true,
-    gravityStrength: 0.19, // Slightly stronger gravity for the gauntlet
+    gravityStrength: 0.03, // Slightly stronger gravity for the gauntlet
     ballCount: 5, // Fixed number of balls for the level
     ballShape: 'mixed', // Mixed shapes for variety
     ballSize: 30, // Smaller balls for more precise navigation
@@ -41,22 +41,5 @@ export const GRAVITY_GAUNTLET_DEFAULTS = {
         sandbox: false, // Not a sandbox level
         healthSystem: true,
         healthDamageMultiplier: 0.2 // Each hit takes 20% health
-    },
-    level: { // New property to define level-specific elements
-        type: 'gravityGauntlet',
-        constantsKey: 'gravityGauntlet',
-        hazards: [],
-        goals: [
-            // Example goal: a static circular target
-            { x: 700, y: 550, radius: 40, color: 'red', shape: 'circle', isStatic: true }
-        ],
-        // New: static powerups for gravity gauntlet
-        // Supported types: 'speed' (boost), 'shield' (prevent a single lose on goal), 'shrink' (temporarily smaller)
-        powerups: [
-            // Near player spawn so they’re achievable with a few moves
-            { type: 'speed',  x: 420, y: 180, radius: 14, color: 'gold', shape: 'circle' },
-            { type: 'shield', x: 600, y: 220, radius: 14, color: 'deepskyblue', shape: 'circle' },
-            { type: 'shrink', x: 360, y: 260, radius: 14, color: 'magenta', shape: 'circle' }
-        ]
     }
 };

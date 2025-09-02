@@ -130,7 +130,7 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 // Iteratively solves collisions between all balls in the simulation.
 // This function performs multiple iterations to ensure stable collision resolution,
 // especially for stacked or multi-ball collisions.
-export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall) {
+export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall) {
     const phys = (level && LEVEL_CONSTANTS_MAP[level.type]) || ENGINE_CONSTANTS;
     const iterations = phys.COLLISION_ITERATIONS; // Number of iterations for stable collision resolution
     const dynamicBalls = balls.filter(ball => !ball.isStatic);
@@ -138,9 +138,10 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
     if (level && level.hazards) {
         level.hazards.forEach(hazard => {
+            const p = resolveLevelPos(hazard, canvasWidth, canvasHeight);
             staticObjects.push({
-                x: hazard.x,
-                y: hazard.y,
+                x: p.x,
+                y: p.y,
                 size: hazard.shape === 'circle' ? hazard.radius : Math.max(hazard.width, hazard.height) / 2, // Approximate size for collision
                 shape: hazard.shape,
                 color: hazard.color,
@@ -152,9 +153,10 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
     if (level && level.goals) {
         level.goals.forEach(goal => {
+            const p = resolveLevelPos(goal, canvasWidth, canvasHeight);
             staticObjects.push({
-                x: goal.x,
-                y: goal.y,
+                x: p.x,
+                y: p.y,
                 size: goal.shape === 'circle' ? goal.radius : Math.max(goal.width, goal.height) / 2, // Approximate size for collision
                 shape: goal.shape,
                 color: goal.color,
@@ -289,6 +291,105 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
             }
         }
     }
+}
+
+// Resolve level object positions with flexible expressions.
+// Supports:
+// - numbers (px)
+// - percentages like '50%'
+// - 'center' (x) / 'center' or 'middle' (y)
+// - edge-anchored: 'right', 'right-20', 'right-10%', 'left+20',
+//                  'bottom', 'bottom-24', 'bottom-5%', 'top+12'
+// Offsets may be px or %. For edge anchors, we account for the object's visual half-size so the shape sits inside the canvas.
+function resolveLevelPos(obj, canvasWidth, canvasHeight) {
+    const halfSizeX = (() => {
+        if (obj?.shape === 'circle' && Number.isFinite(obj?.radius)) return obj.radius;
+        if (Number.isFinite(obj?.width)) return obj.width / 2;
+        return 0;
+    })();
+    const halfSizeY = (() => {
+        if (obj?.shape === 'circle' && Number.isFinite(obj?.radius)) return obj.radius;
+        if (Number.isFinite(obj?.height)) return obj.height / 2;
+        return 0;
+    })();
+
+    const parseOffset = (str, max) => {
+        if (!str) return 0;
+        const t = String(str).trim();
+        if (t.endsWith('%')) {
+            const n = parseFloat(t);
+            return Number.isFinite(n) ? (n / 100) * max : 0;
+        }
+        const n = parseFloat(t);
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    const rx = (v) => {
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string') {
+            const s = v.trim().toLowerCase();
+            // center with optional +/- offset (e.g., 'center+20')
+            const centerMatch = s.match(/^center\s*([+-])\s*(\d+(?:\.\d+)?%?)?$/);
+            if (s === 'center') return canvasWidth / 2;
+            if (centerMatch) {
+                const sign = centerMatch[1] === '-' ? -1 : 1;
+                const off = parseOffset(centerMatch[2], canvasWidth);
+                return canvasWidth / 2 + sign * off;
+            }
+            // right/left anchors with optional +/- offset
+            const rightMatch = s.match(/^right(?:\s*([+-])\s*(\d+(?:\.\d+)?%?))?$/);
+            if (rightMatch) {
+                const sign = rightMatch[1] === '+' ? 1 : -1; // default '-' meaning inside from edge
+                const off = parseOffset(rightMatch[2], canvasWidth);
+                // Inside the edge by default: base at inner edge considering half size
+                return (canvasWidth - halfSizeX) + sign * off;
+            }
+            const leftMatch = s.match(/^left(?:\s*([+-])\s*(\d+(?:\.\d+)?%?))?$/);
+            if (leftMatch) {
+                const sign = leftMatch[1] === '-' ? -1 : 1; // default '+' meaning inside from edge
+                const off = parseOffset(leftMatch[2], canvasWidth);
+                return halfSizeX + sign * off;
+            }
+            if (s.endsWith('%')) {
+                const n = parseFloat(s);
+                if (Number.isFinite(n)) return (n / 100) * canvasWidth;
+            }
+        }
+        return Number(v) || 0;
+    };
+    const ry = (v) => {
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string') {
+            const s = v.trim().toLowerCase();
+            // center/middle with optional +/- offset
+            const centerMatch = s.match(/^(center|middle)\s*([+-])\s*(\d+(?:\.\d+)?%?)?$/);
+            if (s === 'center' || s === 'middle') return canvasHeight / 2;
+            if (centerMatch) {
+                const sign = centerMatch[2] === '-' ? -1 : 1;
+                const off = parseOffset(centerMatch[3], canvasHeight);
+                return canvasHeight / 2 + sign * off;
+            }
+            // bottom/top anchors with optional +/- offset
+            const bottomMatch = s.match(/^bottom(?:\s*([+-])\s*(\d+(?:\.\d+)?%?))?$/);
+            if (bottomMatch) {
+                const sign = bottomMatch[1] === '+' ? 1 : -1; // default '-' meaning up from bottom
+                const off = parseOffset(bottomMatch[2], canvasHeight);
+                return (canvasHeight - halfSizeY) + sign * off;
+            }
+            const topMatch = s.match(/^top(?:\s*([+-])\s*(\d+(?:\.\d+)?%?))?$/);
+            if (topMatch) {
+                const sign = topMatch[1] === '-' ? -1 : 1; // default '+' meaning down from top
+                const off = parseOffset(topMatch[2], canvasHeight);
+                return halfSizeY + sign * off;
+            }
+            if (s.endsWith('%')) {
+                const n = parseFloat(s);
+                if (Number.isFinite(n)) return (n / 100) * canvasHeight;
+            }
+        }
+        return Number(v) || 0;
+    };
+    return { x: rx(obj.x), y: ry(obj.y) };
 }
 
 /**
@@ -487,31 +588,34 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
     // Draw hazards
     if (level && level.hazards) {
         level.hazards.forEach(hazard => {
-            drawStaticShape(hazard);
+            const p = resolveLevelPos(hazard, canvasWidth, canvasHeight);
+            drawStaticShape({ ...hazard, x: p.x, y: p.y });
         });
     }
 
     // Draw goals
     if (level && level.goals) {
         level.goals.forEach(goal => {
-            drawStaticShape(goal);
+            const p = resolveLevelPos(goal, canvasWidth, canvasHeight);
+            drawStaticShape({ ...goal, x: p.x, y: p.y });
         });
     }
 
     // Draw powerups
     if (level && level.powerups) {
         level.powerups.forEach(pu => {
+            const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
             // simple visual: colored ring with inner white core
             ctx.save();
             ctx.beginPath();
             ctx.strokeStyle = pu.color || 'gold';
             ctx.lineWidth = 3;
             if (pu.shape === 'circle') {
-                ctx.arc(pu.x, pu.y, pu.radius, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, pu.radius, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.fillStyle = 'rgba(255,255,255,0.9)';
-                ctx.arc(pu.x, pu.y, Math.max(2, pu.radius * 0.4), 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, Math.max(2, pu.radius * 0.4), 0, Math.PI * 2);
                 ctx.fill();
             }
             ctx.restore();
@@ -527,8 +631,9 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
             // Player = selected or starting ball
             const player = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
             if (!player) continue;
-            const dx = pu.x - player.x;
-            const dy = pu.y - player.y;
+            const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
+            const dx = p.x - player.x;
+            const dy = p.y - player.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist <= (player.size + pu.radius)) {
                 // apply and remove from level
@@ -549,5 +654,5 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         }
     }
 
-    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall);
+    solveCollisions(balls, physicsSettings.gameplay.healthSystem, physicsSettings.gameplay.healthDamageMultiplier, physicsSettings.deformation, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall);
 }

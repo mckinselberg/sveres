@@ -20,18 +20,23 @@ const Sound = (() => {
     if (!c) return;
     if (c.state === 'running') return;
     const resume = () => {
-      c.resume && c.resume();
-      // Tiny confirmation blip so users know sound is active
-      if (!confirmedOnce) {
-        try { blip({ freq: 660, dur: 0.06, type: 'sine', gain: 0.06 }); } catch {}
-        confirmedOnce = true;
-      }
-      window.removeEventListener('pointerdown', resume);
-      window.removeEventListener('click', resume);
-      window.removeEventListener('keydown', resume);
-      window.removeEventListener('touchstart', resume, { passive: true });
+      const p = c.resume && c.resume();
+      const after = () => {
+        // Tiny confirmation blip so users know sound is active
+        if (!confirmedOnce) {
+          try { blip({ freq: 660, dur: 0.07, type: 'sine', gain: 0.08 }); } catch {}
+          confirmedOnce = true;
+        }
+        window.removeEventListener('pointerdown', resume);
+        window.removeEventListener('mousedown', resume);
+        window.removeEventListener('click', resume);
+        window.removeEventListener('keydown', resume);
+        window.removeEventListener('touchstart', resume, { passive: true });
+      };
+      if (p && typeof p.then === 'function') p.then(after).catch(after); else after();
     };
     window.addEventListener('pointerdown', resume, { once: true });
+    window.addEventListener('mousedown', resume, { once: true });
     window.addEventListener('click', resume, { once: true });
     window.addEventListener('keydown', resume, { once: true });
     window.addEventListener('touchstart', resume, { once: true, passive: true });
@@ -43,9 +48,9 @@ const Sound = (() => {
   // Simple percussive note
   function blip({ freq = 440, dur = 0.08, type = 'sine', gain = 0.08, pan = 0 }) {
     if (!enabled) return;
-    const c = ensureContext();
-    if (!c) return;
-    if (c.state !== 'running') resumeOnGestureOnce();
+  const c = ensureContext();
+  if (!c) return;
+  if (c.state !== 'running') { resumeOnGestureOnce(); return; }
 
     const now = c.currentTime;
     const osc = c.createOscillator();
@@ -75,9 +80,9 @@ const Sound = (() => {
   // White noise hit for rough impacts
   function noiseHit({ dur = 0.05, gain = 0.06 }) {
     if (!enabled) return;
-    const c = ensureContext();
-    if (!c) return;
-    if (c.state !== 'running') resumeOnGestureOnce();
+  const c = ensureContext();
+  if (!c) return;
+  if (c.state !== 'running') { resumeOnGestureOnce(); return; }
 
     const bufferSize = 0.05 * c.sampleRate;
     const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
@@ -103,15 +108,15 @@ const Sound = (() => {
     lastPlayAt = nowMs;
 
     const clamped = Math.max(0, Math.min(1, intensity));
-    const base = 160 + clamped * 420; // higher freq for harder hits
-    const gain = 0.05 + clamped * 0.06;
+  const base = 160 + clamped * 420; // higher freq for harder hits
+  const gain = 0.07 + clamped * 0.09;
     blip({ freq: base, dur: 0.05 + clamped * 0.04, type: 'square', gain });
-    if (clamped > 0.5) noiseHit({ dur: 0.04 + clamped * 0.04, gain: 0.03 + clamped * 0.06 });
+  if (clamped > 0.5) noiseHit({ dur: 0.04 + clamped * 0.04, gain: 0.04 + clamped * 0.08 });
   }
 
   function playWall(intensity = 0.25) {
     const clamped = Math.max(0, Math.min(1, intensity));
-    blip({ freq: 220 + clamped * 180, dur: 0.05 + clamped * 0.03, type: 'triangle', gain: 0.06 + clamped * 0.05 });
+  blip({ freq: 220 + clamped * 180, dur: 0.05 + clamped * 0.03, type: 'triangle', gain: 0.08 + clamped * 0.06 });
   }
 
   function playScore() { blip({ freq: 720, dur: 0.07, type: 'sine', gain: 0.07 }); blip({ freq: 980, dur: 0.07, type: 'sine', gain: 0.06 }); }

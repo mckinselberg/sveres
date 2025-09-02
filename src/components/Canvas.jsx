@@ -206,6 +206,18 @@ const Canvas = memo(forwardRef(function Canvas({
         emitSnapshot();
 
         const handleMouseDown = (e) => {
+            // In level mode (gravity gauntlet), keep the player (starting ball) selected
+            if (level && level.type === 'gravityGauntlet') {
+                const player = ballsRef.current.find(b => b.isStartingBall) || (selectedBallIdRef.current && ballsRef.current.find(b => b.id === selectedBallIdRef.current));
+                if (player) {
+                    if (selectedBallIdRef.current !== player.id) {
+                        selectedBallIdRef.current = player.id;
+                        if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...player });
+                    }
+                }
+                // Ignore canvas clicks for selection changes in level mode
+                return;
+            }
             const mouseX = e.clientX;
             const mouseY = e.clientY;
 

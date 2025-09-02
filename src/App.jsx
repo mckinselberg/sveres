@@ -45,7 +45,9 @@ function mergeDefaultsForMode(mode, saved) {
     // level mode (Game) — start from Level 1 (Gravity Gauntlet) by default
     const level1 = getLevelById('gauntlet-1') || GAME_LEVELS[0];
     const base = { ...GRAVITY_GAUNTLET_DEFAULTS, level: { type: level1.type, title: level1.title, difficulty: level1.difficulty, hazards: level1.hazards, goals: level1.goals, powerups: level1.powerups } };
+    // Merge saved top-level settings but DO NOT let saved.level override code-defined level
     const merged = { ...base, ...(saved || {}) };
+    merged.level = { ...base.level };
         // Explicitly clear hazards in gauntlet mode
         if (merged.level && merged.level.type === 'gravityGauntlet') {
             merged.level = { ...merged.level, hazards: [] };
@@ -565,7 +567,10 @@ function App() {
     useEffect(() => {
         const key = levelMode ? LS_KEYS.settingsGauntlet : LS_KEYS.settingsSandbox;
         try {
-            localStorage.setItem(key, JSON.stringify(physicsSettings));
+            // In level mode, avoid persisting the level definition so code/registry updates remain authoritative
+            const toSave = levelMode ? { ...physicsSettings } : physicsSettings;
+            if (levelMode) delete toSave.level;
+            localStorage.setItem(key, JSON.stringify(toSave));
         } catch (e) { /* noop */ void 0; }
     }, [physicsSettings, levelMode]);
 
@@ -595,15 +600,9 @@ function App() {
             goals: sel.goals,
             powerups: sel.powerups,
         };
-        setPhysicsSettings(prev => {
-            // Avoid unnecessary updates if identical by shallow compare on the fields we set
-            const same = prev.level &&
-                prev.level.type === nextLevel.type &&
-                prev.level.title === nextLevel.title &&
-                prev.level.difficulty === nextLevel.difficulty;
-            const mergedLevel = (nextLevel.type === 'gravityGauntlet') ? { ...nextLevel, hazards: [] } : nextLevel;
-            return same ? prev : { ...prev, level: mergedLevel };
-        });
+        const mergedLevel = (nextLevel.type === 'gravityGauntlet') ? { ...nextLevel, hazards: [] } : nextLevel;
+        // Always refresh from registry to reflect code changes
+        setPhysicsSettings(prev => ({ ...prev, level: mergedLevel }));
     }, [levelMode, currentLevelId]);
 
     const handleRemoveBall = useCallback(() => {
