@@ -182,6 +182,17 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
                 if (distSq < threshSq) {
                     const distance = Math.sqrt(distSq) || 0;
+                    // Bullet Hell: bullet touching player -> immediate lose
+                    if (level && level.type === 'bulletHell' && (ball1.isBullet || ball2.isBullet)) {
+                        const isControlled1 = selectedBall && ball1.id === selectedBall.id;
+                        const isControlled2 = selectedBall && ball2.id === selectedBall.id;
+                        const isPlayer1 = isControlled1 || ball1.isStartingBall;
+                        const isPlayer2 = isControlled2 || ball2.isStartingBall;
+                        if ((ball1.isBullet && isPlayer2) || (ball2.isBullet && isPlayer1)) {
+                            if (onPlayerHitGoal) onPlayerHitGoal();
+                            continue;
+                        }
+                    }
                     const overlap = combinedRadius - distance;
                     const normalX = dx / distance;
                     const normalY = dy / distance;
@@ -590,6 +601,35 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation);
     }
 
+    // Bullet Hell spawner: periodically spawn small fast bullets from edges aimed at player
+    if (level && level.type === 'bulletHell') {
+        const now = performance.now();
+        // simple throttle stored on ctx to avoid extra globals
+        const nextTime = (ctx._nextBulletTime || 0);
+        const player = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
+        if (now >= nextTime && player) {
+            ctx._nextBulletTime = now + 450; // ms
+            // spawn from a random edge
+            const edge = Math.floor(Math.random() * 4);
+            let x = 0, y = 0;
+            if (edge === 0) { x = Math.random() * canvasWidth; y = -8; }
+            else if (edge === 1) { x = canvasWidth + 8; y = Math.random() * canvasHeight; }
+            else if (edge === 2) { x = Math.random() * canvasWidth; y = canvasHeight + 8; }
+            else { x = -8; y = Math.random() * canvasHeight; }
+            const dx = player.x - x;
+            const dy = player.y - y;
+            const len = Math.hypot(dx, dy) || 1;
+            const speed = Math.max(6, physicsSettings.ballVelocity * 1.2);
+            const vx = (dx / len) * speed;
+            const vy = (dy / len) * speed;
+            const bullet = new Ball(x, y, vx, vy, 'rgba(255,60,60,0.95)', 6, 'circle', false);
+            bullet.isBullet = true;
+            bullet.opacity = 0.95;
+            bulletsTTL(bullet, now);
+            balls.push(bullet);
+        }
+    }
+
     // Pre-resolve static positions once per frame
     const resolvedHazards = [];
     const resolvedGoals = [];
@@ -706,4 +746,17 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         selectedBall,
         preResolvedStatics
     );
+}
+
+function bulletsTTL(ball, now) {
+    // basic TTL to clean up bullets after 6 seconds
+    const ttl = 6000;
+    ball._despawnAt = now + ttl;
+    const _updateOrig = ball.update.bind(ball);
+    ball.update = function(canvasWidth, canvasHeight, gravity, maxVelocity, deformation) {
+        _updateOrig(canvasWidth, canvasHeight, 0, Math.max(maxVelocity, 10), deformation);
+        if (ball._despawnAt && performance.now() > ball._despawnAt) {
+            ball.size = 0; // make it removable via removal pass
+        }
+    };
 }

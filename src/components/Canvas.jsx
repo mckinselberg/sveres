@@ -93,13 +93,15 @@ const Canvas = memo(forwardRef(function Canvas({
             if (!canvas) return;
             ballsRef.current = [];
             loseRef.current = false;
-            const startingOverrideReset = (level && level.type === 'gravityGauntlet') ? 15 : undefined;
+            const startingOverrideReset = (level ? 15 : undefined);
             initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideReset);
-            if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+            if (level && ballsRef.current.length > 0) {
                 ballsRef.current[0].size = 15;
                 ballsRef.current[0].originalSize = 15;
+                // Seed jump state
+                ballsRef.current[0]._airJumpAvailable = true;
             }
-            if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+            if (level && ballsRef.current.length > 0) {
                 selectedBallIdRef.current = ballsRef.current[0].id;
                 if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ballsRef.current[0] });
             } else {
@@ -165,7 +167,15 @@ const Canvas = memo(forwardRef(function Canvas({
             if (player._jumpCooldownUntil && player._jumpCooldownUntil > now) return;
             const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
             const grounded = (player.y + effR) >= (canvas.height - 3);
-            if (!grounded) return;
+            // Allow one mid-air jump: if airborne, consume the air jump token; if grounded, ensure it's available
+            if (!grounded) {
+                if (!player._airJumpAvailable) return;
+                // consume token for air jump
+                player._airJumpAvailable = false;
+            } else {
+                // grounded jump always resets token so another air jump is possible after takeoff
+                player._airJumpAvailable = true;
+            }
             const s = settingsRef.current;
             const g = Math.max(0.05, s.gravityStrength || 0.15);
             // Jump velocity scaled by gravity for natural feel
@@ -190,13 +200,15 @@ const Canvas = memo(forwardRef(function Canvas({
 
     // (Re)seed balls for new level/shape
     ballsRef.current = [];
-    const startingOverrideSeed = (level && level.type === 'gravityGauntlet') ? 15 : undefined;
+    const startingOverrideSeed = (level ? 15 : undefined);
     initializeBalls(ballsRef.current, ballCount, ballSize, settingsRef.current.ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideSeed);
-    if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+    if (level && ballsRef.current.length > 0) {
         ballsRef.current[0].size = 15;
         ballsRef.current[0].originalSize = 15;
+    // Seed jump state on level start
+    ballsRef.current[0]._airJumpAvailable = true;
     }
-        if (level && level.type === 'gravityGauntlet' && ballsRef.current.length > 0) {
+        if (level && ballsRef.current.length > 0) {
             selectedBallIdRef.current = ballsRef.current[0].id;
             if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ballsRef.current[0] });
         } else {
@@ -206,8 +218,8 @@ const Canvas = memo(forwardRef(function Canvas({
         emitSnapshot();
 
         const handleMouseDown = (e) => {
-            // In level mode (gravity gauntlet), keep the player (starting ball) selected
-            if (level && level.type === 'gravityGauntlet') {
+            // In any level mode (game), keep the player (starting ball) selected
+            if (level) {
                 const player = ballsRef.current.find(b => b.isStartingBall) || (selectedBallIdRef.current && ballsRef.current.find(b => b.id === selectedBallIdRef.current));
                 if (player) {
                     if (selectedBallIdRef.current !== player.id) {
@@ -306,8 +318,21 @@ const Canvas = memo(forwardRef(function Canvas({
                 () => { loseRef.current = true; }
             );
 
+            // After physics step, if player is grounded, reset air-jump availability
+            {
+                const canvasEl = canvasRef.current;
+                const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
+                if (canvasEl && playerBall) {
+                    const effR2 = playerBall.size * Math.max(playerBall.scaleX || 1, playerBall.scaleY || 1);
+                    const groundedNow = (playerBall.y + effR2) >= (canvasEl.height - 3);
+                    if (groundedNow) {
+                        playerBall._airJumpAvailable = true;
+                    }
+                }
+            }
+
             // Fallback: if physics missed the goal overlap due to edge cases, detect it here for the player (selected or starting)
-            if (!loseRef.current && level && level.type === 'gravityGauntlet' && level.goals && level.goals.length) {
+            if (!loseRef.current && level && level.goals && level.goals.length) {
                 const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
                 if (playerBall) {
                     for (let k = 0; k < level.goals.length; k++) {

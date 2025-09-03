@@ -46,6 +46,55 @@ export const GAME_LEVELS = [
       PLAYER_MIN_WALL_REBOUND: 1.2,
       WALL_GRAZING_THRESHOLD: 2,
     }
+  },
+  {
+    id: 'gauntlet-2',
+    index: 1,
+    mode: 'game',
+    type: 'gravityGauntlet',
+    title: 'Gravity Gauntlet: Twin Rings',
+    difficulty: '2',
+    // Visual objects
+    hazards: [
+      // Simple platforms to shape trajectories
+      { x: 'left+25%',  y: 'middle',     width: 120, height: 18, color: '#444', shape: 'square', isStatic: true },
+      { x: 'right-25%', y: 'middle+40',  width: 120, height: 18, color: '#444', shape: 'square', isStatic: true }
+    ],
+    goals: [
+      { x: 'left+20%',  y: 'bottom-120', radius: 34, color: 'yellow', shape: 'circle', isStatic: true },
+      { x: 'right-20%', y: 'bottom-120', radius: 34, color: 'yellow', shape: 'circle', isStatic: true }
+    ],
+    powerups: [
+      { type: 'speed',  x: 'left+20%',  y: 'bottom-12', radius: 14, color: 'gold',        shape: 'circle' },
+      { type: 'shield', x: 'right-20%', y: 'bottom-12', radius: 14, color: 'deepskyblue', shape: 'circle' },
+      { type: 'shrink', x: 'center',    y: 'bottom-12', radius: 14, color: 'magenta',     shape: 'circle' }
+    ],
+    physics: {
+      COLLISION_ELASTICITY: 0.9,
+      COLLISION_ITERATIONS: 5,
+      PLAYER_MIN_WALL_REBOUND: 1.2,
+      WALL_GRAZING_THRESHOLD: 2,
+    }
+  },
+  {
+    id: 'bullet-hell-1',
+    index: 100,
+    mode: 'game',
+    type: 'bulletHell',
+    title: 'Bullet Hell: Dodge!',
+    difficulty: '3',
+    hazards: [],
+    goals: [],
+    powerups: [
+      { type: 'shield', x: 'left+20%',  y: 'bottom-12', radius: 14, color: 'deepskyblue', shape: 'circle' },
+      { type: 'speed',  x: 'right-20%', y: 'bottom-12', radius: 14, color: 'gold',        shape: 'circle' }
+    ],
+    physics: {
+      COLLISION_ELASTICITY: 0.95,
+      COLLISION_ITERATIONS: 4,
+      PLAYER_MIN_WALL_REBOUND: 1.2,
+      WALL_GRAZING_THRESHOLD: 2,
+    }
   }
 ];
 
