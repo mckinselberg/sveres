@@ -111,6 +111,23 @@ function App() {
         canvasRef.current?.jumpPlayer?.();
     }, [isGameOver]);
 
+    // Reload the current level definition from the registry (fresh powerups/goals/hazards)
+    const refreshLevelFromRegistry = useCallback(() => {
+        if (!levelMode) return;
+        const sel = getLevelById(currentLevelId) || GAME_LEVELS[0];
+        if (!sel) return;
+        const nextLevel = {
+            type: sel.type,
+            title: sel.title,
+            difficulty: sel.difficulty,
+            hazards: sel.hazards,
+            goals: sel.goals,
+            powerups: sel.powerups,
+        };
+        const mergedLevel = (nextLevel.type === 'gravityGauntlet') ? { ...nextLevel, hazards: [] } : nextLevel;
+        setPhysicsSettings(prev => ({ ...prev, level: mergedLevel }));
+    }, [levelMode, currentLevelId]);
+
     const handleShareURL = useCallback(async () => {
         try {
             // Overwrite or set the hash based on current localStorage
@@ -294,6 +311,8 @@ function App() {
                 if (event.key === 'r' || event.key === 'R') {
                     event.preventDefault();
                     if (levelMode) {
+                        // Refresh level so powerups respawn
+                        refreshLevelFromRegistry();
                         canvasRef.current?.resetBalls?.();
                         setGlobalScore(0);
                         setScoredBallsCount(0);
@@ -326,6 +345,8 @@ function App() {
                 event.preventDefault();
                 if (levelMode) {
                     // Gauntlet reset resets counters too
+                    // Refresh level so powerups respawn
+                    refreshLevelFromRegistry();
                     canvasRef.current?.resetBalls?.();
                     setGlobalScore(0);
                     setScoredBallsCount(0);
@@ -608,11 +629,15 @@ function App() {
     }, []);
 
     const handleResetBalls = useCallback(() => {
+        if (levelMode) {
+            refreshLevelFromRegistry();
+        }
         canvasRef.current?.resetBalls?.();
         setGlobalScore(0);
-    }, []);
+    }, [levelMode, refreshLevelFromRegistry]);
 
     const handleResetGauntlet = useCallback(() => {
+        refreshLevelFromRegistry();
         canvasRef.current?.resetBalls?.();
         setGlobalScore(0);
         setScoredBallsCount(0);
@@ -621,7 +646,7 @@ function App() {
     setDidLose(false);
     setShowGauntletHelp(false);
     try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
-    }, []);
+    }, [refreshLevelFromRegistry]);
 
     // Show gauntlet help on first load if mode is already gauntlet and not dismissed
     useEffect(() => {
