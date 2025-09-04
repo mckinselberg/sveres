@@ -201,6 +201,8 @@ canvas {
   max-height: calc(100vh - 20px);
   overflow-y: auto;
   width: 20%;
+  // Ensure this panel stays above floating right-controls for reliable dragging
+  z-index: 2050;
 
   // Section styling
   h3 {
