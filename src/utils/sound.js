@@ -2,12 +2,15 @@
 // Generates simple percussive tones for collisions, scoring, and win/lose.
 
 const Sound = (() => {
+  const hasWindow = typeof window !== 'undefined';
+  const nowMs = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
   let ctx = null;
   let enabled = true;
   let lastPlayAt = 0;
   let confirmedOnce = false;
 
   function ensureContext() {
+    if (!hasWindow) return null;
     if (ctx) return ctx;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return null;
@@ -16,6 +19,7 @@ const Sound = (() => {
   }
 
   function resumeOnGestureOnce() {
+    if (!hasWindow) return;
     const c = ensureContext();
     if (!c) return;
     if (c.state === 'running') return;
@@ -103,9 +107,9 @@ const Sound = (() => {
 
   function playCollision(intensity = 0.3) {
     // Throttle to avoid spam
-    const nowMs = performance.now();
-    if (nowMs - lastPlayAt < 12) return; // ~1 per frame max
-    lastPlayAt = nowMs;
+  const t = nowMs();
+  if (t - lastPlayAt < 12) return; // ~1 per frame max
+  lastPlayAt = t;
 
     const clamped = Math.max(0, Math.min(1, intensity));
   const base = 160 + clamped * 420; // higher freq for harder hits

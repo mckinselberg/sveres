@@ -131,6 +131,28 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 // This function performs multiple iterations to ensure stable collision resolution,
 // especially for stacked or multi-ball collisions.
 export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall, preResolvedStaticObjects) {
+    // Backwards compatibility: old signature was
+    // solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal)
+    // Detect when the 5th arg is a function (setGlobalScore) and remap accordingly.
+    if (typeof canvasWidth === 'function' && (typeof canvasHeight === 'object' || canvasHeight == null)) {
+        // shift args from old to new local variables
+        const _setGlobalScore = canvasWidth;
+        const _level = canvasHeight;
+        const _setScoredBallsCount = setGlobalScore;
+        const _setRemovedBallsCount = level;
+        const _onPlayerHitGoal = setScoredBallsCount;
+        // selectedBall and preResolvedStaticObjects remain as provided (likely undefined)
+
+        // assign normalized
+        setGlobalScore = _setGlobalScore;
+        level = _level;
+        setScoredBallsCount = _setScoredBallsCount;
+        setRemovedBallsCount = _setRemovedBallsCount;
+        onPlayerHitGoal = _onPlayerHitGoal;
+    // Canvas size not provided in old signature; default to 0 which works for numeric positions
+    canvasWidth = 0;
+    canvasHeight = 0;
+    }
     const phys = (level && LEVEL_CONSTANTS_MAP[level.type]) || ENGINE_CONSTANTS;
     const iterations = phys.COLLISION_ITERATIONS; // Number of iterations for stable collision resolution
     const dynamicBalls = balls.filter(ball => !ball.isStatic);
