@@ -1,56 +1,37 @@
-Here’s how I’d continue decomposing `Canvas.jsx` without changing behavior, in small, low‑risk steps.
+Here’s what remains after decomposing `Canvas.jsx`. Next steps are prioritized to maximize stability and quality.
 
-Checklist (remaining):
+Top priority (bugs)
 
-- Extract small, focused hooks for input bridging (jump mechanics)
-- Add minimal tests where behavior becomes pure
+- Investigate and fix reset issue where balls keep speeding up, leading to a freeze.
+  - Hypotheses: duplicate RAF after reset; gravity/velocity scaling compounded on reseed; state leakage across resets (e.g., friction/drag disabled, sleep flags).
+  - Repro plan: reset repeatedly in game mode; watch RAF count and per-frame entity counts; profile CPU usage.
 
-Recommended steps:
+High priority
 
-1. Jump mechanics inside Canvas (extract)
+- Tests
+  - test/levelPositioning.test.js — anchors/percent/center offsets
+  - test/powerups.test.js — pickups and shield consumption edge cases
+  - test/bulletHellSpawner.test.js — spawn cadence and direction
 
-- Add `src/hooks/useJumpMechanics.js`:
-  - Encapsulate the double-jump token, cooldowns, and apply jump impulse to the controlled ball
-  - Canvas’s imperative `jumpPlayer()` just calls into this hook.
+Medium priority
 
-2. Imperative API wrapper
+- Input polish: add WASD controls (W as jump alias)
+- Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
 
-- Add `src/hooks/useImperativeCanvasAPI.js`:
-  - Wraps updateSelectedBall, resetBalls, addBall, removeBall, applyColorScheme, jumpPlayer, etc.
-  - Keeps the ref handling cohesive and easier to test.
+Low priority (UX polish)
 
-3. Tests
+- Welcome screen
+- Organize overlays/panels
+- Simple bleep/bloop background music with a UI toggle
+- FPS cap/control in settings
+- organize the ui elements logically, using established design conventions from modern games
 
-- Add unit tests:
-  - `levelPositioning.test.js` for anchors/percent/center offsets
-  - `powerups.test.js` for pickup application and shield consumption edge case
-  - `bulletHellSpawner.test.js` for spawn cadence and direction
+Later
 
-Order of operations to minimize risk:
+- In game mode, define behavior when the player does not interact with the canvas at app start (e.g., attract/demo mode or paused prompt)
 
-- 1 (jump hook)
-- 2 (imperative API wrapper)
-- 3 (tests)
-
-Public contracts to keep stable:
+Public contracts to keep stable
 
 - Props currently received by `Canvas`
-- Imperative ref methods: jumpPlayer, updateSelectedBall, resetBalls, addBall, removeBall, applyColorScheme, onSelectedBallMotion callback shape
-
-If you want, I can start with the jump hook and the imperative API wrapper, then add the tests and report deltas.
-
-vital bugs to fix:
-
-- fix reset issue where the balls keep speeding up leading to a frozen browser. i think the changes intended to improve performance actually ruined it.
-
-nice-to-haves:
-
-- welcome screen
-- organize
-- add wasd controls (W to jump alias)
-- create music using simple bleep/bloops
-- add ability to change the fps
-
-later
-
-- in game mode, if player does not interact with the canvas when the application starts
+- Imperative ref methods: jumpPlayer, updateSelectedBall, resetBalls, addBall, removeBall, applyColorScheme
+- onSelectedBallMotion callback shape
