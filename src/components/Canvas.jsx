@@ -1,9 +1,10 @@
-import { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState, useCallback } from 'react';
+import { useRef, useEffect, memo, forwardRef, useImperativeHandle, useCallback } from 'react';
 // Use the JS physics module (with sound hooks) explicitly
 import { initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
 import Sound from '../utils/sound';
 import useResolvedStatics from '../hooks/useResolvedStatics.js';
 import useGameLoop from '../hooks/useGameLoop.js';
+import useCanvasSize from '../hooks/useCanvasSize.js';
 
 const Canvas = memo(forwardRef(function Canvas({
     enableGravity,
@@ -38,7 +39,7 @@ const Canvas = memo(forwardRef(function Canvas({
     const onSelectedBallMotionRef = useRef(onSelectedBallMotion);
     const loseRef = useRef(false);
     // (moved into useGameLoop)
-    const [viewport, setViewport] = useState({ w: 0, h: 0 });
+    const viewport = useCanvasSize();
 
     // Keep latest callback refs to avoid re-running effects due to unstable identities
     useEffect(() => {
@@ -213,12 +214,9 @@ const Canvas = memo(forwardRef(function Canvas({
     Sound.init();
         const canvas = canvasRef.current;
 
-        const handleResize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            setViewport({ w: canvas.width, h: canvas.height });
-        };
-        handleResize();
+    // apply viewport size to canvas
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
     // (Re)seed balls for new level/shape
     ballsRef.current = [];
@@ -273,7 +271,6 @@ const Canvas = memo(forwardRef(function Canvas({
             }
         };
 
-        window.addEventListener('resize', handleResize);
         canvas.addEventListener('mousedown', handleMouseDown);
 
         // Prevent zoom gestures on the canvas (mobile)
@@ -295,7 +292,6 @@ const Canvas = memo(forwardRef(function Canvas({
         }, { passive: false });
 
         return () => {
-            window.removeEventListener('resize', handleResize);
             canvas.removeEventListener('mousedown', handleMouseDown);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps

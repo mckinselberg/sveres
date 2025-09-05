@@ -81,6 +81,9 @@ Public contracts to keep stable:
 
 If you want, I can start with steps 1–2 (pure helpers + resolved statics) and wire them, then run tests and report deltas.
 
+- welcome screen
+- organize
 - add wasd controls
 - debounce/throttle sounds
+- mute button
 - create music using the same simple bleep/bloops

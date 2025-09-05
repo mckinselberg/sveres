@@ -5,9 +5,10 @@ import { Ball } from './Ball.ts';
 import { ENGINE_CONSTANTS } from '../js/physics.constants.js';
 import { GRAVITY_GAUNTLET_CONSTANTS } from '../js/levels/gravityGauntlet.constants.js';
 import Sound from './sound.js';
-import { drawStaticShape as drawStaticShapeHelper, drawPowerup } from './canvasRendering.js';
+import { drawStaticShape as drawStaticShapeHelper } from './canvasRendering.js';
 import { resolveLevelPos } from './levelPositioning.js';
 import { spawnBulletHellIfDue } from './bulletHell.js';
+import { resolvePowerups, drawPowerups, applyPowerupPickups } from './powerups.js';
 
 const LEVEL_CONSTANTS_MAP = {
     gravityGauntlet: GRAVITY_GAUNTLET_CONSTANTS?.PHYSICS
@@ -564,14 +565,7 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
     // Pre-resolve static positions: accept memoized hazards/goals from Canvas; still resolve powerups each frame
     const resolvedHazards = memo?.resolvedHazards ? memo.resolvedHazards : [];
     const resolvedGoals = memo?.resolvedGoals ? memo.resolvedGoals : [];
-    const resolvedPowerups = [];
-    if (level && level.powerups) {
-        for (let i = 0; i < level.powerups.length; i++) {
-            const pu = level.powerups[i];
-            const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
-            resolvedPowerups.push({ ...pu, x: p.x, y: p.y });
-        }
-    }
+    const resolvedPowerups = resolvePowerups(level, canvasWidth, canvasHeight);
 
     // Draw hazards
     for (let i = 0; i < resolvedHazards.length; i++) {
@@ -584,43 +578,10 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
     }
 
     // Draw powerups
-    if (resolvedPowerups.length) {
-        for (let i = 0; i < resolvedPowerups.length; i++) {
-            drawPowerup(ctx, resolvedPowerups[i]);
-        }
-    }
+    drawPowerups(ctx, resolvedPowerups);
 
     // Handle powerup pickups by player before collisions (so shield can save within same frame)
-    if (level && level.powerups) {
-        const now = Date.now();
-        for (let i = level.powerups.length - 1; i >= 0; i--) {
-            const pu = level.powerups[i];
-            if (pu.shape !== 'circle') continue; // only circle support for now
-            // Player = selected or starting ball
-            const player = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
-            if (!player) continue;
-            const p = resolvedPowerups[i];
-            const dx = p.x - player.x;
-            const dy = p.y - player.y;
-            const thresh = player.size + pu.radius;
-            if ((dx*dx + dy*dy) <= (thresh * thresh)) {
-                // apply and remove from level
-                if (pu.type === 'shield') {
-                    player.shieldUntil = now + 8000; // 8s
-                    Sound.playPowerup('shield');
-                } else if (pu.type === 'speed') {
-                    player.speedUntil = now + 6000; // 6s
-                    Sound.playPowerup('speed');
-                } else if (pu.type === 'shrink') {
-                    player.baseSize = player.baseSize || player.size;
-                    player.size = Math.max(6, Math.round(player.baseSize * 0.65));
-                    player.shrinkUntil = now + 7000; // 7s
-                    Sound.playPowerup('shrink');
-                }
-                level.powerups.splice(i, 1);
-            }
-        }
-    }
+    applyPowerupPickups(level, balls, resolvedPowerups, selectedBall);
 
     // Pass pre-resolved objects from memo when provided, otherwise build them
     const preResolvedStatics = memo?.preResolvedStatics ? memo.preResolvedStatics : (() => {
