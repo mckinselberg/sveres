@@ -87,3 +87,4 @@ If you want, I can start with steps 1–2 (pure helpers + resolved statics) and 
 - debounce/throttle sounds
 - mute button
 - create music using the same simple bleep/bloops
+- add ability to change the fps

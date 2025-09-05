@@ -70,7 +70,9 @@ const Canvas = memo(forwardRef(function Canvas({
         onWin,
         onLose,
         onSelectedBallChangeRef,
-        onSelectedBallMotionRef
+        onSelectedBallMotionRef,
+        viewW: viewport.w,
+        viewH: viewport.h
     });
 
     // Imperative API for App/Controls
@@ -182,7 +184,7 @@ const Canvas = memo(forwardRef(function Canvas({
             if (!player) return;
             const now = Date.now();
             const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
-            const grounded = (player.y + effR) >= (canvas.height - 3);
+            const grounded = (player.y + effR) >= ((viewport.h || canvas.height) - 3);
             // Decide jump type first, then apply cooldown rules
             let isAirJump = false;
             if (!grounded) {
@@ -206,7 +208,7 @@ const Canvas = memo(forwardRef(function Canvas({
             player.isSleeping = false;
             player._jumpCooldownUntil = now + (isAirJump ? 140 : 280); // ms
         }
-    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, level, emitSnapshot, gameLoop]);
+    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, level, viewport.h, emitSnapshot, gameLoop]);
 
     // Seed balls on mount and when level type or shape changes only
     useEffect(() => {
@@ -214,9 +216,16 @@ const Canvas = memo(forwardRef(function Canvas({
     Sound.init();
         const canvas = canvasRef.current;
 
-    // apply viewport size to canvas
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // apply viewport size to canvas respecting devicePixelRatio
+    const cssW = viewport.w || window.innerWidth;
+    const cssH = viewport.h || window.innerHeight;
+    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    const ctx2d = canvas.getContext('2d');
+    if (ctx2d) ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // (Re)seed balls for new level/shape
     ballsRef.current = [];

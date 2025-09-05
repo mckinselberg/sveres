@@ -4,7 +4,7 @@ import ColorSchemeManager from './ColorSchemeManager.jsx';
 import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
-function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme, onResetToDefaults }) {
+function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme, onResetToDefaults, soundOn, onToggleSound }) {
     // Persisted resizable width for the controls panel
     const LS_KEY_PANEL_WIDTH = 'ui:controlsPanelWidth';
     const readSavedWidth = () => {
@@ -355,6 +355,22 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                         onChange={(e) => handleGameplayChange('healthDamageMultiplier', e.target.value)}
                         disabled={levelMode} // Disable in level mode
                     />
+                </div>
+            </details>
+
+            <details id="section-sound" open>
+                <summary>Sound</summary>
+                <div className="section-body">
+                    <div className="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={!!soundOn}
+                                onChange={(e) => onToggleSound && onToggleSound(e.target.checked)}
+                            />
+                            Enable Sound
+                        </label>
+                    </div>
                 </div>
             </details>
 

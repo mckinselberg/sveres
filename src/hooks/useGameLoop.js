@@ -18,7 +18,9 @@ export default function useGameLoop({
   onWin,
   onLose,
   onSelectedBallChangeRef,
-  onSelectedBallMotionRef
+  onSelectedBallMotionRef,
+  viewW,
+  viewH
 }) {
   const animationFrameId = useRef(null);
   const loseRef = useRef(false);
@@ -39,9 +41,9 @@ export default function useGameLoop({
     stop();
     // Force a microtask so the effect sees a stopped state; it's safe without state since we recreate on isPaused/level/canvas changes
   Promise.resolve().then(() => {
-      const canvas = canvasRef.current;
-      if (!canvas || isPaused) return;
-      const ctx = canvas.getContext('2d');
+  const canvas = canvasRef.current;
+  if (!canvas || isPaused) return;
+  const ctx = canvas.getContext('2d');
       // kick off a render immediately
       const render = () => {
         const selectedForDraw = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
@@ -60,8 +62,8 @@ export default function useGameLoop({
         physicsLoop(
           ctx,
           ballsRef.current,
-          canvas.width,
-          canvas.height,
+          viewW || canvas.width,
+          viewH || canvas.height,
           { enableGravity: s.enableGravity, gravityStrength: s.gravityStrength, ballVelocity: s.ballVelocity, deformation: s.deformation, gameplay: s.gameplay },
           s.backgroundColor,
           1 - (s.trailOpacity * 0.9),
@@ -76,9 +78,9 @@ export default function useGameLoop({
 
         // After physics step, if player is grounded, reset air-jump availability
         const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
-        if (canvas && playerBall) {
+        if (playerBall) {
           const effR2 = playerBall.size * Math.max(playerBall.scaleX || 1, playerBall.scaleY || 1);
-          const groundedNow = (playerBall.y + effR2) >= (canvas.height - 3);
+          const groundedNow = (playerBall.y + effR2) >= ((viewH || canvas.height) - 3);
           if (groundedNow) {
             playerBall._airJumpAvailable = true;
           }
@@ -161,9 +163,9 @@ export default function useGameLoop({
 
         animationFrameId.current = requestAnimationFrame(render);
       };
-      render();
+    render();
     });
-  }, [canvasRef, isPaused, settingsRef, ballsRef, selectedBallIdRef, level, memo, onLose, onWin, setGlobalScore, setScoredBallsCount, setRemovedBallsCount, onSelectedBallChangeRef, onSelectedBallMotionRef, stop]);
+  }, [canvasRef, isPaused, settingsRef, ballsRef, selectedBallIdRef, level, memo, onLose, onWin, setGlobalScore, setScoredBallsCount, setRemovedBallsCount, onSelectedBallChangeRef, onSelectedBallMotionRef, viewW, viewH, stop]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

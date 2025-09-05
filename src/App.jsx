@@ -820,6 +820,8 @@ function App() {
                     levelMode={levelMode}
                     toggleLevelMode={toggleLevelMode}
                     onResetToDefaults={handleResetToDefaults}
+                    soundOn={soundOn}
+                    onToggleSound={setSoundOn}
                 />
             )}
             <SelectedBallControls
