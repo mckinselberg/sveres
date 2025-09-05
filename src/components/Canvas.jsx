@@ -1,8 +1,9 @@
 import { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState, useCallback } from 'react';
 // Use the JS physics module (with sound hooks) explicitly
-import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
+import { initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
 import Sound from '../utils/sound';
 import useResolvedStatics from '../hooks/useResolvedStatics.js';
+import useGameLoop from '../hooks/useGameLoop.js';
 
 const Canvas = memo(forwardRef(function Canvas({
     enableGravity,
@@ -29,7 +30,6 @@ const Canvas = memo(forwardRef(function Canvas({
     onSelectedBallMotion
 }, ref) {
     const canvasRef = useRef(null);
-    const animationFrameId = useRef(null);
     const ballsRef = useRef([]);
     const selectedBallIdRef = useRef(null);
     const prevSettingsRef = useRef({ ballCount, ballSize, ballVelocity, ballShape });
@@ -37,12 +37,7 @@ const Canvas = memo(forwardRef(function Canvas({
     const onSelectedBallChangeRef = useRef(onSelectedBallChange);
     const onSelectedBallMotionRef = useRef(onSelectedBallMotion);
     const loseRef = useRef(false);
-    const [forceTick, setForceTick] = useState(0);
-    // Frame-batched increments to reduce React updates inside RAF
-    const scoreDeltaRef = useRef(0);
-    const scoredBallsDeltaRef = useRef(0);
-    const removedBallsDeltaRef = useRef(0);
-    const lastPowerupsRef = useRef({ shieldUntil: 0, speedUntil: 0, shrinkUntil: 0 });
+    // (moved into useGameLoop)
     const [viewport, setViewport] = useState({ w: 0, h: 0 });
 
     // Keep latest callback refs to avoid re-running effects due to unstable identities
@@ -57,6 +52,25 @@ const Canvas = memo(forwardRef(function Canvas({
     useEffect(() => {
         settingsRef.current = { enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity };
     }, [enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity]);
+
+    // Pre-resolve hazards/goals for the current level and viewport and start the RAF loop
+    const { resolvedHazards, resolvedGoals, preResolvedStatics } = useResolvedStatics(level, viewport.w, viewport.h);
+    const gameLoop = useGameLoop({
+        canvasRef,
+        ballsRef,
+        selectedBallIdRef,
+        settingsRef,
+        isPaused,
+        level,
+        memo: { resolvedHazards, resolvedGoals, preResolvedStatics },
+        setGlobalScore,
+        setScoredBallsCount,
+        setRemovedBallsCount,
+        onWin,
+        onLose,
+        onSelectedBallChangeRef,
+        onSelectedBallMotionRef
+    });
 
     // Imperative API for App/Controls
     const emitSnapshot = useCallback(() => {
@@ -111,8 +125,9 @@ const Canvas = memo(forwardRef(function Canvas({
                 if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
             }
             emitSnapshot();
-            // Nudge the render loop to restart if it was stopped after a win/lose
-            setForceTick(prev => prev + 1);
+            // Restart the game loop if it was stopped after a win/lose
+            gameLoop.stop();
+            gameLoop.restart();
         },
         applyColorScheme: (scheme) => {
             // Update ball colors
@@ -190,7 +205,7 @@ const Canvas = memo(forwardRef(function Canvas({
             player.isSleeping = false;
             player._jumpCooldownUntil = now + (isAirJump ? 140 : 280); // ms
         }
-    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, level, emitSnapshot]);
+    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, level, emitSnapshot, gameLoop]);
 
     // Seed balls on mount and when level type or shape changes only
     useEffect(() => {
@@ -286,145 +301,7 @@ const Canvas = memo(forwardRef(function Canvas({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [level?.type, ballShape]);
 
-    // Pre-resolve hazards/goals for the current level and viewport
-    const { resolvedHazards, resolvedGoals, preResolvedStatics } = useResolvedStatics(level, viewport.w, viewport.h);
-
-    // Pause/resume the loop without re-seeding
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        if (isPaused) {
-            cancelAnimationFrame(animationFrameId.current);
-            return;
-        }
-        const ctx = canvas.getContext('2d');
-        // Ensure any prior loop is stopped before starting a new one
-        cancelAnimationFrame(animationFrameId.current);
-        const render = () => {
-            const selectedForDraw = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
-            const s = settingsRef.current;
-            // reset deltas
-            scoreDeltaRef.current = 0;
-            scoredBallsDeltaRef.current = 0;
-            removedBallsDeltaRef.current = 0;
-
-            // wrappers record increments from physics; physics uses prev => prev + 1
-            const incScore = () => { scoreDeltaRef.current += 1; };
-            const incScored = () => { scoredBallsDeltaRef.current += 1; };
-            const incRemoved = () => { removedBallsDeltaRef.current += 1; };
-
-            loop(
-                ctx,
-                ballsRef.current,
-                canvas.width,
-                canvas.height,
-                { enableGravity: s.enableGravity, gravityStrength: s.gravityStrength, ballVelocity: s.ballVelocity, deformation: s.deformation, gameplay: s.gameplay },
-                s.backgroundColor,
-                1 - (s.trailOpacity * 0.9),
-                incScore,
-                selectedForDraw,
-                level,
-                incScored,
-                incRemoved,
-                () => { loseRef.current = true; },
-                { resolvedHazards, resolvedGoals, preResolvedStatics }
-            );
-
-            // After physics step, if player is grounded, reset air-jump availability
-            {
-                const canvasEl = canvasRef.current;
-                const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
-                if (canvasEl && playerBall) {
-                    const effR2 = playerBall.size * Math.max(playerBall.scaleX || 1, playerBall.scaleY || 1);
-                    const groundedNow = (playerBall.y + effR2) >= (canvasEl.height - 3);
-                    if (groundedNow) {
-                        playerBall._airJumpAvailable = true;
-                    }
-                }
-            }
-
-            // Fallback: if physics missed the goal overlap due to edge cases, detect it here for the player (selected or starting)
-            if (!loseRef.current && resolvedGoals && resolvedGoals.length) {
-                const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
-                if (playerBall) {
-                    for (let k = 0; k < resolvedGoals.length; k++) {
-                        const g = resolvedGoals[k];
-                        if (g.shape === 'circle') {
-                            const dx = g.x - playerBall.x;
-                            const dy = g.y - playerBall.y;
-                            const dist = Math.sqrt(dx*dx + dy*dy);
-                            const combined = (playerBall.size) + (g.radius || 0);
-                            if (dist <= combined) {
-                                const now = Date.now();
-                                if (playerBall.shieldUntil && playerBall.shieldUntil > now) {
-                                    // consume shield and reflect a bit
-                                    playerBall.shieldUntil = undefined;
-                                    const inv = dist === 0 ? 0 : 1 / dist;
-                                    const nx = dist === 0 ? 1 : dx * inv;
-                                    const ny = dist === 0 ? 0 : dy * inv;
-                                    const reflect = (playerBall.velX * nx + playerBall.velY * ny) * 2;
-                                    playerBall.velX -= reflect * nx;
-                                    playerBall.velY -= reflect * ny;
-                                    playerBall.x -= nx * (combined - dist + 2);
-                                    playerBall.y -= ny * (combined - dist + 2);
-                                } else {
-                                    loseRef.current = true;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Report selected ball motion to App without triggering renders
-            if (selectedForDraw && onSelectedBallMotionRef.current) {
-                onSelectedBallMotionRef.current({ id: selectedForDraw.id, velX: selectedForDraw.velX });
-            }
-
-            // If player powerup timers changed, push a lightweight selection update so HUD can reflect it
-            if (selectedForDraw && onSelectedBallChangeRef.current) {
-                const lp = lastPowerupsRef.current;
-                const su = selectedForDraw.shieldUntil || 0;
-                const pu = selectedForDraw.speedUntil || 0;
-                const ku = selectedForDraw.shrinkUntil || 0;
-                if (su !== lp.shieldUntil || pu !== lp.speedUntil || ku !== lp.shrinkUntil) {
-                    lastPowerupsRef.current = { shieldUntil: su, speedUntil: pu, shrinkUntil: ku };
-                    // Send only the fields that matter plus id to minimize churn
-                    onSelectedBallChangeRef.current({ id: selectedForDraw.id, shieldUntil: su, speedUntil: pu, shrinkUntil: ku });
-                }
-            }
-
-            // Flush accumulated increments once per frame
-            if (scoreDeltaRef.current) setGlobalScore?.(prev => prev + scoreDeltaRef.current);
-            if (scoredBallsDeltaRef.current) setScoredBallsCount?.(prev => prev + scoredBallsDeltaRef.current);
-            if (removedBallsDeltaRef.current) setRemovedBallsCount?.(prev => prev + removedBallsDeltaRef.current);
-
-            // Lose condition triggered in physics — take precedence over win if both occur same frame
-            if (loseRef.current) {
-                loseRef.current = false;
-                Sound.playLose();
-                if (onLose) onLose();
-                animationFrameId.current = null;
-                return; // stop loop
-            }
-
-            // Gauntlet win condition: if in gauntlet and all remaining balls are the starting/player ball only, declare win
-            if (level && level.type === 'gravityGauntlet') {
-                const nonPlayer = ballsRef.current.filter(b => !b.isStartingBall);
-                if (nonPlayer.length === 0) {
-                    Sound.playWin();
-                    if (onWin) onWin();
-                    animationFrameId.current = null;
-                    return; // stop loop; App can show overlay
-                }
-            }
-
-            animationFrameId.current = requestAnimationFrame(render);
-        };
-        render();
-        return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPaused, level, forceTick, viewport.w, viewport.h, resolvedHazards, resolvedGoals, preResolvedStatics, onLose, onWin, setGlobalScore, setScoredBallsCount, setRemovedBallsCount]);
+    // (game loop initialized above)
 
     // Reconcile when count/size/velocity change (without full re-seed)
     useEffect(() => {
