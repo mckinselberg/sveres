@@ -7,6 +7,7 @@ import { GRAVITY_GAUNTLET_CONSTANTS } from '../js/levels/gravityGauntlet.constan
 import Sound from './sound.js';
 import { drawStaticShape as drawStaticShapeHelper, drawPowerup } from './canvasRendering.js';
 import { resolveLevelPos } from './levelPositioning.js';
+import { spawnBulletHellIfDue } from './bulletHell.js';
 
 const LEVEL_CONSTANTS_MAP = {
     gravityGauntlet: GRAVITY_GAUNTLET_CONSTANTS?.PHYSICS
@@ -515,33 +516,27 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation);
     }
 
-    // Bullet Hell spawner: periodically spawn small fast bullets from edges aimed at player
+    // Bullet Hell spawner: use utility for periodic spawns aimed at player
     if (level && level.type === 'bulletHell') {
-        const now = performance.now();
-        // simple throttle stored on ctx to avoid extra globals
-        const nextTime = (ctx._nextBulletTime || 0);
         const player = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
-        if (now >= nextTime && player) {
-            ctx._nextBulletTime = now + 450; // ms
-            // spawn from a random edge
-            const edge = Math.floor(Math.random() * 4);
-            let x = 0, y = 0;
-            if (edge === 0) { x = Math.random() * canvasWidth; y = -8; }
-            else if (edge === 1) { x = canvasWidth + 8; y = Math.random() * canvasHeight; }
-            else if (edge === 2) { x = Math.random() * canvasWidth; y = canvasHeight + 8; }
-            else { x = -8; y = Math.random() * canvasHeight; }
-            const dx = player.x - x;
-            const dy = player.y - y;
-            const len = Math.hypot(dx, dy) || 1;
-            const speed = Math.max(6, physicsSettings.ballVelocity * 1.2);
-            const vx = (dx / len) * speed;
-            const vy = (dy / len) * speed;
-            const bullet = new Ball(x, y, vx, vy, 'rgba(255,60,60,0.95)', 6, 'circle', false);
-            bullet.isBullet = true;
-            bullet.opacity = 0.95;
-            bulletsTTL(bullet, now);
-            balls.push(bullet);
-        }
+        spawnBulletHellIfDue(
+            ctx,
+            balls,
+            canvasWidth,
+            canvasHeight,
+            physicsSettings,
+            player,
+            (x, y, vx, vy, now) => {
+                const bullet = new Ball(x, y, vy, vy, 'rgba(255,60,60,0.95)', 6, 'circle', false);
+                // Fix: velocity components
+                bullet.velX = vx;
+                bullet.velY = vy;
+                bullet.isBullet = true;
+                bullet.opacity = 0.95;
+                bulletsTTL(bullet, now);
+                return bullet;
+            }
+        );
     }
 
     // Pre-resolve static positions: accept memoized hazards/goals from Canvas; still resolve powerups each frame
