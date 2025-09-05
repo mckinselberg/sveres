@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState } from 'react';
+import { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState, useCallback } from 'react';
 // Use the JS physics module (with sound hooks) explicitly
 import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
 import Sound from '../utils/sound';
+import useResolvedStatics from '../hooks/useResolvedStatics.js';
 
 const Canvas = memo(forwardRef(function Canvas({
     enableGravity,
@@ -12,7 +13,7 @@ const Canvas = memo(forwardRef(function Canvas({
     backgroundColor,
     trailOpacity,
     setGlobalScore,
-    selectedBall, // snapshot from App for display only
+    selectedBall: _selectedBall, // snapshot from App for display only (unused here)
     onSelectedBallChange, // callback(ball|null)
     onBallsSnapshot, // callback(balls[])
     isPaused,
@@ -42,6 +43,7 @@ const Canvas = memo(forwardRef(function Canvas({
     const scoredBallsDeltaRef = useRef(0);
     const removedBallsDeltaRef = useRef(0);
     const lastPowerupsRef = useRef({ shieldUntil: 0, speedUntil: 0, shrinkUntil: 0 });
+    const [viewport, setViewport] = useState({ w: 0, h: 0 });
 
     // Keep latest callback refs to avoid re-running effects due to unstable identities
     useEffect(() => {
@@ -57,7 +59,7 @@ const Canvas = memo(forwardRef(function Canvas({
     }, [enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity]);
 
     // Imperative API for App/Controls
-    const emitSnapshot = () => {
+    const emitSnapshot = useCallback(() => {
         if (!onBallsSnapshot) return;
         const snap = ballsRef.current.map(b => ({
             id: b.id,
@@ -75,7 +77,7 @@ const Canvas = memo(forwardRef(function Canvas({
             health: b.health
         }));
         onBallsSnapshot(snap);
-    };
+    }, [onBallsSnapshot]);
 
     useImperativeHandle(ref, () => ({
         addBall: () => {
@@ -188,7 +190,7 @@ const Canvas = memo(forwardRef(function Canvas({
             player.isSleeping = false;
             player._jumpCooldownUntil = now + (isAirJump ? 140 : 280); // ms
         }
-    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, onSelectedBallChange]);
+    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, level, emitSnapshot]);
 
     // Seed balls on mount and when level type or shape changes only
     useEffect(() => {
@@ -199,6 +201,7 @@ const Canvas = memo(forwardRef(function Canvas({
         const handleResize = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            setViewport({ w: canvas.width, h: canvas.height });
         };
         handleResize();
 
@@ -280,7 +283,11 @@ const Canvas = memo(forwardRef(function Canvas({
             window.removeEventListener('resize', handleResize);
             canvas.removeEventListener('mousedown', handleMouseDown);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [level?.type, ballShape]);
+
+    // Pre-resolve hazards/goals for the current level and viewport
+    const { resolvedHazards, resolvedGoals, preResolvedStatics } = useResolvedStatics(level, viewport.w, viewport.h);
 
     // Pause/resume the loop without re-seeding
     useEffect(() => {
@@ -319,7 +326,8 @@ const Canvas = memo(forwardRef(function Canvas({
                 level,
                 incScored,
                 incRemoved,
-                () => { loseRef.current = true; }
+                () => { loseRef.current = true; },
+                { resolvedHazards, resolvedGoals, preResolvedStatics }
             );
 
             // After physics step, if player is grounded, reset air-jump availability
@@ -336,11 +344,11 @@ const Canvas = memo(forwardRef(function Canvas({
             }
 
             // Fallback: if physics missed the goal overlap due to edge cases, detect it here for the player (selected or starting)
-            if (!loseRef.current && level && level.goals && level.goals.length) {
+            if (!loseRef.current && resolvedGoals && resolvedGoals.length) {
                 const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
                 if (playerBall) {
-                    for (let k = 0; k < level.goals.length; k++) {
-                        const g = level.goals[k];
+                    for (let k = 0; k < resolvedGoals.length; k++) {
+                        const g = resolvedGoals[k];
                         if (g.shape === 'circle') {
                             const dx = g.x - playerBall.x;
                             const dy = g.y - playerBall.y;
@@ -416,7 +424,7 @@ const Canvas = memo(forwardRef(function Canvas({
         };
         render();
         return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPaused, level, forceTick]);
+    }, [isPaused, level, forceTick, viewport.w, viewport.h, resolvedHazards, resolvedGoals, preResolvedStatics, onLose, onWin, setGlobalScore, setScoredBallsCount, setRemovedBallsCount]);
 
     // Reconcile when count/size/velocity change (without full re-seed)
     useEffect(() => {
@@ -439,7 +447,7 @@ const Canvas = memo(forwardRef(function Canvas({
             emitSnapshot();
         }
         prevSettingsRef.current = { ballCount, ballSize, ballVelocity, ballShape };
-    }, [ballCount, ballSize, ballVelocity, ballShape]);
+    }, [ballCount, ballSize, ballVelocity, ballShape, emitSnapshot]);
 
     return (
         <canvas

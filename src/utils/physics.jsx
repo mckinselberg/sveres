@@ -496,7 +496,7 @@ export function detectCollisions(balls, healthSystemEnabled, healthDamageMultipl
     }
 }
 
-export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal) {
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, memo) {
     ctx.fillStyle = colorWithAlpha(backgroundColor, currentClearAlpha);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -544,31 +544,15 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         }
     }
 
-    // Pre-resolve static positions once per frame
-    const resolvedHazards = [];
-    const resolvedGoals = [];
+    // Pre-resolve static positions: accept memoized hazards/goals from Canvas; still resolve powerups each frame
+    const resolvedHazards = memo?.resolvedHazards ? memo.resolvedHazards : [];
+    const resolvedGoals = memo?.resolvedGoals ? memo.resolvedGoals : [];
     const resolvedPowerups = [];
-    if (level) {
-        if (level.hazards) {
-            for (let i = 0; i < level.hazards.length; i++) {
-                const hz = level.hazards[i];
-                const p = resolveLevelPos(hz, canvasWidth, canvasHeight);
-                resolvedHazards.push({ ...hz, x: p.x, y: p.y });
-            }
-        }
-        if (level.goals) {
-            for (let i = 0; i < level.goals.length; i++) {
-                const g = level.goals[i];
-                const p = resolveLevelPos(g, canvasWidth, canvasHeight);
-                resolvedGoals.push({ ...g, x: p.x, y: p.y });
-            }
-        }
-        if (level.powerups) {
-            for (let i = 0; i < level.powerups.length; i++) {
-                const pu = level.powerups[i];
-                const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
-                resolvedPowerups.push({ ...pu, x: p.x, y: p.y });
-            }
+    if (level && level.powerups) {
+        for (let i = 0; i < level.powerups.length; i++) {
+            const pu = level.powerups[i];
+            const p = resolveLevelPos(pu, canvasWidth, canvasHeight);
+            resolvedPowerups.push({ ...pu, x: p.x, y: p.y });
         }
     }
 
@@ -621,16 +605,19 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         }
     }
 
-    // Pass pre-resolved objects to avoid recomputing positions in the solver
-    const preResolvedStatics = [];
-    for (let i = 0; i < resolvedHazards.length; i++) {
-        const h = resolvedHazards[i];
-        preResolvedStatics.push({ x: h.x, y: h.y, size: h.shape === 'circle' ? h.radius : Math.max(h.width, h.height) / 2, shape: h.shape, color: h.color, isStatic: true, type: 'hazard' });
-    }
-    for (let i = 0; i < resolvedGoals.length; i++) {
-        const g = resolvedGoals[i];
-        preResolvedStatics.push({ x: g.x, y: g.y, size: g.shape === 'circle' ? g.radius : Math.max(g.width, g.height) / 2, shape: g.shape, color: g.color, isStatic: true, type: 'goal' });
-    }
+    // Pass pre-resolved objects from memo when provided, otherwise build them
+    const preResolvedStatics = memo?.preResolvedStatics ? memo.preResolvedStatics : (() => {
+        const arr = [];
+        for (let i = 0; i < resolvedHazards.length; i++) {
+            const h = resolvedHazards[i];
+            arr.push({ x: h.x, y: h.y, size: h.shape === 'circle' ? h.radius : Math.max(h.width, h.height) / 2, shape: h.shape, color: h.color, isStatic: true, type: 'hazard' });
+        }
+        for (let i = 0; i < resolvedGoals.length; i++) {
+            const g = resolvedGoals[i];
+            arr.push({ x: g.x, y: g.y, size: g.shape === 'circle' ? g.radius : Math.max(g.width, g.height) / 2, shape: g.shape, color: g.color, isStatic: true, type: 'goal' });
+        }
+        return arr;
+    })();
 
     solveCollisions(
         balls,
