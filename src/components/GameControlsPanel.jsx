@@ -17,6 +17,7 @@ export default function GameControlsPanel({
       {levelMode && (
         <div className="rc-group">
           <button
+            data-refocus-canvas="true"
             className="gauntlet-reset-button"
             onClick={onResetGauntlet}
             aria-label="Reset Gauntlet Level"
@@ -25,6 +26,7 @@ export default function GameControlsPanel({
             ↻ Reset
           </button>
           <button
+            data-refocus-canvas="true"
             className="gauntlet-wasd-toggle"
             onClick={onToggleWasd}
             aria-label="Toggle WASD input"
@@ -33,6 +35,7 @@ export default function GameControlsPanel({
             {wasdEnabled ? 'WASD: On' : 'WASD: Off'}
           </button>
           <button
+            data-refocus-canvas="true"
             className="gauntlet-wasd-toggle"
             onClick={onToggleSound}
             aria-label="Toggle Sound"
@@ -45,6 +48,7 @@ export default function GameControlsPanel({
       {levelMode && (
         <div className="rc-group">
           <button
+            data-refocus-canvas="true"
             className="gauntlet-wasd-toggle"
             onClick={onShowInstructions}
             aria-label="Show Gauntlet Instructions"
@@ -53,6 +57,7 @@ export default function GameControlsPanel({
             Instructions
           </button>
           <button
+            data-refocus-canvas="true"
             className="gauntlet-wasd-toggle"
             onClick={onJump}
             aria-label="Jump"
@@ -64,6 +69,7 @@ export default function GameControlsPanel({
       )}
       <div className="rc-group">
         <button
+          data-refocus-canvas="true"
           className="gauntlet-wasd-toggle"
           onClick={onShareURL}
           aria-label="Append settings hash to URL"
@@ -73,6 +79,7 @@ export default function GameControlsPanel({
         </button>
         {levelMode && (
           <button
+            data-refocus-canvas="true"
             className="gauntlet-wasd-toggle"
             onClick={onExportLevel}
             aria-label="Export Level JSON"

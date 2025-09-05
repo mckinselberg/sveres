@@ -152,6 +152,50 @@ function App() {
     } catch (e) { /* noop */ void 0; }
     }, []);
 
+    // Global key handlers in capture phase so game input works even if focus moved to non-editable overlay controls
+    useEffect(() => {
+        const isEditable = (el) => {
+            if (!el) return false;
+            const tag = el.tagName ? String(el.tagName).toLowerCase() : '';
+            if (el.isContentEditable) return true;
+            return tag === 'input' || tag === 'textarea' || tag === 'select';
+        };
+        const onKeyDownCapture = (event) => {
+            const t = event.target;
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            // Allow typing in editables (import modal textarea, etc.)
+            if (isEditable(t)) return;
+            const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
+            const handledKeys = new Set([' ', 'Spacebar', 'j', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd']);
+            if (!handledKeys.has(k)) return;
+            // Prevent scrolling/button activation when we handle the key
+            event.preventDefault();
+        };
+        window.addEventListener('keydown', onKeyDownCapture, { capture: true });
+        return () => window.removeEventListener('keydown', onKeyDownCapture, { capture: true });
+    }, []);
+
+    // Small helper: after safe overlay button clicks, refocus canvas to keep keyboard input seamless
+    useEffect(() => {
+        const onClick = (e) => {
+            const t = e.target;
+            if (!t) return;
+            // Do not refocus when interacting with editables
+            const tag = t.tagName ? String(t.tagName).toLowerCase() : '';
+            if (t.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select') return;
+            // Only act when explicitly opted-in via data-refocus-canvas="true"
+            const shouldRefocus = t.closest('[data-refocus-canvas="true"]');
+            if (!shouldRefocus) return;
+            // Defer to next frame so click can finish
+            requestAnimationFrame(() => {
+                const cnv = document.querySelector('canvas');
+                if (cnv && typeof cnv.focus === 'function') cnv.focus();
+            });
+        };
+        window.addEventListener('click', onClick, true);
+        return () => window.removeEventListener('click', onClick, true);
+    }, []);
+
     const handleExportLevel = useCallback(async () => {
         try {
             const json = buildLevelJSON(physicsSettings.level);
@@ -201,14 +245,16 @@ function App() {
         }
     }, [importText]);
 
-    // Reset counters and selection on true resets: level mode toggle, level type change, or ball shape change
+    // Reset selection only in sandbox mode; in gauntlet, keep/select the player ball
+    // Triggered on true resets: mode toggle, level type change, or ball shape change
     useEffect(() => {
         if (physicsSettings.level && physicsSettings.level.type === 'gravityGauntlet') {
-            // reset counters when switching gauntlet level type
             // counters UI currently disabled; keep internal zeros
         }
-        setSelectedBall(null);
-        setSelectedBallId(null);
+        if (!levelMode) {
+            setSelectedBall(null);
+            setSelectedBallId(null);
+        }
     }, [levelMode, physicsSettings.level, physicsSettings.ballShape]);
 
     const toggleLevelMode = useCallback(() => {
@@ -292,9 +338,11 @@ function App() {
             if (event.ctrlKey || event.metaKey || event.altKey || isEditable) {
                 return;
             }
+            // Normalize single-letter keys to lowercase so Shift+A/D works
+            const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
             // During game over, only honor Reset (R)
             if (isGameOver) {
-                if (event.key === 'r' || event.key === 'R') {
+                if (k === 'r') {
                     event.preventDefault();
                     if (levelMode) {
                         // Refresh level so powerups respawn
@@ -315,19 +363,19 @@ function App() {
                 return;
             }
             // Jump on Space if not pausing; keep P as pause key
-            if (event.key === ' ' || event.code === 'Space') {
+            if (k === ' ' || event.code === 'Space') {
                 event.preventDefault();
                 handleJump();
                 return;
             }
-            if (event.key === 'p' || event.key === 'P') {
+            if (k === 'p') {
                 event.preventDefault();
                 setIsPaused(prev => !prev);
                 return;
             }
 
             // Reset key
-            if (event.key === 'r' || event.key === 'R') {
+            if (k === 'r') {
                 event.preventDefault();
                 if (levelMode) {
                     // Gauntlet reset resets counters too
@@ -349,24 +397,24 @@ function App() {
             }
 
             // Track movement keys while held
-            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift','j','J']);
-            if (moveKeys.has(event.key)) {
+            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift','j']);
+            if (moveKeys.has(k)) {
                 // Respect WASD toggle
-                if (!wasdEnabled && (event.key === 'w' || event.key === 'a' || event.key === 's' || event.key === 'd')) {
+                if (!wasdEnabled && (k === 'w' || k === 'a' || k === 's' || k === 'd')) {
                     event.preventDefault();
                     return;
                 }
                 event.preventDefault();
-                keysDownRef.current.add(event.key);
+                keysDownRef.current.add(k);
 
                 // Update virtual active direction based on the last direction key pressed
-                if ((wasdEnabled && event.key === 'a') || event.key === 'ArrowLeft') {
+                if ((wasdEnabled && k === 'a') || k === 'ArrowLeft') {
                     activeDirRef.current = -1;
-                } else if ((wasdEnabled && event.key === 'd') || event.key === 'ArrowRight') {
+                } else if ((wasdEnabled && k === 'd') || k === 'ArrowRight') {
                     activeDirRef.current = 1;
                 }
 
-                if (event.key === 'j' || event.key === 'J') {
+                if (k === 'j') {
                     handleJump();
                 }
             }
@@ -381,10 +429,11 @@ function App() {
                 return;
             }
             if (isGameOver) return;
+            const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
             const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift']);
-            if (moveKeys.has(event.key)) {
+            if (moveKeys.has(k)) {
                 event.preventDefault();
-                keysDownRef.current.delete(event.key);
+                keysDownRef.current.delete(k);
 
                 // If releasing a direction key, keep activeDir if the other is still held; otherwise set to 0
                 const leftHeld = ((wasdEnabled && keysDownRef.current.has('a')) || keysDownRef.current.has('ArrowLeft'));

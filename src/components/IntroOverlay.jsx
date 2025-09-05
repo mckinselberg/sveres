@@ -30,7 +30,11 @@ function IntroOverlay() {
     }
 
     return (
-        <div className="intro-overlay" onClick={(e) => e.target.classList.contains('intro-overlay') && dismiss()}>
+        <div
+            className="intro-overlay"
+            data-refocus-canvas="true"
+            onClick={(e) => e.target.classList.contains('intro-overlay') && dismiss()}
+        >
             <div className="intro-card">
                 <h3>Welcome to Sveres</h3>
                 <p>Quick tips to get you started:</p>
@@ -49,7 +53,7 @@ function IntroOverlay() {
                     <li>Use the WASD or arrow keys to control the selected ball. Use N and M to increase or decrease its velocity.</li>
                 </ul>
                 <div className="actions">
-                    <button onClick={dismiss}>Got it</button>
+                    <button data-refocus-canvas="true" onClick={dismiss}>Got it</button>
                 </div>
             </div>
         </div>

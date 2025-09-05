@@ -16,6 +16,7 @@ export default function LevelSelect({ levels, currentLevelId, onChangeLevel, onO
         ))}
       </select>
       <button
+        data-refocus-canvas="true"
         className="gauntlet-wasd-toggle"
         onClick={onOpenImport}
         aria-label="Import Level JSON from clipboard"

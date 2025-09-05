@@ -442,7 +442,14 @@ const Canvas = memo(forwardRef(function Canvas({
     }, [ballCount, ballSize, ballVelocity, ballShape]);
 
     return (
-        <canvas ref={canvasRef} style={{ display: 'block' }} />
+        <canvas
+            ref={canvasRef}
+            tabIndex={0}
+            onMouseDown={() => {
+                try { canvasRef.current && canvasRef.current.focus && canvasRef.current.focus(); } catch {}
+            }}
+            style={{ display: 'block' }}
+        />
     );
 }));
 

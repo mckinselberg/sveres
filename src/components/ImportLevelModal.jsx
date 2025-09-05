@@ -21,8 +21,8 @@ export default function ImportLevelModal({
         />
         <div className="error" aria-live="polite">{importError}</div>
         <div className="actions">
-          <button className="secondary" onClick={onCancel}>Cancel</button>
-          <button onClick={onConfirm}>Import</button>
+          <button data-refocus-canvas="true" className="secondary" onClick={onCancel}>Cancel</button>
+          <button data-refocus-canvas="true" onClick={onConfirm}>Import</button>
         </div>
       </div>
     </div>

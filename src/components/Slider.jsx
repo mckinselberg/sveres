@@ -52,6 +52,20 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
                 step={numericStep}
                 value={cleanedValue}
                 onChange={logarithmic ? handleLogarithmicChange : onChange}
+                data-refocus-canvas="true"
+                onMouseUp={() => {
+                    // After releasing the slider, refocus the canvas so game keys work immediately
+                    requestAnimationFrame(() => {
+                        const cnv = document.querySelector('canvas');
+                        if (cnv && typeof cnv.focus === 'function') cnv.focus();
+                    });
+                }}
+                onTouchEnd={() => {
+                    requestAnimationFrame(() => {
+                        const cnv = document.querySelector('canvas');
+                        if (cnv && typeof cnv.focus === 'function') cnv.focus();
+                    });
+                }}
             />
             <span>{cleanedDisplay}</span>
         </div>

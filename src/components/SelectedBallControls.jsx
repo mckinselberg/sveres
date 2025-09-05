@@ -119,7 +119,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
 
     return (
         <div ref={controlsRef} className="selected-ball-controls-panel">
-            <h3 ref={handleRef} style={{ cursor: 'grab' }}>Selected Ball</h3>
+            <h3 ref={handleRef} data-refocus-canvas="true" style={{ cursor: 'grab' }}>Selected Ball</h3>
             <details id="section-selected-appearance" open ref={appearanceRef}>
                 <summary>Appearance</summary>
                 <div className="section-body">
