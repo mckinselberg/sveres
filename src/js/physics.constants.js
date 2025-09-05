@@ -5,4 +5,8 @@ export const ENGINE_CONSTANTS = {
   WALL_GRAZING_THRESHOLD: 2,
   PLAYER_MIN_WALL_REBOUND: 1.2,
   WALL_RESTITUTION: 0.86, // <1 reduces bounce height on each impact
+  // Safety/Performance limits
+  MAX_BALLS: 320,          // Hard cap on total simulated balls (incl. bullets)
+  MAX_BULLETS: 140,        // Cap for Bullet Hell projectiles
+  MAX_BALL_SIZE: 280       // Clamp for ball radius to avoid pathological fill/collision costs
 };

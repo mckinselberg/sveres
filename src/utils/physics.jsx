@@ -350,9 +350,12 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
  * @param {string} ballShape
  */
 export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvasWidth, canvasHeight, ballShape, startingBallSizeOverride) {
-    for (let i = 0; i < ballCount; i++) {
+    const phys = ENGINE_CONSTANTS;
+    const countTarget = Math.min(ballCount, phys.MAX_BALLS);
+    const clampedSize = Math.min(ballSize, phys.MAX_BALL_SIZE);
+    for (let i = 0; i < countTarget; i++) {
     const isStartingBall = i === 0;
-    const baseSize = Math.max(1, random(ballSize - 20, ballSize + 20));
+    const baseSize = Math.max(1, random(clampedSize - 20, clampedSize + 20));
     const size = (isStartingBall && startingBallSizeOverride != null) ? startingBallSizeOverride : baseSize;
 
         const ball = new Ball(
@@ -361,7 +364,7 @@ export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvas
             isStartingBall ? 0 : random(-ballVelocity, ballVelocity),
             isStartingBall ? 0 : random(-ballVelocity, ballVelocity),
             'rgb(' + random(0, 255) + ',' + random(0, 255) + ',' + random(0, 255) + ')',
-            size,
+            Math.min(size, phys.MAX_BALL_SIZE),
             ballShape
         );
         ball._lastMultiplier = 1;
@@ -375,7 +378,9 @@ export function initializeBalls(balls, ballCount, ballSize, ballVelocity, canvas
  * @param {BallClass[]} balls
  */
 export function addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHeight, x = null, y = null, ballShape = DEFAULTS.ballShape, isStatic = false) {
-    const size = ballSize;
+    const phys = ENGINE_CONSTANTS;
+    if (balls.length >= phys.MAX_BALLS) return;
+    const size = Math.min(ballSize, phys.MAX_BALL_SIZE);
     let attempts = 0;
     let newX = x;
     let newY = y;
@@ -410,7 +415,7 @@ export function addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHei
         random(-ballVelocity, ballVelocity),
         random(-ballVelocity, ballVelocity),
         'rgb(' + random(0, 255) + ',' + random(0, 255) + ',' + random(0, 255) + ')',
-        size,
+    Math.min(size, phys.MAX_BALL_SIZE),
         shapeToUse,
         isStatic
     );
@@ -423,10 +428,12 @@ export function addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHei
  * @param {BallClass[]} balls
  */
 export function adjustBallCount(balls, targetCount, ballSize, ballVelocity, canvasWidth, canvasHeight) {
-    while (balls.length < targetCount) {
-        addNewBall(balls, ballSize, ballVelocity, canvasWidth, canvasHeight);
+    const phys = ENGINE_CONSTANTS;
+    const maxTarget = Math.min(targetCount, phys.MAX_BALLS);
+    while (balls.length < maxTarget) {
+        addNewBall(balls, Math.min(ballSize, phys.MAX_BALL_SIZE), ballVelocity, canvasWidth, canvasHeight);
     }
-    while (balls.length > targetCount && balls.length > 0) {
+    while (balls.length > maxTarget && balls.length > 0) {
         balls.pop();
     }
 }
@@ -436,6 +443,10 @@ export function adjustBallCount(balls, targetCount, ballSize, ballVelocity, canv
  */
 export function adjustBallVelocities(balls, maxVelocity) {
     balls.forEach(ball => {
+        // Clamp size defensively in case external code increased it
+        if (ball.size > ENGINE_CONSTANTS.MAX_BALL_SIZE) {
+            ball.size = ENGINE_CONSTANTS.MAX_BALL_SIZE;
+        }
         const currentSpeed = Math.sqrt(ball.velX * ball.velX + ball.velY * ball.velY);
         if (currentSpeed > 0) {
             const ratio = maxVelocity / currentSpeed;
@@ -506,7 +517,14 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
 
     for (let i = 0; i < balls.length; i++) {
         const ball = balls[i];
-
+        // Defensive clamp: avoid pathological draws/physics when size is too large
+        if (ball.size > ENGINE_CONSTANTS.MAX_BALL_SIZE * 1.5) {
+            ball.size = ENGINE_CONSTANTS.MAX_BALL_SIZE;
+        }
+        if (ball.size > ENGINE_CONSTANTS.MAX_BALL_SIZE) {
+            // Skip deformation and expensive work for oversized balls, gently shrink
+            ball.size = Math.max(ENGINE_CONSTANTS.MAX_BALL_SIZE, Math.floor(ball.size * 0.98));
+        }
         if (ball.isSleeping) {
             ball.draw(ctx, selectedBall);
             continue;
@@ -519,6 +537,9 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
     // Bullet Hell spawner: use utility for periodic spawns aimed at player
     if (level && level.type === 'bulletHell') {
         const player = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
+        const phys = ENGINE_CONSTANTS;
+        const bullets = balls.filter(b => b.isBullet);
+        if (bullets.length < phys.MAX_BULLETS && balls.length < phys.MAX_BALLS) {
         spawnBulletHellIfDue(
             ctx,
             balls,
@@ -537,6 +558,7 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
                 return bullet;
             }
         );
+        }
     }
 
     // Pre-resolve static positions: accept memoized hazards/goals from Canvas; still resolve powerups each frame

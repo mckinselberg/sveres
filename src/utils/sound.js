@@ -8,6 +8,9 @@ const Sound = (() => {
   let enabled = true;
   let lastPlayAt = 0;
   let confirmedOnce = false;
+  let activeVoices = 0;
+  const MAX_CONCURRENT_VOICES = 8; // prevent overwhelming audio graph
+  const GLOBAL_THROTTLE_MS = 10; // coarse throttle across all sounds
 
   function ensureContext() {
     if (!hasWindow) return null;
@@ -56,7 +59,11 @@ const Sound = (() => {
   if (!c) return;
   if (c.state !== 'running') { resumeOnGestureOnce(); return; }
 
-    const now = c.currentTime;
+  const now = c.currentTime;
+  if (activeVoices >= MAX_CONCURRENT_VOICES) return;
+  const nowMsLocal = nowMs();
+  if (nowMsLocal - lastPlayAt < GLOBAL_THROTTLE_MS) return;
+  lastPlayAt = nowMsLocal;
     const osc = c.createOscillator();
     const g = c.createGain();
     const p = c.createStereoPanner ? c.createStereoPanner() : null;
@@ -77,8 +84,12 @@ const Sound = (() => {
       g.connect(c.destination);
     }
 
-    osc.start(now);
-    osc.stop(now + Math.max(0.03, dur + 0.02));
+  const stopAt = now + Math.max(0.03, dur + 0.02);
+  osc.start(now);
+  activeVoices++;
+  const finalize = () => { try { activeVoices = Math.max(0, activeVoices - 1); } catch {} };
+  osc.stop(stopAt);
+  osc.onended = finalize;
   }
 
   // White noise hit for rough impacts
@@ -88,7 +99,12 @@ const Sound = (() => {
   if (!c) return;
   if (c.state !== 'running') { resumeOnGestureOnce(); return; }
 
-    const bufferSize = 0.05 * c.sampleRate;
+  if (activeVoices >= MAX_CONCURRENT_VOICES) return;
+  const nowMsLocal = nowMs();
+  if (nowMsLocal - lastPlayAt < GLOBAL_THROTTLE_MS) return;
+  lastPlayAt = nowMsLocal;
+
+  const bufferSize = 0.05 * c.sampleRate;
     const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
@@ -101,8 +117,11 @@ const Sound = (() => {
 
     src.connect(g);
     g.connect(c.destination);
-    src.start();
-    src.stop(c.currentTime + dur + 0.02);
+  activeVoices++;
+  const endAt = c.currentTime + dur + 0.02;
+  src.start();
+  src.stop(endAt);
+  src.onended = () => { try { activeVoices = Math.max(0, activeVoices - 1); } catch {} };
   }
 
   function playCollision(intensity = 0.3) {
