@@ -38,12 +38,11 @@ export default function useGameLoop({
     // Stop and allow the effect below to start a new frame on next tick
     stop();
     // Force a microtask so the effect sees a stopped state; it's safe without state since we recreate on isPaused/level/canvas changes
-    Promise.resolve().then(() => {
+  Promise.resolve().then(() => {
       const canvas = canvasRef.current;
       if (!canvas || isPaused) return;
       const ctx = canvas.getContext('2d');
       // kick off a render immediately
-      const s = settingsRef.current;
       const render = () => {
         const selectedForDraw = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
 
@@ -56,6 +55,8 @@ export default function useGameLoop({
         const incScored = () => { scoredBallsDeltaRef.current += 1; };
         const incRemoved = () => { removedBallsDeltaRef.current += 1; };
 
+    // Always read the latest settings each frame to reflect toggles/changes after restart
+    const s = settingsRef.current;
         physicsLoop(
           ctx,
           ballsRef.current,
