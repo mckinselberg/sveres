@@ -1,5 +1,5 @@
 import { gsap } from 'gsap';
-import { getControlsPanel } from './dom.js';
+// removed per-frame DOM query; controlsRect is passed from the loop when available
 import { ENGINE_CONSTANTS } from '../js/physics.constants.js';
 
 let __BALL_ID_SEQ = 1;
@@ -280,7 +280,14 @@ export class Ball {
       });
   }
 
-  update(canvasWidth: number, canvasHeight: number, gravityStrength: number, maxVelocity: number, deformationSettings: DeformationSettings) {
+  update(
+    canvasWidth: number,
+    canvasHeight: number,
+    gravityStrength: number,
+    maxVelocity: number,
+    deformationSettings: DeformationSettings,
+    controlsRect?: { left: number; top: number; right: number; bottom: number }
+  ) {
     const now = Date.now();
     // Expire powerups and restore size
     if (this.shrinkUntil && this.shrinkUntil <= now) {
@@ -294,11 +301,9 @@ export class Ball {
       this.velY += gravityStrength;
     }
 
-    const controlsPanel = getControlsPanel();
-    if (controlsPanel) {
-      const panelRect = controlsPanel.getBoundingClientRect();
-      let closestX = Math.max(panelRect.left, Math.min(this.x, panelRect.right));
-      let closestY = Math.max(panelRect.top, Math.min(this.y, panelRect.bottom));
+    if (controlsRect) {
+      let closestX = Math.max(controlsRect.left, Math.min(this.x, controlsRect.right));
+      let closestY = Math.max(controlsRect.top, Math.min(this.y, controlsRect.bottom));
       const dx = this.x - (closestX as number);
       const dy = this.y - (closestY as number);
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -320,7 +325,10 @@ export class Ball {
         this.velX -= dotProduct * normalX;
         this.velY -= dotProduct * normalY;
 
-        this.applyWallDeformation(normalX, normalY, deformationSettings);
+        // Only deform for stronger impacts to reduce overhead
+        if (Math.abs(dotProduct) > 4) {
+          this.applyWallDeformation(normalX, normalY, deformationSettings);
+        }
       }
     }
 

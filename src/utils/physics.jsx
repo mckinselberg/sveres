@@ -513,8 +513,27 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
     ctx.fillStyle = colorWithAlpha(backgroundColor, currentClearAlpha);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+    // Auto-mute sounds in sandbox (no active level type) for less noise during editing
+    try {
+        if (!level || !level.type) {
+            if (Sound.isSandboxMuted && !Sound.isSandboxMuted()) {
+                Sound.setSandboxMuted(true);
+            }
+        } else if (Sound.isSandboxMuted && Sound.isSandboxMuted()) {
+            // Re-enable when entering a level
+            Sound.setSandboxMuted(false);
+        }
+    } catch {}
+
     // Helper function to draw static shapes
     const drawStaticShape = (shapeData) => drawStaticShapeHelper(ctx, shapeData);
+
+    // Cache controls panel rect once per frame to avoid layout thrash
+    let controlsRect = null;
+    try {
+        const panel = typeof document !== 'undefined' ? document.querySelector('.controls-panel') : null;
+        if (panel) controlsRect = panel.getBoundingClientRect();
+    } catch {}
 
     for (let i = 0; i < balls.length; i++) {
         const ball = balls[i];
@@ -531,8 +550,8 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
             continue;
         }
 
-        ball.draw(ctx, selectedBall);
-        ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation);
+    ball.draw(ctx, selectedBall);
+    ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation, controlsRect);
     }
 
     // Bullet Hell spawner: use utility for periodic spawns aimed at player

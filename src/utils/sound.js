@@ -11,6 +11,7 @@ const Sound = (() => {
   let activeVoices = 0;
   const MAX_CONCURRENT_VOICES = 8; // prevent overwhelming audio graph
   const GLOBAL_THROTTLE_MS = 10; // coarse throttle across all sounds
+  let sandboxMuted = false; // when true, skip playback (sandbox mode)
 
   function ensureContext() {
     if (!hasWindow) return null;
@@ -50,11 +51,13 @@ const Sound = (() => {
   }
 
   function setEnabled(v) { enabled = !!v; }
+  function setSandboxMuted(v) { sandboxMuted = !!v; }
+  function isSandboxMuted() { return sandboxMuted; }
   function isEnabled() { return !!enabled; }
 
   // Simple percussive note
   function blip({ freq = 440, dur = 0.08, type = 'sine', gain = 0.08, pan = 0 }) {
-    if (!enabled) return;
+  if (!enabled || sandboxMuted) return;
   const c = ensureContext();
   if (!c) return;
   if (c.state !== 'running') { resumeOnGestureOnce(); return; }
@@ -94,7 +97,7 @@ const Sound = (() => {
 
   // White noise hit for rough impacts
   function noiseHit({ dur = 0.05, gain = 0.06 }) {
-    if (!enabled) return;
+  if (!enabled || sandboxMuted) return;
   const c = ensureContext();
   if (!c) return;
   if (c.state !== 'running') { resumeOnGestureOnce(); return; }
@@ -130,7 +133,8 @@ const Sound = (() => {
   if (t - lastPlayAt < 12) return; // ~1 per frame max
   lastPlayAt = t;
 
-    const clamped = Math.max(0, Math.min(1, intensity));
+  if (sandboxMuted) return;
+  const clamped = Math.max(0, Math.min(1, intensity));
   const base = 160 + clamped * 420; // higher freq for harder hits
   const gain = 0.07 + clamped * 0.09;
     blip({ freq: base, dur: 0.05 + clamped * 0.04, type: 'square', gain });
@@ -138,14 +142,16 @@ const Sound = (() => {
   }
 
   function playWall(intensity = 0.25) {
-    const clamped = Math.max(0, Math.min(1, intensity));
+  if (sandboxMuted) return;
+  const clamped = Math.max(0, Math.min(1, intensity));
   blip({ freq: 220 + clamped * 180, dur: 0.05 + clamped * 0.03, type: 'triangle', gain: 0.08 + clamped * 0.06 });
   }
 
-  function playScore() { blip({ freq: 720, dur: 0.07, type: 'sine', gain: 0.07 }); blip({ freq: 980, dur: 0.07, type: 'sine', gain: 0.06 }); }
-  function playWin() { blip({ freq: 600, dur: 0.10, type: 'sine', gain: 0.07 }); blip({ freq: 800, dur: 0.14, type: 'sine', gain: 0.07 }); blip({ freq: 1000, dur: 0.18, type: 'sine', gain: 0.07 }); }
-  function playLose() { blip({ freq: 220, dur: 0.16, type: 'sawtooth', gain: 0.08 }); blip({ freq: 160, dur: 0.20, type: 'sawtooth', gain: 0.07 }); }
+  function playScore() { if (sandboxMuted) return; blip({ freq: 720, dur: 0.07, type: 'sine', gain: 0.07 }); blip({ freq: 980, dur: 0.07, type: 'sine', gain: 0.06 }); }
+  function playWin() { if (sandboxMuted) return; blip({ freq: 600, dur: 0.10, type: 'sine', gain: 0.07 }); blip({ freq: 800, dur: 0.14, type: 'sine', gain: 0.07 }); blip({ freq: 1000, dur: 0.18, type: 'sine', gain: 0.07 }); }
+  function playLose() { if (sandboxMuted) return; blip({ freq: 220, dur: 0.16, type: 'sawtooth', gain: 0.08 }); blip({ freq: 160, dur: 0.20, type: 'sawtooth', gain: 0.07 }); }
   function playPowerup(type = 'shield') {
+    if (sandboxMuted) return;
     if (type === 'speed') blip({ freq: 880, dur: 0.06, type: 'triangle', gain: 0.05 });
     else if (type === 'shrink') blip({ freq: 500, dur: 0.06, type: 'sine', gain: 0.05 });
     else if (type === 'expire') blip({ freq: 420, dur: 0.07, type: 'sine', gain: 0.055 });
@@ -154,7 +160,7 @@ const Sound = (() => {
 
   function init() { ensureContext(); resumeOnGestureOnce(); }
 
-  return { init, setEnabled, isEnabled, playCollision, playWall, playScore, playWin, playLose, playPowerup };
+  return { init, setEnabled, isEnabled, setSandboxMuted, isSandboxMuted, playCollision, playWall, playScore, playWin, playLose, playPowerup };
 })();
 
 export default Sound;

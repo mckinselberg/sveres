@@ -1,5 +1,4 @@
 import { gsap } from 'gsap';
-import { getControlsPanel } from './dom.js';
 
 // Simple incremental ID generator for balls
 let __BALL_ID_SEQ = 1;
@@ -264,39 +263,31 @@ export class Ball {
             });
     }
 
-    update(canvasWidth, canvasHeight, gravityStrength, maxVelocity, deformationSettings) {
+    update(canvasWidth, canvasHeight, gravityStrength, maxVelocity, deformationSettings, controlsRect) {
         // Apply gravity if enabled
         if (gravityStrength > 0) {
             this.velY += gravityStrength;
         }
-
-        const controlsPanel = getControlsPanel();
-        if (controlsPanel) {
-            const panelRect = controlsPanel.getBoundingClientRect();
-            let closestX = Math.max(panelRect.left, Math.min(this.x, panelRect.right));
-            let closestY = Math.max(panelRect.top, Math.min(this.y, panelRect.bottom));
+        if (controlsRect) {
+            let closestX = Math.max(controlsRect.left, Math.min(this.x, controlsRect.right));
+            let closestY = Math.max(controlsRect.top, Math.min(this.y, controlsRect.bottom));
             const dx = this.x - closestX;
             const dy = this.y - closestY;
             const distance = Math.sqrt(dx * dx + dy * dy);
-
             if (distance < this.size) {
                 const overlap = this.size - distance;
                 let normalX = dx / distance;
                 let normalY = dy / distance;
-
-                if (isNaN(normalX) || isNaN(normalY)) {
-                    normalX = 1;
-                    normalY = 0;
-                }
-
+                if (!isFinite(normalX) || !isFinite(normalY)) { normalX = 1; normalY = 0; }
                 this.x += normalX * overlap;
                 this.y += normalY * overlap;
-
                 const dotProduct = (this.velX * normalX + this.velY * normalY) * 2;
                 this.velX -= dotProduct * normalX;
                 this.velY -= dotProduct * normalY;
-
-                this.applyWallDeformation(normalX, normalY, deformationSettings);
+                // Raise threshold: only deform for stronger panel impacts
+                if (Math.abs(dotProduct) > 4) {
+                    this.applyWallDeformation(normalX, normalY, deformationSettings);
+                }
             }
         }
 

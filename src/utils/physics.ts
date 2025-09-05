@@ -455,6 +455,13 @@ export function detectCollisions(
   setGlobalScore?: StateNumberUpdater
 ): void {
   const currentTime = Date.now();
+  // Cache controls panel rect once per frame (TS path)
+  let controlsRect: { left: number; top: number; right: number; bottom: number } | null = null;
+  try {
+    const panel = typeof document !== 'undefined' ? document.querySelector('.controls-panel') as HTMLElement | null : null;
+    if (panel) controlsRect = panel.getBoundingClientRect();
+  } catch {}
+
   for (let i = 0; i < balls.length; i++) {
     for (let j = i + 1; j < balls.length; j++) {
       const ball1 = balls[i];
@@ -533,6 +540,15 @@ export function loop(
     ctx.fill();
     ctx.restore();
   };
+  // Cache controls panel rect once per frame
+  let controlsRect: { left: number; top: number; right: number; bottom: number } | undefined;
+  try {
+    const panel = typeof document !== 'undefined' ? (document.querySelector('.controls-panel') as HTMLElement | null) : null;
+    if (panel) {
+      const r = panel.getBoundingClientRect();
+      controlsRect = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    }
+  } catch {}
 
   for (let i = 0; i < balls.length; i++) {
     const ball = balls[i];
@@ -548,7 +564,8 @@ export function loop(
       canvasHeight,
       physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0,
       physicsSettings.ballVelocity,
-      physicsSettings.deformation
+      physicsSettings.deformation,
+      controlsRect || undefined
     );
   }
 
