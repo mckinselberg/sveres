@@ -11,6 +11,7 @@ import GameControlsPanel from './components/GameControlsPanel.jsx';
 import LevelSelect from './components/LevelSelect.jsx';
 import './styles/App.scss';
 import Sound from './utils/sound';
+import { setControlsVisible } from './utils/uiPanelState.js';
 import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
 import { GAME_LEVELS, getLevelById } from './js/levels/levels.js';
 import { decideGasDir } from './utils/inputDirection.js';
@@ -577,9 +578,10 @@ function App() {
         setShowControls(!showControls);
     }, [showControls]);
 
-    // Persist controls visibility
+    // Persist controls visibility and publish to shared UI state
     useEffect(() => {
-    try { localStorage.setItem(LS_KEYS.showControls, JSON.stringify(showControls)); } catch (e) { /* noop */ void 0; }
+        try { localStorage.setItem(LS_KEYS.showControls, JSON.stringify(showControls)); } catch (e) { /* noop */ void 0; }
+        try { setControlsVisible(!!showControls); } catch {}
     }, [showControls]);
 
     // Persist WASD toggle

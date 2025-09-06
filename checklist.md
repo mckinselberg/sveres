@@ -6,6 +6,7 @@ Top priority (bugs)
   - Replaced setTimeout hazard flashes with timestamp-based flash flag to avoid per-collision timers.
   - Added per-ball deformation cooldown (~80ms) to limit GSAP timeline spam during rapid collisions.
   - Sound already throttled and voice-limited; left as-is.
+  - Eliminated per-frame DOM reads for controls panel rect; Controls/App publish width/visibility into shared state read by the loop.
 - Fixed: duplicate RAF/reset freeze and runaway speed after reset (guard RAF, stop-before-reseed, clean restart).
 - Fixed: player speed-up unintentionally speeding other balls; added optional toggle to enable it as a feature.
 - Fixed: canvas jank during settings changes by throttling controls rect reads and debouncing settings persistence.

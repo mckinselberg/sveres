@@ -10,10 +10,9 @@ import { resolveLevelPos } from './levelPositioning.js';
 import { spawnBulletHellIfDue } from './bulletHell.js';
 import { resolvePowerups, drawPowerups, applyPowerupPickups } from './powerups.js';
 import { isSlidersDragging } from './uiDragState.js';
+import { getControlsPanelRect } from './uiPanelState.js';
 
-// Throttle reads of the controls panel rect to avoid layout thrash while scrubbing sliders
-let __controlsRectCache = { rect: null, ts: 0 };
-const CONTROLS_RECT_TTL_MS = 120;
+// Panel rect is now provided by shared UI state; no per-frame DOM reads
 
 const LEVEL_CONSTANTS_MAP = {
     gravityGauntlet: GRAVITY_GAUNTLET_CONSTANTS?.PHYSICS
@@ -530,21 +529,11 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
     // Helper function to draw static shapes
     const drawStaticShape = (shapeData) => drawStaticShapeHelper(ctx, shapeData);
 
-    // Cache controls panel rect with TTL; skip entirely while sliders are being dragged
+    // Read controls panel rect from shared UI state (no DOM read); skip entirely while sliders are dragged
     let controlsRect = null;
     try {
         if (!isSlidersDragging()) {
-            const nowTS = performance && performance.now ? performance.now() : Date.now();
-            if (!__controlsRectCache.rect || (nowTS - __controlsRectCache.ts) > CONTROLS_RECT_TTL_MS) {
-                const panel = typeof document !== 'undefined' ? document.querySelector('.controls-panel') : null;
-                if (panel) {
-                    const r = panel.getBoundingClientRect();
-                    __controlsRectCache = { rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom }, ts: nowTS };
-                } else {
-                    __controlsRectCache = { rect: null, ts: nowTS };
-                }
-            }
-            controlsRect = __controlsRectCache.rect;
+            controlsRect = getControlsPanelRect(canvasHeight);
         }
     } catch {}
 

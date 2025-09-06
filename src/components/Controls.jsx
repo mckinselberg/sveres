@@ -3,6 +3,7 @@ import Slider from './Slider.jsx';
 import ColorSchemeManager from './ColorSchemeManager.jsx';
 import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
+import { setControlsPanelWidth, setControlsVisible } from '../utils/uiPanelState.js';
 
 function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme, onResetToDefaults, soundOn, onToggleSound }) {
     // Persisted resizable width for the controls panel
@@ -29,6 +30,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     });
     useEffect(() => {
         try { localStorage.setItem(LS_KEY_PANEL_WIDTH, String(panelWidth)); } catch {}
+        try { setControlsPanelWidth(panelWidth); } catch {}
     }, [panelWidth]);
     // Re-clamp on window resize (rare edge)
     useEffect(() => {
@@ -36,6 +38,12 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
         window.addEventListener('resize', onWinResize);
         return () => window.removeEventListener('resize', onWinResize);
     }, []);
+    // Publish initial width and visibility on mount
+    useEffect(() => {
+        try { setControlsPanelWidth(panelWidth); } catch {}
+        try { setControlsVisible(true); } catch {}
+        return () => { try { setControlsVisible(false); } catch {} };
+    }, [panelWidth]);
 
     const draggingRef = useRef(false);
     const startXRef = useRef(0);
