@@ -285,12 +285,9 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                         const damage = healthDamageMultiplier * 100; // Use 100 to make it a percentage
                         ball.health -= damage;
                         ball.health = Math.max(0, ball.health);
-                        // Flash the ball red
-                        const originalColor = ball.color;
-                        ball.color = 'red';
-                        setTimeout(() => {
-                            ball.color = originalColor;
-                        }, 200);
+                        // Flash the ball red for a short interval without timers
+                        const nowFlash = Date.now();
+                        ball._flashColorUntil = Math.max(ball._flashColorUntil || 0, nowFlash + 180);
                         Sound.playCollision(0.6);
 
                         // Remove ball if health is zero

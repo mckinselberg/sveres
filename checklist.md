@@ -2,6 +2,10 @@ Here’s what remains after decomposing `Canvas.jsx`. Next steps are prioritized
 
 Top priority (bugs)
 
+- Fixed: canvas jank (remove timer churn and animation spam)
+  - Replaced setTimeout hazard flashes with timestamp-based flash flag to avoid per-collision timers.
+  - Added per-ball deformation cooldown (~80ms) to limit GSAP timeline spam during rapid collisions.
+  - Sound already throttled and voice-limited; left as-is.
 - Fixed: duplicate RAF/reset freeze and runaway speed after reset (guard RAF, stop-before-reseed, clean restart).
 - Fixed: player speed-up unintentionally speeding other balls; added optional toggle to enable it as a feature.
 - Fixed: canvas jank during settings changes by throttling controls rect reads and debouncing settings persistence.

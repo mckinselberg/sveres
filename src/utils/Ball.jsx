@@ -59,9 +59,13 @@ export class Ball {
         this.collisionCount = 0;
         this.health = 100;
         this.isSleeping = false;
+    // Micro-optimizations for rendering/animation
+    this._flashColorUntil = 0; // timestamp (ms) until which to flash an alternate color
+    this._deformCooldownUntil = 0; // timestamp (ms) to throttle deformation timeline creation
     }
 
     draw(ctx, selectedBall) {
+    const now = Date.now();
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.deformAngle);
@@ -69,7 +73,8 @@ export class Ball {
         ctx.rotate(-this.deformAngle);
 
         ctx.beginPath();
-        ctx.fillStyle = this.color;
+    // Use flash color while active without scheduling timers
+    ctx.fillStyle = (this._flashColorUntil && now < this._flashColorUntil) ? 'red' : this.color;
 
         // Draw the shape
         switch (this.shape) {
@@ -181,6 +186,10 @@ export class Ball {
     applyWallDeformation(normalX, normalY, deformationSettings) {
         if (!deformationSettings.enabled) return;
         if (this.isAnimating) return;
+    // Small cooldown to avoid GSAP timeline spam when grazing/bouncing rapidly
+    const now = Date.now();
+    if (now < this._deformCooldownUntil) return;
+    this._deformCooldownUntil = now + 80;
 
         const { intensity, speed, ease, easeOverride } = deformationSettings;
         const deformationEase = easeOverride || ease;
@@ -224,6 +233,10 @@ export class Ball {
     applyBallDeformation(normalX, normalY, intensity, deformationSettings) {
         if (!deformationSettings.enabled) return;
         if (this.isAnimating) return;
+    // Small cooldown to avoid GSAP timeline spam when many collisions occur
+    const now = Date.now();
+    if (now < this._deformCooldownUntil) return;
+    this._deformCooldownUntil = now + 80;
 
         const { speed, ease, easeOverride } = deformationSettings;
         const deformationEase = easeOverride || ease;
