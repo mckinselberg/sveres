@@ -159,6 +159,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 role="separator"
                 aria-orientation="vertical"
                 aria-label="Resize controls panel"
+                style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'col-resize', zIndex: 2 }}
             />
             <h2>Simulation Controls</h2>
             <button onClick={toggleLevelMode} className="button button--primary button--full" style={{ marginBottom: '10px' }}>
@@ -344,6 +345,16 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                                 disabled={levelMode} // Disable in level mode
                             />
                             Enable Health System
+                        </label>
+                    </div>
+                    <div className="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={!!physicsSettings.gameplay.propagatePlayerSpeedBoost}
+                                onChange={(e) => handleGameplayChange('propagatePlayerSpeedBoost', e.target.checked)}
+                            />
+                            Propagate Player Speed Boost to All Balls
                         </label>
                     </div>
                     <Slider

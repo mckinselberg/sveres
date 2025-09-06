@@ -9,6 +9,11 @@ import { drawStaticShape as drawStaticShapeHelper } from './canvasRendering.js';
 import { resolveLevelPos } from './levelPositioning.js';
 import { spawnBulletHellIfDue } from './bulletHell.js';
 import { resolvePowerups, drawPowerups, applyPowerupPickups } from './powerups.js';
+import { isSlidersDragging } from './uiDragState.js';
+
+// Throttle reads of the controls panel rect to avoid layout thrash while scrubbing sliders
+let __controlsRectCache = { rect: null, ts: 0 };
+const CONTROLS_RECT_TTL_MS = 120;
 
 const LEVEL_CONSTANTS_MAP = {
     gravityGauntlet: GRAVITY_GAUNTLET_CONSTANTS?.PHYSICS
@@ -528,11 +533,32 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
     // Helper function to draw static shapes
     const drawStaticShape = (shapeData) => drawStaticShapeHelper(ctx, shapeData);
 
-    // Cache controls panel rect once per frame to avoid layout thrash
+    // Cache controls panel rect with TTL; skip entirely while sliders are being dragged
     let controlsRect = null;
     try {
-        const panel = typeof document !== 'undefined' ? document.querySelector('.controls-panel') : null;
-        if (panel) controlsRect = panel.getBoundingClientRect();
+        if (!isSlidersDragging()) {
+            const nowTS = performance && performance.now ? performance.now() : Date.now();
+            if (!__controlsRectCache.rect || (nowTS - __controlsRectCache.ts) > CONTROLS_RECT_TTL_MS) {
+                const panel = typeof document !== 'undefined' ? document.querySelector('.controls-panel') : null;
+                if (panel) {
+                    const r = panel.getBoundingClientRect();
+                    __controlsRectCache = { rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom }, ts: nowTS };
+                } else {
+                    __controlsRectCache = { rect: null, ts: nowTS };
+                }
+            }
+            controlsRect = __controlsRectCache.rect;
+        }
+    } catch {}
+
+    // Determine if we should propagate the player's speed boost to other balls
+    const baseMaxVel = physicsSettings.ballVelocity;
+    const propagateBoost = !!(physicsSettings?.gameplay && physicsSettings.gameplay.propagatePlayerSpeedBoost);
+    let playerBoostActive = false;
+    try {
+        const now = Date.now();
+        const playerRef = (selectedBall && balls.find(b => b.id === selectedBall.id)) || balls.find(b => b.isStartingBall);
+        playerBoostActive = !!(playerRef && playerRef.speedUntil && playerRef.speedUntil > now);
     } catch {}
 
     for (let i = 0; i < balls.length; i++) {
@@ -551,7 +577,18 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         }
 
     ball.draw(ctx, selectedBall);
-    ball.update(canvasWidth, canvasHeight, physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0, physicsSettings.ballVelocity, physicsSettings.deformation, controlsRect);
+    // Per-ball max velocity cap: player boost handled internally by Ball.update via speedUntil.
+    // Optionally propagate player boost to non-player balls by raising their cap this frame.
+    const isPlayer = ball.isStartingBall || (selectedBall && ball.id === selectedBall.id);
+    const cap = (!isPlayer && propagateBoost && playerBoostActive) ? (baseMaxVel * 1.6) : baseMaxVel;
+    ball.update(
+        canvasWidth,
+        canvasHeight,
+        physicsSettings.enableGravity ? physicsSettings.gravityStrength : 0,
+        cap,
+        physicsSettings.deformation,
+        controlsRect
+    );
     }
 
     // Bullet Hell spawner: use utility for periodic spawns aimed at player

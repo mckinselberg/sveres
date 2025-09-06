@@ -1,10 +1,12 @@
 import { useRef, useEffect, memo, forwardRef, useImperativeHandle, useCallback } from 'react';
 // Use the JS physics module (with sound hooks) explicitly
-import { initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
+import { initializeBalls, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
 import Sound from '../utils/sound';
 import useResolvedStatics from '../hooks/useResolvedStatics.js';
 import useGameLoop from '../hooks/useGameLoop.js';
 import useCanvasSize from '../hooks/useCanvasSize.js';
+import useJumpMechanics from '../hooks/useJumpMechanics.js';
+import useImperativeCanvasAPI from '../hooks/useImperativeCanvasAPI.js';
 
 const Canvas = memo(forwardRef(function Canvas({
     enableGravity,
@@ -75,6 +77,8 @@ const Canvas = memo(forwardRef(function Canvas({
         viewH: viewport.h
     });
 
+    const { jump } = useJumpMechanics({ canvasRef, settingsRef, selectedBallIdRef, ballsRef, viewHeight: viewport.h });
+
     // Imperative API for App/Controls
     const emitSnapshot = useCallback(() => {
         if (!onBallsSnapshot) return;
@@ -96,119 +100,24 @@ const Canvas = memo(forwardRef(function Canvas({
         onBallsSnapshot(snap);
     }, [onBallsSnapshot]);
 
-    useImperativeHandle(ref, () => ({
-        addBall: () => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-            addNewBall(ballsRef.current, newBallSize ?? ballSize, ballVelocity, canvas.width, canvas.height, null, null, ballShape);
-            emitSnapshot();
-        },
-        removeBall: () => {
-            if (ballsRef.current.length > 0) ballsRef.current.pop();
-            emitSnapshot();
-        },
-        resetBalls: () => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-            ballsRef.current = [];
-            loseRef.current = false;
-            const startingOverrideReset = (level ? 15 : undefined);
-            initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideReset);
-            if (level && ballsRef.current.length > 0) {
-                ballsRef.current[0].size = 15;
-                ballsRef.current[0].originalSize = 15;
-                // Seed jump state
-                ballsRef.current[0]._airJumpAvailable = true;
-            }
-            if (level && ballsRef.current.length > 0) {
-                selectedBallIdRef.current = ballsRef.current[0].id;
-                if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ballsRef.current[0] });
-            } else {
-                selectedBallIdRef.current = null;
-                if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
-            }
-            emitSnapshot();
-            // Restart the game loop if it was stopped after a win/lose
-            gameLoop.stop();
-            gameLoop.restart();
-        },
-        applyColorScheme: (scheme) => {
-            // Update ball colors
-            ballsRef.current.forEach((ball, index) => {
-                if (scheme.ballColors && scheme.ballColors[index]) {
-                    ball.color = scheme.ballColors[index];
-                    ball.originalColor = scheme.ballColors[index];
-                }
-            });
-            emitSnapshot();
-        },
-        updateSelectedBall: (updated) => {
-            const id = updated.id ?? selectedBallIdRef.current;
-            if (id == null) return;
-            const ball = ballsRef.current.find(b => b.id === id);
-            if (!ball) return;
-            // Mutate fields in place to keep engine references
-            // Only allow explicit position overrides when requested
-            if (updated.__allowXY === true) {
-                if (typeof updated.x === 'number') ball.x = updated.x;
-                if (typeof updated.y === 'number') ball.y = updated.y;
-            }
-            if (typeof updated.velX === 'number') ball.velX = updated.velX;
-            if (typeof updated.velY === 'number') ball.velY = updated.velY;
-            if (typeof updated.color === 'string') ball.color = updated.color;
-            if (typeof updated.size === 'number') ball.size = updated.size;
-            if (typeof updated.shape === 'string') ball.shape = updated.shape;
-            if (typeof updated.isStatic === 'boolean') ball.isStatic = updated.isStatic;
-            if (typeof updated.health === 'number') ball.health = updated.health;
-            if (typeof updated.opacity === 'number') ball.opacity = updated.opacity;
-            if (typeof updated.controlTuning === 'object') ball.controlTuning = { ...(ball.controlTuning || {}), ...updated.controlTuning };
-            if (updated._lastMultiplier != null) ball._lastMultiplier = updated._lastMultiplier;
-            if (updated.originalSize != null) ball.originalSize = updated.originalSize;
+    const imperativeAPI = useImperativeCanvasAPI({
+        canvasRef,
+        ballsRef,
+        selectedBallIdRef,
+        loseRef,
+        level,
+        ballCount,
+        ballSize,
+        ballVelocity,
+        ballShape,
+        newBallSize,
+        onSelectedBallChangeRef,
+        emitSnapshot,
+        gameLoop,
+        jump
+    });
 
-            // If velocity is being driven by input, wake the ball so movement applies even from sleep/zero
-            if (typeof updated.velX === 'number' || typeof updated.velY === 'number') {
-                const speed = Math.hypot(ball.velX || 0, ball.velY || 0);
-                if (speed > 0.01) {
-                    ball.isSleeping = false;
-                }
-            }
-            if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current({ ...ball });
-            emitSnapshot();
-        },
-        jumpPlayer: () => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-            // Choose player: selected or starting ball in gauntlet
-            const selected = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
-            let player = selected || ballsRef.current.find(b => b.isStartingBall);
-            if (!player) return;
-            const now = Date.now();
-            const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
-            const grounded = (player.y + effR) >= ((viewport.h || canvas.height) - 3);
-            // Decide jump type first, then apply cooldown rules
-            let isAirJump = false;
-            if (!grounded) {
-                if (!player._airJumpAvailable) return; // no air jump available
-                isAirJump = true;
-                // consume token for air jump
-                player._airJumpAvailable = false;
-            } else {
-                // grounded jump always resets token so another air jump is possible after takeoff
-                player._airJumpAvailable = true;
-            }
-            // Cooldown: enforce for ground jumps; allow a short cooldown for the air jump so double-jump can happen immediately after takeoff
-            if (!isAirJump) {
-                if (player._jumpCooldownUntil && player._jumpCooldownUntil > now) return;
-            }
-            const s = settingsRef.current;
-            const g = Math.max(0.05, s.gravityStrength || 0.15);
-            // Jump velocity scaled by gravity for natural feel
-            const jumpVy = -Math.max(8, Math.min(18, g * 70));
-            player.velY = jumpVy;
-            player.isSleeping = false;
-            player._jumpCooldownUntil = now + (isAirJump ? 140 : 280); // ms
-        }
-    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, level, viewport.h, emitSnapshot, gameLoop]);
+    useImperativeHandle(ref, () => imperativeAPI, [imperativeAPI]);
 
     // Seed balls on mount and when level type or shape changes only
     useEffect(() => {

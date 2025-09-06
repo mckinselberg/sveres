@@ -166,7 +166,7 @@ function App() {
             // Allow typing in editables (import modal textarea, etc.)
             if (isEditable(t)) return;
             const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
-            const handledKeys = new Set([' ', 'Spacebar', 'j', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd']);
+            const handledKeys = new Set([' ', 'Spacebar', 'j', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd', 'c']);
             if (!handledKeys.has(k)) return;
             // Prevent scrolling/button activation when we handle the key
             event.preventDefault();
@@ -340,6 +340,12 @@ function App() {
             }
             // Normalize single-letter keys to lowercase so Shift+A/D works
             const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
+            // Always allow toggling controls with 'c'
+            if (k === 'c') {
+                event.preventDefault();
+                setShowControls(v => !v);
+                return;
+            }
             // During game over, only honor Reset (R)
             if (isGameOver) {
                 if (k === 'r') {
@@ -617,15 +623,22 @@ function App() {
     } catch (e) { /* noop */ void 0; }
     }, [levelMode]);
 
-    // Persist settings whenever they change (per mode)
+    // Persist settings whenever they change (per mode), debounced to reduce jank during slider scrubs
+    const _persistTimerRef = React.useRef(null);
     useEffect(() => {
         const key = levelMode ? LS_KEYS.settingsGauntlet : LS_KEYS.settingsSandbox;
-        try {
-            // In level mode, avoid persisting the level definition so code/registry updates remain authoritative
-            const toSave = levelMode ? { ...physicsSettings } : physicsSettings;
-            if (levelMode) delete toSave.level;
-            localStorage.setItem(key, JSON.stringify(toSave));
-        } catch (e) { /* noop */ void 0; }
+        if (_persistTimerRef.current) clearTimeout(_persistTimerRef.current);
+        // Prepare snapshot outside the timer to avoid capturing stale values
+        const toSave = levelMode ? { ...physicsSettings } : physicsSettings;
+        if (levelMode) delete toSave.level;
+        _persistTimerRef.current = setTimeout(() => {
+            try {
+                localStorage.setItem(key, JSON.stringify(toSave));
+            } catch (e) { /* noop */ void 0; }
+        }, 250);
+        return () => {
+            if (_persistTimerRef.current) clearTimeout(_persistTimerRef.current);
+        };
     }, [physicsSettings, levelMode]);
 
     // Persist level mode toggle
@@ -828,7 +841,7 @@ function App() {
                 selectedBall={selectedBall}
                 onUpdateSelectedBall={handleUpdateSelectedBall}
             />
-            <button className="toggle-controls-button" aria-label="Toggle Controls" onClick={toggleControlsVisibility}>⚙️</button>
+            <button className="toggle-controls-button" data-refocus-canvas="true" aria-label="Toggle Controls" onClick={toggleControlsVisibility}>⚙️</button>
         </div>
     );
 }

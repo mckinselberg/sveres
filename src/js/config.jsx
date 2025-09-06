@@ -23,7 +23,9 @@ export const DEFAULTS = {
         scoring: true,
         sandbox: false,
         healthSystem: true,
-        healthDamageMultiplier: 1
+    healthDamageMultiplier: 1,
+    // When true, if the player has a speed boost active, non-player balls get the same cap boost
+    propagatePlayerSpeedBoost: false
     }
 };
 
@@ -40,6 +42,7 @@ export const GRAVITY_GAUNTLET_DEFAULTS = {
         scoring: true,
         sandbox: false, // Not a sandbox level
         healthSystem: true,
-        healthDamageMultiplier: 0.2 // Each hit takes 20% health
+    healthDamageMultiplier: 0.2, // Each hit takes 20% health
+    propagatePlayerSpeedBoost: false
     }
 };
