@@ -226,7 +226,7 @@ function App() {
             if (isEditable(t)) return;
             const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
             // TODO: move keys to constants/config
-            const handledKeys = new Set([' ', 'Spacebar', 'j', 'w', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd', 's']);
+            const handledKeys = new Set([' ', 'Spacebar', 'j', 'w', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd', 's', 'c']);
             if (!handledKeys.has(k)) return;
             // Prevent scrolling/button activation when we handle the key
             event.preventDefault();
@@ -431,6 +431,14 @@ function App() {
             if (k === 'p') {
                 event.preventDefault();
                 setIsPaused(prev => !prev);
+                return;
+            }
+
+            // Toggle Controls panel with 'c'
+            if (k === 'c') {
+                event.preventDefault();
+                setShowControls(prev => !prev);
+                setGearPulsing(false);
                 return;
             }
 

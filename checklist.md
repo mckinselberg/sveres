@@ -12,6 +12,10 @@
 
   - [DONE] Acceptance: Gear pulses after ~10s idle when hidden; stops on hover/focus/click; respects `prefers-reduced-motion`. Implemented in `App.jsx` with CSS in `styles/App.scss`.
 
+- [DONE] Keyboard shortcut: 'C' toggles Controls panel visibility
+
+  - Acceptance: Pressing 'c' toggles the Controls panel regardless of focus (excluding inputs); matches the gear tooltip; respects capture-phase preventDefault and reduced motion pulse remains disabled while visible.
+
 - [DONE] Gameplay toggle: Pop + Despawn on Remove
   - Acceptance: New checkbox in Controls bound to `physicsSettings.gameplay.popDespawnEnabled` (persisted). Toggling updates Canvas/physics immediately without reload.
 - [DONE] Canvas Remove Ball respects toggle
@@ -66,8 +70,12 @@ UX Polish
 
 ## Proposed next steps
 
-- Tests: add targeted specs to assert no-op behaviors when pop/despawn toggle is off (Canvas Remove Ball, sandbox dead-ball sweep, hazard/goal branches).
-  - [STARTED] Added tests: `test/canvas.remove.noop.test.js`, `test/sandbox.deadballs.noop.test.js`. Pending: hazard/goal branches.
+- [DONE] Tests: add targeted specs to assert no-op behaviors when pop/despawn toggle is off (Canvas Remove Ball, sandbox dead-ball sweep, hazard/goal branches).
+  - Acceptance: All branches covered with deterministic, headless tests; pass reliably in CI.
+    - Canvas remove no-op: `test/canvas.remove.noop.test.js`
+    - Sandbox dead-balls no-op: `test/sandbox.deadballs.noop.test.js`
+    - Goal removal without pop: `test/goal.noPop.remove.test.js`
+    - Hazard removal without pop: `test/hazard.noPop.remove.test.js`
 - UX: indicate Remove is disabled when toggle off (disable control or tooltip/subtle shake), and optionally add a quick “Clear dead balls” action when toggle is off.
   - [DONE] Acceptance: "Remove Ball" is disabled when the toggle is off and shows a helpful tooltip. Tests pass; optional polish (subtle shake, “Clear dead balls”) deferred.
 - Canvas/responsiveness: implement crisp DPR scaling on resize/devicePixelRatio changes; add a tiny smoke test or manual checklist.
