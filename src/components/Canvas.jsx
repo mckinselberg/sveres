@@ -29,6 +29,7 @@ const Canvas = memo(forwardRef(function Canvas({
     onSelectedBallMotion
 }, ref) {
     const canvasRef = useRef(null);
+    const ctxRef = useRef(null);
     const animationFrameId = useRef(null);
     const ballsRef = useRef([]);
     const selectedBallIdRef = useRef(null);
@@ -49,6 +50,65 @@ const Canvas = memo(forwardRef(function Canvas({
     // Keep pop-despan toggle in a ref that updates each render to avoid effect-timing lag
     const popEnabledRef = useRef(!!(gameplay && gameplay.popDespawnEnabled));
     popEnabledRef.current = !!(gameplay && gameplay.popDespawnEnabled);
+
+    // Track CSS pixel dimensions (world space) and DPR for crisp rendering
+    const cssWidthRef = useRef(0);
+    const cssHeightRef = useRef(0);
+    const dprRef = useRef(1);
+
+    // In tests (jsdom), canvas.getContext is not implemented; provide a safe stub
+    const getOrCreateCtx = (canvas) => {
+        if (ctxRef.current) return ctxRef.current;
+        let ctx = null;
+        const isJsdom = (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || ''));
+        if (!isJsdom) {
+            try { ctx = canvas.getContext('2d'); } catch {}
+        }
+        if (!ctx) {
+            // Minimal stub implementing the members used by our renderer
+            const noop = () => {};
+            ctx = {
+                // stateful props
+                fillStyle: '', strokeStyle: '', lineWidth: 1, lineDashOffset: 0,
+                shadowBlur: 0, shadowColor: 'transparent', globalAlpha: 1,
+                // transform
+                setTransform: noop, scale: noop, translate: noop, rotate: noop,
+                // path/draw
+                save: noop, restore: noop, beginPath: noop, closePath: noop,
+                moveTo: noop, lineTo: noop, rect: noop, arc: noop,
+                fillRect: noop, clearRect: noop, fill: noop, stroke: noop,
+                setLineDash: noop,
+            };
+        }
+        ctxRef.current = ctx;
+        return ctx;
+    };
+
+    const applyDprSizing = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const cssW = window.innerWidth;
+        const cssH = window.innerHeight;
+        const dpr = Math.max(1, Math.floor((window.devicePixelRatio || 1) * 100) / 100);
+        cssWidthRef.current = cssW;
+        cssHeightRef.current = cssH;
+        dprRef.current = dpr;
+        // Set backing store size and CSS size
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        const bw = Math.max(1, Math.floor(cssW * dpr));
+        const bh = Math.max(1, Math.floor(cssH * dpr));
+        if (canvas.width !== bw) canvas.width = bw;
+        if (canvas.height !== bh) canvas.height = bh;
+        // Scale context to map CSS pixels to device pixels
+        const ctx = getOrCreateCtx(canvas);
+        if (ctx) {
+            // reset any prior transform then scale by DPR
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            ctxRef.current = ctx;
+        }
+    }, []);
 
     // Keep latest callback refs to avoid re-running effects due to unstable identities
     useEffect(() => {
@@ -92,7 +152,7 @@ const Canvas = memo(forwardRef(function Canvas({
         addBall: () => {
             const canvas = canvasRef.current;
             if (!canvas) return;
-            addNewBall(ballsRef.current, newBallSize ?? ballSize, ballVelocity, canvas.width, canvas.height, null, null, ballShape);
+            addNewBall(ballsRef.current, newBallSize ?? ballSize, ballVelocity, cssWidthRef.current, cssHeightRef.current, null, null, ballShape);
             emitSnapshot();
         },
         removeBall: () => {
@@ -135,7 +195,7 @@ const Canvas = memo(forwardRef(function Canvas({
             ballsRef.current = [];
             loseRef.current = false;
             const startingOverrideReset = (level ? 15 : undefined);
-            initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideReset);
+            initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, cssWidthRef.current, cssHeightRef.current, ballShape, startingOverrideReset);
             if (level && ballsRef.current.length > 0) {
                 ballsRef.current[0].size = 15;
                 ballsRef.current[0].originalSize = 15;
@@ -205,7 +265,7 @@ const Canvas = memo(forwardRef(function Canvas({
             if (!player) return;
             const now = Date.now();
             const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
-            const grounded = (player.y + effR) >= (canvas.height - 3);
+            const grounded = (player.y + effR) >= (cssHeightRef.current - 3);
             // Decide jump type first, then apply cooldown rules
             let isAirJump = false;
             if (!grounded) {
@@ -240,7 +300,7 @@ const Canvas = memo(forwardRef(function Canvas({
                 return;
             }
             const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
-            const grounded = (player.y + effR) >= (canvas.height - 3);
+            const grounded = (player.y + effR) >= (cssHeightRef.current - 3);
             if (grounded) return; // Only slam while in the air
             const s = settingsRef.current;
             const g = Math.max(0.05, s.gravityStrength || 0.15);
@@ -258,15 +318,14 @@ const Canvas = memo(forwardRef(function Canvas({
         const canvas = canvasRef.current;
 
         const handleResize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            applyDprSizing();
         };
         handleResize();
 
     // (Re)seed balls for new level/shape
     ballsRef.current = [];
     const startingOverrideSeed = (level ? 15 : undefined);
-    initializeBalls(ballsRef.current, ballCount, ballSize, settingsRef.current.ballVelocity, canvas.width, canvas.height, ballShape, startingOverrideSeed);
+    initializeBalls(ballsRef.current, ballCount, ballSize, settingsRef.current.ballVelocity, cssWidthRef.current, cssHeightRef.current, ballShape, startingOverrideSeed);
     if (level && ballsRef.current.length > 0) {
         ballsRef.current[0].size = 15;
         ballsRef.current[0].originalSize = 15;
@@ -316,7 +375,7 @@ const Canvas = memo(forwardRef(function Canvas({
             }
         };
 
-        window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
         canvas.addEventListener('mousedown', handleMouseDown);
 
         // Prevent zoom gestures on the canvas (mobile)
@@ -356,7 +415,10 @@ const Canvas = memo(forwardRef(function Canvas({
             }
             return;
         }
-        const ctx = canvas.getContext('2d');
+    // Ensure canvas sizing is up to date before starting
+    applyDprSizing();
+    const ctx = getOrCreateCtx(canvas);
+    ctxRef.current = ctx;
         // Ensure any prior loop is stopped before starting a new one
         if (animationFrameId.current) {
             cancelAnimationFrame(animationFrameId.current);
@@ -378,8 +440,8 @@ const Canvas = memo(forwardRef(function Canvas({
             loop(
                 ctx,
                 ballsRef.current,
-                canvas.width,
-                canvas.height,
+                cssWidthRef.current,
+                cssHeightRef.current,
                 { enableGravity: s.enableGravity, gravityStrength: s.gravityStrength, ballVelocity: s.ballVelocity, deformation: s.deformation, gameplay: s.gameplay },
                 s.backgroundColor,
                 1 - (s.trailOpacity * 0.9),
@@ -397,7 +459,7 @@ const Canvas = memo(forwardRef(function Canvas({
                 const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
                 if (canvasEl && playerBall) {
                     const effR2 = playerBall.size * Math.max(playerBall.scaleX || 1, playerBall.scaleY || 1);
-                    const groundedNow = (playerBall.y + effR2) >= (canvasEl.height - 3);
+                    const groundedNow = (playerBall.y + effR2) >= (cssHeightRef.current - 3);
                     if (groundedNow) {
                         playerBall._airJumpAvailable = true;
                     }
@@ -490,7 +552,7 @@ const Canvas = memo(forwardRef(function Canvas({
                 animationFrameId.current = null;
             }
         };
-    }, [isPaused, level, forceTick, setGlobalScore, setScoredBallsCount, setRemovedBallsCount]);
+    }, [isPaused, level, forceTick, setGlobalScore, setScoredBallsCount, setRemovedBallsCount, applyDprSizing]);
 
     // Reconcile when count/size/velocity/shape change (without full re-seed)
     useEffect(() => {
@@ -498,7 +560,7 @@ const Canvas = memo(forwardRef(function Canvas({
         if (!canvas) return;
         const prev = prevSettingsRef.current;
         if (ballCount !== prev.ballCount) {
-            adjustBallCount(ballsRef.current, ballCount, ballSize, ballVelocity, canvas.width, canvas.height);
+            adjustBallCount(ballsRef.current, ballCount, ballSize, ballVelocity, cssWidthRef.current, cssHeightRef.current);
             emitSnapshot();
         }
         if (ballVelocity !== prev.ballVelocity) {

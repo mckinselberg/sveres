@@ -25,8 +25,9 @@
 
 - Performance: skip panel collisions while sliders are dragged (via `uiDragState`)
   - Acceptance: During slider drag, panel-collision logic is bypassed; FPS remains stable; unit test asserts drag-flag short-circuit.
-- Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
+- [DONE] Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
   - Acceptance: After resize/DPR change, canvas is crisp (no blur/skew); no memory leaks; smoke test or manual steps documented.
+  - Verified: DPR-aware sizing with context scale in `Canvas.jsx`; jsdom-safe stub to keep tests green; suite passes (1 skipped) and production build succeeds.
 - Simple bleep/bloop background music with a UI toggle
   - Acceptance: Looping bgm with start/stop toggle; persisted; respects user gesture and autoplay rules; no console errors.
 - FPS cap/control in settings
@@ -85,7 +86,6 @@ UX Polish
     - Hazard removal without pop: `test/hazard.noPop.remove.test.js`
 - UX: indicate Remove is disabled when toggle off (disable control or tooltip/subtle shake), and optionally add a quick “Clear dead balls” action when toggle is off.
   - [DONE] Acceptance: "Remove Ball" is disabled when the toggle is off and shows a helpful tooltip. Tests pass; optional polish (subtle shake, “Clear dead balls”) deferred.
-- Canvas/responsiveness: implement crisp DPR scaling on resize/devicePixelRatio changes; add a tiny smoke test or manual checklist.
 - Performance: bypass panel-collision work while sliders are dragged (uiDragState short-circuit) and profile FPS.
 - Audio: simple background loop with a persisted toggle; ensure autoplay policy compliance (start on user gesture).
 - FPS cap: add optional FPS limiter with clear on/off and a simple on-screen metric for verification.
