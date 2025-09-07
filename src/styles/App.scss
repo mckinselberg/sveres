@@ -48,7 +48,6 @@ canvas {
   top: 10px;
   z-index: 1001;
 }
-
 .ball-counters {
   color: $text-color;
   position: fixed;
@@ -309,6 +308,19 @@ canvas {
   transition: all 0.3s ease;
   width: 40px;
   z-index: 1001;
+  &:hover { transform: scale(1.06); }
+  &:active { transform: scale(0.98); }
+  &.is-pulsing { animation: gear-pulse 1.4s ease-in-out infinite; }
+}
+
+@keyframes gear-pulse {
+  0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+  50% { transform: scale(1.12) rotate(10deg); filter: drop-shadow(0 0 8px rgba(255,255,255,0.35)); }
+  100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle-controls-button.is-pulsing { animation: none !important; }
 }
 
 input[type="range"] {

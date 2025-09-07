@@ -9,7 +9,7 @@
 - Input polish: add W as jump alias; ensure capture-phase preventDefault doesn’t block input fields
   - Acceptance: Pressing 'w' jumps like Space/J; typing in inputs unaffected; unit test covers alias and non-blocking behavior.
 - Add a subtle on-screen hint when controls are hidden (e.g., pulse on gear after idle) to aid discoverability
-  - Acceptance: Gear pulses after N seconds idle when hidden; stops on hover/click; respects `prefers-reduced-motion`.
+  - [DONE] Acceptance: Gear pulses after ~10s idle when hidden; stops on hover/focus/click; respects `prefers-reduced-motion`. Implemented in `App.jsx` with CSS in `styles/App.scss`.
 
 ### Medium impact
 

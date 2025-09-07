@@ -107,6 +107,65 @@ function App() {
     const [soundOn, setSoundOn] = useState(() => {
         try { const raw = localStorage.getItem('ui:soundOn'); if (raw == null) return true; return JSON.parse(raw); } catch { return true; }
     });
+    // Subtle gear pulse when controls are hidden and user idle
+    const [gearPulsing, setGearPulsing] = useState(false);
+    const gearPulseTimerRef = React.useRef(null);
+    const prefersReducedMotionRef = React.useRef(false);
+    useEffect(() => {
+        try {
+            const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+            prefersReducedMotionRef.current = !!(mq && mq.matches);
+            // Keep in sync in case user changes setting at runtime
+            if (mq && typeof mq.addEventListener === 'function') {
+                const onChange = (e) => { prefersReducedMotionRef.current = !!e.matches; };
+                mq.addEventListener('change', onChange);
+                return () => mq.removeEventListener('change', onChange);
+            }
+        } catch {}
+    }, []);
+    const scheduleGearPulse = useCallback(() => {
+        if (gearPulseTimerRef.current) {
+            clearTimeout(gearPulseTimerRef.current);
+            gearPulseTimerRef.current = null;
+        }
+        setGearPulsing(false);
+        if (prefersReducedMotionRef.current) return;
+        // After idle period, enable pulse
+        gearPulseTimerRef.current = setTimeout(() => {
+            setGearPulsing(true);
+        }, 10000); // 10s idle
+    }, []);
+    useEffect(() => {
+        // Manage idle pulse when controls are hidden
+        if (!showControls) {
+            const onUserActivity = () => {
+                setGearPulsing(false);
+                scheduleGearPulse();
+            };
+            scheduleGearPulse();
+            window.addEventListener('mousemove', onUserActivity, { passive: true });
+            window.addEventListener('keydown', onUserActivity, { passive: true });
+            window.addEventListener('touchstart', onUserActivity, { passive: true });
+            window.addEventListener('pointerdown', onUserActivity, { passive: true });
+            return () => {
+                if (gearPulseTimerRef.current) {
+                    clearTimeout(gearPulseTimerRef.current);
+                    gearPulseTimerRef.current = null;
+                }
+                window.removeEventListener('mousemove', onUserActivity);
+                window.removeEventListener('keydown', onUserActivity);
+                window.removeEventListener('touchstart', onUserActivity);
+                window.removeEventListener('pointerdown', onUserActivity);
+            };
+        } else {
+            // Controls visible: no pulse and clear timer
+            setGearPulsing(false);
+            if (gearPulseTimerRef.current) {
+                clearTimeout(gearPulseTimerRef.current);
+                gearPulseTimerRef.current = null;
+            }
+        }
+    }, [showControls, scheduleGearPulse]);
     useEffect(() => {
         Sound.setEnabled(soundOn);
         try { localStorage.setItem('ui:soundOn', JSON.stringify(soundOn)); } catch {}
@@ -575,6 +634,7 @@ function App() {
 
     const toggleControlsVisibility = useCallback(() => {
         setShowControls(!showControls);
+        setGearPulsing(false);
     }, [showControls]);
 
     // Persist controls visibility
@@ -814,7 +874,15 @@ function App() {
                 selectedBall={selectedBall}
                 onUpdateSelectedBall={handleUpdateSelectedBall}
             />
-            <button className="toggle-controls-button" aria-label="Toggle Controls" onClick={toggleControlsVisibility}>⚙️</button>
+            <button
+                className={`toggle-controls-button${gearPulsing ? ' is-pulsing' : ''}`}
+                aria-label="Toggle Controls"
+                onClick={toggleControlsVisibility}
+                onMouseEnter={() => setGearPulsing(false)}
+                onFocus={() => setGearPulsing(false)}
+                data-refocus-canvas="true"
+                title={showControls ? 'Hide controls (C)' : 'Show controls (C)'}
+            >⚙️</button>
         </div>
     );
 }
