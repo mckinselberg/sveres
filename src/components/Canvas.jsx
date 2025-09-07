@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState } from 'react';
+import { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState, useCallback } from 'react';
 // Use the JS physics module (with sound hooks) explicitly
 import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
 import Sound from '../utils/sound';
@@ -12,7 +12,7 @@ const Canvas = memo(forwardRef(function Canvas({
     backgroundColor,
     trailOpacity,
     setGlobalScore,
-    selectedBall, // snapshot from App for display only
+    _selectedBall, // snapshot from App for display only (intentionally unused)
     onSelectedBallChange, // callback(ball|null)
     onBallsSnapshot, // callback(balls[])
     isPaused,
@@ -35,6 +35,8 @@ const Canvas = memo(forwardRef(function Canvas({
     const settingsRef = useRef({ enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity });
     const onSelectedBallChangeRef = useRef(onSelectedBallChange);
     const onSelectedBallMotionRef = useRef(onSelectedBallMotion);
+    const onWinRef = useRef(onWin);
+    const onLoseRef = useRef(onLose);
     const loseRef = useRef(false);
     const [forceTick, setForceTick] = useState(0);
     // Frame-batched increments to reduce React updates inside RAF
@@ -50,6 +52,10 @@ const Canvas = memo(forwardRef(function Canvas({
     useEffect(() => {
         onSelectedBallMotionRef.current = onSelectedBallMotion;
     }, [onSelectedBallMotion]);
+    useEffect(() => {
+        onWinRef.current = onWin;
+        onLoseRef.current = onLose;
+    }, [onWin, onLose]);
 
     // Keep latest settings in a ref so the render loop reads fresh values without restarting effects
     useEffect(() => {
@@ -57,7 +63,7 @@ const Canvas = memo(forwardRef(function Canvas({
     }, [enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity]);
 
     // Imperative API for App/Controls
-    const emitSnapshot = () => {
+    const emitSnapshot = useCallback(() => {
         if (!onBallsSnapshot) return;
         const snap = ballsRef.current.map(b => ({
             id: b.id,
@@ -75,7 +81,7 @@ const Canvas = memo(forwardRef(function Canvas({
             health: b.health
         }));
         onBallsSnapshot(snap);
-    };
+    }, [onBallsSnapshot]);
 
     useImperativeHandle(ref, () => ({
         addBall: () => {
@@ -91,6 +97,11 @@ const Canvas = memo(forwardRef(function Canvas({
         resetBalls: () => {
             const canvas = canvasRef.current;
             if (!canvas) return;
+            // Stop the render loop before mutating ball state to avoid mid-frame inconsistencies
+            if (animationFrameId.current) {
+                cancelAnimationFrame(animationFrameId.current);
+                animationFrameId.current = null;
+            }
             ballsRef.current = [];
             loseRef.current = false;
             const startingOverrideReset = (level ? 15 : undefined);
@@ -188,9 +199,10 @@ const Canvas = memo(forwardRef(function Canvas({
             player.isSleeping = false;
             player._jumpCooldownUntil = now + (isAirJump ? 140 : 280); // ms
         }
-    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, onSelectedBallChange]);
+    }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, emitSnapshot, level]);
 
     // Seed balls on mount and when level type or shape changes only
+    /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
     // Initialize WebAudio on first user gesture
     Sound.init();
@@ -281,18 +293,26 @@ const Canvas = memo(forwardRef(function Canvas({
             canvas.removeEventListener('mousedown', handleMouseDown);
         };
     }, [level?.type, ballShape]);
+    /* eslint-enable react-hooks/exhaustive-deps */
 
     // Pause/resume the loop without re-seeding
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         if (isPaused) {
-            cancelAnimationFrame(animationFrameId.current);
+            if (animationFrameId.current) {
+                cancelAnimationFrame(animationFrameId.current);
+                animationFrameId.current = null;
+            }
             return;
         }
         const ctx = canvas.getContext('2d');
         // Ensure any prior loop is stopped before starting a new one
-        cancelAnimationFrame(animationFrameId.current);
+        if (animationFrameId.current) {
+            cancelAnimationFrame(animationFrameId.current);
+            animationFrameId.current = null;
+        }
         const render = () => {
             const selectedForDraw = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
             const s = settingsRef.current;
@@ -396,7 +416,7 @@ const Canvas = memo(forwardRef(function Canvas({
             if (loseRef.current) {
                 loseRef.current = false;
                 Sound.playLose();
-                if (onLose) onLose();
+                if (onLoseRef.current) onLoseRef.current();
                 animationFrameId.current = null;
                 return; // stop loop
             }
@@ -406,7 +426,7 @@ const Canvas = memo(forwardRef(function Canvas({
                 const nonPlayer = ballsRef.current.filter(b => !b.isStartingBall);
                 if (nonPlayer.length === 0) {
                     Sound.playWin();
-                    if (onWin) onWin();
+                    if (onWinRef.current) onWinRef.current();
                     animationFrameId.current = null;
                     return; // stop loop; App can show overlay
                 }
@@ -415,8 +435,13 @@ const Canvas = memo(forwardRef(function Canvas({
             animationFrameId.current = requestAnimationFrame(render);
         };
         render();
-        return () => cancelAnimationFrame(animationFrameId.current);
-    }, [isPaused, level, forceTick]);
+        return () => {
+            if (animationFrameId.current) {
+                cancelAnimationFrame(animationFrameId.current);
+                animationFrameId.current = null;
+            }
+        };
+    }, [isPaused, level, forceTick, setGlobalScore, setScoredBallsCount, setRemovedBallsCount]);
 
     // Reconcile when count/size/velocity change (without full re-seed)
     useEffect(() => {
@@ -439,7 +464,7 @@ const Canvas = memo(forwardRef(function Canvas({
             emitSnapshot();
         }
         prevSettingsRef.current = { ballCount, ballSize, ballVelocity, ballShape };
-    }, [ballCount, ballSize, ballVelocity, ballShape]);
+    }, [ballCount, ballSize, ballVelocity, ballShape, emitSnapshot]);
 
     return (
         <canvas
