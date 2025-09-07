@@ -54,6 +54,9 @@
 - Stabilize and unskip WASD Gauntlet test (low priority)
   - Acceptance: `test/wasd.gauntlet.movement.test.js` runs reliably in CI, asserting: D accelerates right (velX > 0), A accelerates left (velX < 0), A+D held is neutral (no new updates). Uses deterministic RAF/time mocking and avoids flakiness.
 
+- Add resolution media query listener for DPR-only changes (low priority)
+  - Acceptance: Canvas re-scales when devicePixelRatio changes without a window resize (e.g., monitor move/zoom). Implement via matchMedia resolution listeners or equivalent; manual steps documented.
+
 Game Polish
 
 - update instructions for gauntlet mode
