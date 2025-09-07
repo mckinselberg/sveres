@@ -326,6 +326,16 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                             Enable Health System
                         </label>
                     </div>
+                    <div className="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={!!physicsSettings.gameplay.popDespawnEnabled}
+                                onChange={(e) => handleGameplayChange('popDespawnEnabled', e.target.checked)}
+                            />
+                            Pop + Despawn on Remove
+                        </label>
+                    </div>
                     <Slider
                         label="Health Damage Multiplier"
                         min={0.01}

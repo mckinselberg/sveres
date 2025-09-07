@@ -46,6 +46,9 @@ const Canvas = memo(forwardRef(function Canvas({
     const scoredBallsDeltaRef = useRef(0);
     const removedBallsDeltaRef = useRef(0);
     const lastPowerupsRef = useRef({ shieldUntil: 0, speedUntil: 0, shrinkUntil: 0 });
+    // Keep pop-despan toggle in a ref that updates each render to avoid effect-timing lag
+    const popEnabledRef = useRef(!!(gameplay && gameplay.popDespawnEnabled));
+    popEnabledRef.current = !!(gameplay && gameplay.popDespawnEnabled);
 
     // Keep latest callback refs to avoid re-running effects due to unstable identities
     useEffect(() => {
@@ -93,8 +96,33 @@ const Canvas = memo(forwardRef(function Canvas({
             emitSnapshot();
         },
         removeBall: () => {
-            if (ballsRef.current.length > 0) ballsRef.current.pop();
-            emitSnapshot();
+            const arr = ballsRef.current;
+            if (!arr.length) return;
+            // Prefer removing the selected ball; otherwise the last one
+            const target = (selectedBallIdRef.current && arr.find(b => b.id === selectedBallIdRef.current)) || arr[arr.length - 1];
+            if (!target) return;
+            const popEnabled = !!popEnabledRef.current;
+            // If pop+despawn is disabled, leave the ball on the canvas (no removal)
+            if (!popEnabled) {
+                // Optional: still emit a snapshot so any UI bound to ball list stays in sync
+                emitSnapshot();
+                return;
+            }
+            const canAnimate = (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof target.popAndDespawn === 'function');
+            if (canAnimate) {
+                try { Sound.playPop(); } catch {}
+                target.popAndDespawn(() => {
+                    const idx = arr.indexOf(target);
+                    if (idx > -1) arr.splice(idx, 1);
+                    removedBallsDeltaRef.current += 1;
+                    emitSnapshot();
+                });
+            } else {
+                const idx = arr.indexOf(target);
+                if (idx > -1) arr.splice(idx, 1);
+                removedBallsDeltaRef.current += 1;
+                emitSnapshot();
+            }
         },
         resetBalls: () => {
             const canvas = canvasRef.current;

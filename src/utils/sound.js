@@ -132,10 +132,11 @@ const Sound = (() => {
     else if (type === 'expire') blip({ freq: 420, dur: 0.07, type: 'sine', gain: 0.055 });
     else blip({ freq: 760, dur: 0.06, type: 'sine', gain: 0.05 });
   }
+  function playPop() { blip({ freq: 520, dur: 0.07, type: 'square', gain: 0.08 }); }
 
   function init() { ensureContext(); resumeOnGestureOnce(); }
 
-  return { init, setEnabled, isEnabled, playCollision, playWall, playScore, playWin, playLose, playPowerup };
+  return { init, setEnabled, isEnabled, playCollision, playWall, playScore, playWin, playLose, playPowerup, playPop };
 })();
 
 export default Sound;

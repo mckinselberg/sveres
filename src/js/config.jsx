@@ -24,7 +24,8 @@ export const DEFAULTS = {
         scoring: true,
         sandbox: false,
         healthSystem: true,
-        healthDamageMultiplier: 1
+    healthDamageMultiplier: 1,
+    popDespawnEnabled: true
     }
 };
 
@@ -42,6 +43,7 @@ export const GRAVITY_GAUNTLET_DEFAULTS = {
         scoring: true,
         sandbox: false, // Not a sandbox level
         healthSystem: true,
-        healthDamageMultiplier: 0.2 // Each hit takes 20% health
+    healthDamageMultiplier: 0.2, // Each hit takes 20% health
+    popDespawnEnabled: true
     }
 };

@@ -164,7 +164,8 @@ export function solveCollisions(
   setGlobalScore?: StateNumberUpdater,
   level?: LevelDefinition | null,
   setScoredBallsCount?: StateNumberUpdater,
-  setRemovedBallsCount?: StateNumberUpdater
+  setRemovedBallsCount?: StateNumberUpdater,
+  popDespawnEnabled?: boolean
 ): void {
   const iterations = 5; // Number of iterations for stable collision resolution
   const dynamicBalls = balls.filter(ball => !ball.isStatic);
@@ -212,7 +213,7 @@ export function solveCollisions(
         const distance = Math.sqrt(dx * dx + dy * dy);
         const combinedRadius = ball1.size + ball2.size;
 
-        if (distance < combinedRadius && distance > 0) {
+  if (distance < combinedRadius && distance > 0) {
           const overlap = combinedRadius - distance;
           const normalX = dx / distance;
           const normalY = dy / distance;
@@ -290,21 +291,39 @@ export function solveCollisions(
               ball.color = originalColor;
             }, 200);
 
-            // Remove ball if health is zero
-            if (ball.health <= 0) {
-              const index = balls.indexOf(ball);
-              if (index > -1) {
-                balls.splice(index, 1);
+            // Despawn ball if health is zero
+            const anyBall: any = ball as any;
+            if (anyBall.health <= 0 && !anyBall.isDespawning) {
+              const target: any = anyBall;
+              if ((popDespawnEnabled ?? true) && typeof target.popAndDespawn === 'function') {
+                try { (globalThis as any)?.Sound?.playPop?.(); } catch {}
+                target.popAndDespawn(() => {
+                  const index = (balls as any).indexOf(target);
+                  if (index > -1) (balls as any).splice(index, 1);
+                  if (setRemovedBallsCount) setRemovedBallsCount(prev => prev + 1);
+                });
+              } else {
+                const index = (balls as any).indexOf(target);
+                if (index > -1) (balls as any).splice(index, 1);
                 if (setRemovedBallsCount) setRemovedBallsCount(prev => prev + 1);
               }
             }
           } else if (staticObj.type === 'goal' && setGlobalScore) {
             setGlobalScore(prevScore => prevScore + 1);
             if (setScoredBallsCount) setScoredBallsCount(prev => prev + 1);
-            // Remove ball after scoring
-            const index = balls.indexOf(ball);
-            if (index > -1) {
-              balls.splice(index, 1);
+            // Pop then remove ball after scoring
+            const target: any = ball as any;
+            if (!target.isDespawning) {
+              if ((popDespawnEnabled ?? true) && typeof target.popAndDespawn === 'function') {
+                try { (globalThis as any)?.Sound?.playPop?.(); } catch {}
+                target.popAndDespawn(() => {
+                  const index = (balls as any).indexOf(target);
+                  if (index > -1) (balls as any).splice(index, 1);
+                });
+              } else {
+                const index = (balls as any).indexOf(target);
+                if (index > -1) (balls as any).splice(index, 1);
+              }
             }
           }
         }
@@ -542,6 +561,10 @@ export function loop(
       continue;
     }
 
+    const anyBall: any = ball as any;
+    if (typeof anyBall.opacity === 'number' && anyBall.opacity <= 0) {
+      continue;
+    }
     ball.draw(ctx as any, selectedBall);
     ball.update(
       canvasWidth,
@@ -571,9 +594,33 @@ export function loop(
     physicsSettings.gameplay.healthSystem,
     physicsSettings.gameplay.healthDamageMultiplier,
     physicsSettings.deformation,
-    setGlobalScore,
-    level,
-    setScoredBallsCount,
-    setRemovedBallsCount
+  setGlobalScore,
+  level,
+  setScoredBallsCount,
+  setRemovedBallsCount,
+  (physicsSettings as any)?.gameplay?.popDespawnEnabled
   );
+
+  // Sandbox-only: if health system is enabled, optionally pop+despawn dead balls.
+  // When popDespawnEnabled is false, leave them on the canvas.
+  if (!level && physicsSettings.gameplay.healthSystem) {
+    const popEnabled = !!((physicsSettings as any)?.gameplay?.popDespawnEnabled);
+    for (let i = balls.length - 1; i >= 0; i--) {
+      const anyBall: any = balls[i] as any;
+      if (anyBall && anyBall.health <= 0 && !anyBall.isDespawning) {
+        if (popEnabled && typeof anyBall.popAndDespawn === 'function') {
+          try { (globalThis as any)?.Sound?.playPop?.(); } catch {}
+          const target = anyBall;
+          target.popAndDespawn(() => {
+            const idx = (balls as any).indexOf(target);
+            if (idx > -1) (balls as any).splice(idx, 1);
+            if (setRemovedBallsCount) setRemovedBallsCount(prev => prev + 1);
+          });
+        } else {
+          // Leave on canvas when disabled
+          continue;
+        }
+      }
+    }
+  }
 }

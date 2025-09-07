@@ -25,6 +25,7 @@ export class Ball {
   size: number;
   shape: ShapeName;
   isStatic: boolean;
+  // Visual state
   scaleX: number = 1;
   scaleY: number = 1;
   deformAngle: number = 0;
@@ -34,6 +35,8 @@ export class Ball {
   collisionCount: number = 0;
   health: number = 100;
   isSleeping: boolean = false;
+  opacity?: number = 1;
+  isDespawning?: boolean = false;
   isStartingBall?: boolean;
   _lastMultiplier?: number;
   // Powerup state
@@ -60,6 +63,9 @@ export class Ball {
     ctx.rotate(this.deformAngle);
     ctx.scale(this.scaleX, this.scaleY);
     ctx.rotate(-this.deformAngle);
+
+  const prevAlpha = ctx.globalAlpha;
+  if (typeof this.opacity === 'number') ctx.globalAlpha = Math.max(0, Math.min(1, this.opacity));
 
     ctx.beginPath();
     ctx.fillStyle = this.color;
@@ -140,33 +146,113 @@ export class Ball {
       ctx.stroke();
     }
 
-    // Health arc indicator near the perimeter
+    // Health indicator matched to parent shape outline
     if (this.health < 100) {
       const pct = Math.max(0, Math.min(1, this.health / 100));
-      const radius = Math.max(4, this.size * 0.82);
       const lw = Math.max(3, Math.min(10, this.size * 0.14));
-      const start = -Math.PI / 2; // top
-      const end = start + Math.PI * 2 * pct;
+      const innerScale = 0.82; // draw slightly inset for visibility
+      const healthColor = pct <= 0.2
+        ? 'rgba(220,60,50,0.98)'
+        : (pct <= 0.5
+            ? 'rgba(255,200,0,0.98)'
+            : 'rgba(0,200,70,0.95)');
 
-      // Track
-      ctx.beginPath();
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.lineWidth = lw;
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      ctx.stroke();
 
-      if (pct > 0) {
-        // Remaining health with threshold coloring
-        const healthColor = pct <= 0.2
-          ? 'rgba(220,60,50,0.98)'   // critical (red)
-          : (pct <= 0.5
-              ? 'rgba(255,200,0,0.98)' // warning (yellow)
-              : 'rgba(0,200,70,0.95)'); // healthy (green)
+      const drawTrackAndProgress = (pathPoints: Array<{x:number;y:number}>, closed = true) => {
+        // Compute perimeter
+        let L = 0;
+        for (let i = 0; i < pathPoints.length; i++) {
+          const a = pathPoints[i];
+          const b = pathPoints[(i + 1) % pathPoints.length];
+          L += Math.hypot(b.x - a.x, b.y - a.y);
+          if (!closed && i === pathPoints.length - 2) break;
+        }
+        // Build Path2D
+        const p = new Path2D();
+        p.moveTo(pathPoints[0].x, pathPoints[0].y);
+        for (let i = 1; i < pathPoints.length; i++) p.lineTo(pathPoints[i].x, pathPoints[i].y);
+        if (closed) p.closePath();
+        // Track
+        ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.stroke(p);
+        if (pct > 0) {
+          // Progress via line dash: one dash of length pct*L and the rest gap
+          const dash = Math.max(0.0001, pct * L);
+          const gap = Math.max(0.0001, (1 - pct) * L);
+          ctx.setLineDash([dash, gap]);
+          ctx.lineDashOffset = 0; // start from first vertex
+          ctx.strokeStyle = healthColor;
+          ctx.stroke(p);
+          ctx.setLineDash([]);
+          ctx.lineDashOffset = 0;
+        }
+      };
+
+      if (this.shape === 'circle') {
+        const radius = Math.max(4, this.size * innerScale);
+        // Track
         ctx.beginPath();
-        ctx.strokeStyle = healthColor;
-        ctx.arc(0, 0, radius, start, end);
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.stroke();
+        if (pct > 0) {
+          const start = -Math.PI / 2; // top
+          const end = start + Math.PI * 2 * pct;
+          ctx.beginPath();
+          ctx.strokeStyle = healthColor;
+          ctx.arc(0, 0, radius, start, end);
+          ctx.stroke();
+        }
+      } else {
+        // Build shape-specific inset path points
+        const s = this.size * innerScale;
+        let pts: Array<{x:number;y:number}> = [];
+        const pushNSided = (n: number, offsetRad = -Math.PI/2) => {
+          for (let i = 0; i < n; i++) {
+            const a = offsetRad + i * 2 * Math.PI / n;
+            pts.push({ x: s * Math.cos(a), y: s * Math.sin(a) });
+          }
+        };
+        switch (this.shape) {
+          case 'square':
+            pts = [ {x:-s,y:-s}, {x:s,y:-s}, {x:s,y:s}, {x:-s,y:s} ];
+            break;
+          case 'triangle':
+            pushNSided(3);
+            break;
+          case 'diamond':
+            pts = [ {x:0,y:-s}, {x:s,y:0}, {x:0,y:s}, {x:-s,y:0} ];
+            break;
+          case 'pentagon':
+            pushNSided(5);
+            break;
+          case 'hexagon':
+            pushNSided(6);
+            break;
+          case 'octagon':
+            pushNSided(8);
+            break;
+          case 'star': {
+            const outer = s;
+            const inner = s * 0.5;
+            pts = [];
+            let a = -Math.PI / 2;
+            for (let i = 0; i < 5; i++) {
+              pts.push({ x: outer * Math.cos(a), y: outer * Math.sin(a) });
+              a += Math.PI / 5;
+              pts.push({ x: inner * Math.cos(a), y: inner * Math.sin(a) });
+              a += Math.PI / 5;
+            }
+            break;
+          }
+          default:
+            pushNSided(6);
+        }
+        drawTrackAndProgress(pts, true);
       }
     }
 
@@ -193,6 +279,7 @@ export class Ball {
     }
 
     ctx.restore();
+  ctx.globalAlpha = prevAlpha;
   }
 
   applyWallDeformation(normalX: number, normalY: number, deformationSettings: DeformationSettings) {
@@ -432,6 +519,38 @@ export class Ball {
 
     if (Math.abs(this.velX) < 0.1 && Math.abs(this.velY) < 0.1 && this.y > canvasHeight - this.size - 5) {
       this.isSleeping = true;
+    }
+  }
+
+  // Trigger a brief "pop" animation then invoke onComplete to remove from simulation
+  popAndDespawn(onComplete: () => void, opts?: { durationMs?: number }) {
+    if (this.isDespawning) return;
+    const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+    if (!isBrowser) { try { onComplete && onComplete(); } catch {} return; }
+    this.isDespawning = true;
+    this.isStatic = true;
+    this.isSleeping = true;
+    this.velX = 0;
+    this.velY = 0;
+    const dur = Math.max(120, Math.min(320, (opts?.durationMs ?? 200))) / 1000;
+    if (typeof this.opacity !== 'number') this.opacity = 1;
+    try {
+      const tl = gsap.timeline({ onComplete: () => { try { onComplete && onComplete(); } catch {} } });
+      tl.to(this, { scaleX: 1.24, scaleY: 1.24, duration: dur * 0.48, ease: 'power2.out' })
+        .to(this, { opacity: 0, scaleX: 0.5, scaleY: 0.5, duration: dur * 0.52, ease: 'power2.in' }, '<');
+    } catch {
+      // Fallback without GSAP
+      const start = Date.now();
+      const end = start + dur * 1000;
+      const tick = () => {
+        const now = Date.now();
+        const t = Math.max(0, Math.min(1, (now - start) / (dur * 1000)));
+        this.opacity = 1 - t;
+        if (now < end) {
+          (typeof requestAnimationFrame !== 'undefined') ? requestAnimationFrame(tick) : setTimeout(tick, 16);
+        } else { onComplete && onComplete(); }
+      };
+      tick();
     }
   }
 }
