@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 function IntroOverlay() {
     const STORAGE_KEY = "introOverlay:lastDismissedAt";
@@ -10,10 +10,9 @@ function IntroOverlay() {
         const now = Date.now();
         const last = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
         const shouldShow = !last || now - last > WEEK_MS;
-
-        if (shouldShow) {
-            setIsVisible(true);
-        }
+        if (shouldShow) setIsVisible(true);
+        // WEEK_MS is a constant; acceptable to omit from deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const dismiss = () => {

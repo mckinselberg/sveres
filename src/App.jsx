@@ -80,7 +80,7 @@ function App() {
         const saved = loadJSON(LS_KEYS.currentLevelId, null);
         return saved || (GAME_LEVELS[0]?.id || 'gauntlet-1');
     });
-    const [balls, setBalls] = useState([]); // Deprecated for Canvas-owned state; kept for presets and managers until Phase 2 completes
+    // Removed deprecated balls snapshot state (presets UI removed)
     // Global score is tracked internally for physics increments but not displayed currently
     const [_, setGlobalScore] = useState(0);
     // Counters currently not displayed; keep setters for engine callbacks
@@ -586,22 +586,7 @@ function App() {
     try { localStorage.setItem(LS_KEYS.currentLevelId, JSON.stringify(currentLevelId)); } catch (e) { /* noop */ void 0; }
     }, [currentLevelId]);
 
-    const handleApplyColorScheme = useCallback((scheme) => {
-        // Update background color via physicsSettings
-        setPhysicsSettings(prevSettings => ({
-            ...prevSettings,
-            visuals: {
-                ...prevSettings.visuals,
-                backgroundColor: scheme.backgroundColor
-            }
-        }));
-        // Apply ball colors via Canvas engine
-        canvasRef.current?.applyColorScheme?.(scheme);
-    }, []);
-
-    const handleApplyPhysicsSettings = useCallback((settings) => {
-        setPhysicsSettings(settings);
-    }, []);
+    // Preset handlers removed
 
     const handlePhysicsSettingsChange = useCallback((newSettings) => {
         // Let Canvas reconcile ball count/size/speed internally.
@@ -784,7 +769,6 @@ function App() {
                     setSelectedBall(ball);
                     setSelectedBallId(ball ? ball.id : null);
                 }, [])}
-                onBallsSnapshot={setBalls}
                 isPaused={isPaused}
                 level={physicsSettings.level}
                 setScoredBallsCount={setScoredBallsCount}
@@ -814,9 +798,6 @@ function App() {
                     onAddBall={handleAddBall}
                     onRemoveBall={handleRemoveBall}
                     onResetBalls={handleResetBalls}
-                    balls={balls}
-                    onApplyColorScheme={handleApplyColorScheme}
-                    onApplyPhysicsSettings={handleApplyPhysicsSettings}
                     levelMode={levelMode}
                     toggleLevelMode={toggleLevelMode}
                     onResetToDefaults={handleResetToDefaults}

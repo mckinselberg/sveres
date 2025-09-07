@@ -1,76 +1,38 @@
-Here’s what remains after decomposing `Canvas.jsx`. Next steps are prioritized to maximize stability and quality.
+## Checklist (grouped by code impact)
 
-Top priority (bugs)
+### Low impact
 
-- Fix behavior for on/off states for "Propagate Player Speed Boost to All Balls" physics settings and add unit tests
-- Fixed: canvas jank (remove timer churn and animation spam)
-  - Replaced setTimeout hazard flashes with timestamp-based flash flag to avoid per-collision timers.
-  - Added per-ball deformation cooldown (~80ms) to limit GSAP timeline spam during rapid collisions.
-  - Sound already throttled and voice-limited; left as-is.
-  - Eliminated per-frame DOM reads for controls panel rect; Controls/App publish width/visibility into shared state read by the loop.
-- Fixed: duplicate RAF/reset freeze and runaway speed after reset (guard RAF, stop-before-reseed, clean restart).
-- Fixed: player speed-up unintentionally speeding other balls; added optional toggle to enable it as a feature.
-- Fixed: canvas jank during settings changes by throttling controls rect reads and debouncing settings persistence.
-- Fixed: gear toggle not showing controls — controls panel had inline position overriding fixed; restored fixed positioning so it renders above canvas, added keyboard 'C' toggle, and refocus-canvas on gear click. LocalStorage key `ui:showControls` is read/written and now reflected in UI.
-
-High priority
-
-- Make linting part of the verification step
-- Tests: added and passing
-  - levelPositioning — anchors/percent/center offsets
-  - powerups — shield/shrink pickups and countdowns
-  - bulletHellSpawner — cadence and direction
-  - propagateSpeed — propagation toggle off/on behavior
-
-Medium priority
-
-- Input polish: add WASD controls (W as jump alias)
-- Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
-- Performance: skip panel collisions while sliders are dragged (implemented via `uiDragState`)
+- [DONE] Remove Presets from Physics panel
+  - Acceptance: Presets UI removed from `Controls.jsx`; no dead imports/props; lint/typecheck clean. Verified by lint/typecheck/test/build.
 - Add a tiny e2e smoke test to verify `ui:showControls` toggles visibility and persists across reloads
+  - [DONE] Acceptance: Test toggles visibility, reloads, asserts persisted state; runs headless in CI; default respects localStorage. Added `test/ui.showControls.e2e.test.js` and verified.
+- Input polish: add W as jump alias; ensure capture-phase preventDefault doesn’t block input fields
+  - Acceptance: Pressing 'w' jumps like Space/J; typing in inputs unaffected; unit test covers alias and non-blocking behavior.
+- Add a subtle on-screen hint when controls are hidden (e.g., pulse on gear after idle) to aid discoverability
+  - Acceptance: Gear pulses after N seconds idle when hidden; stops on hover/click; respects `prefers-reduced-motion`.
 
-Low priority (UX polish)
+### Medium impact
 
-- Welcome screen
-- Organize overlays/panels
-- Organize the UI elements logically, using established design conventions from modern games
+- Performance: skip panel collisions while sliders are dragged (via `uiDragState`)
+  - Acceptance: During slider drag, panel-collision logic is bypassed; FPS remains stable; unit test asserts drag-flag short-circuit.
+- Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
+  - Acceptance: After resize/DPR change, canvas is crisp (no blur/skew); no memory leaks; smoke test or manual steps documented.
 - Simple bleep/bloop background music with a UI toggle
+  - Acceptance: Looping bgm with start/stop toggle; persisted; respects user gesture and autoplay rules; no console errors.
 - FPS cap/control in settings
-- Remove Presets from Physics panel
+  - Acceptance: Cap reduces render/update cadence while physics stays stable; can be disabled; simple metric/log confirms rate.
+- Organize overlays/panels
+  - Acceptance: Z-index/layers correct; keyboard navigation works; no overlay blocks unintended clicks; mobile layout verified.
 
-Later
+### High impact
 
-- In game mode, define behavior when the player does not interact with the canvas at app start (e.g., attract/demo mode or paused prompt)
+- Organize UI layout per modern game conventions and hide advanced controls behind details toggles
+  - Acceptance: Controls grouped logically; advanced options behind details/accordion; state persists; no settings regressions.
+- Welcome screen
+  - Acceptance: First-run screen shown until dismissed; dismissal persisted; does not steal focus post-close; accessible labels/contrast.
 
-Public contracts to keep stable
+### Later cleanup
 
-- Props currently received by `Canvas`
-- Imperative ref methods: jumpPlayer, updateSelectedBall, resetBalls, addBall, removeBall, applyColorScheme
-- onSelectedBallMotion callback shape
-
-Proposed next steps
-
-1. DPR/reactive resize polish
-
-- Handle devicePixelRatio changes (zoom/retina switches) and window resize with a cheap debounce; re-run canvas backing-store sizing and transform.
-- Add a small smoke test to verify no skew/blur when DPR toggles.
-
-2. Input polish
-
-- Add W as jump alias; ensure capture-phase preventDefault doesn’t block input fields.
-- Expand tests for jump mechanics and input direction edge cases.
-
-3. Performance micro-optimizations
-
-- Short-circuit panel-collision math entirely when the controls panel is off-screen.
-- Defer color scheme application across frames for large ball counts (chunked updates).
-- Add e2e/UI test to cover gear button and 'C' keyboard toggle, asserting `ui:showControls` persistence.
-
-4. UX improvements
-
-- Organize UI layout per modern game conventions and hide advanced controls behind details toggles.
-- Add a subtle on-screen hint when controls are hidden (e.g., pulse on gear after idle) to aid discoverability.
-
-5. Stability guardrails
-
-- Add a dev-only watchdog that asserts only one RAF is active after resets/mode toggles.
+- Remove unused components after presets removal
+  - `src/components/ColorSchemeManager.jsx`
+  - `src/components/PhysicsSettingsManager.jsx`

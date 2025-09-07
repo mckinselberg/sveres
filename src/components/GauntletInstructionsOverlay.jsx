@@ -1,4 +1,4 @@
-import React from 'react';
+// no React import needed with new JSX transform
 
 export default function GauntletInstructionsOverlay({ onClose, onReset }) {
   const stop = (e) => e.stopPropagation();

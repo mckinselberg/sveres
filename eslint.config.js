@@ -40,6 +40,7 @@ export default [
     rules: {
       // React + Hooks best practices
       'react/jsx-uses-react': 'off', // using the new JSX transform
+  'react/jsx-uses-vars': 'warn',
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',

@@ -1,10 +1,8 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Slider from './Slider.jsx';
-import ColorSchemeManager from './ColorSchemeManager.jsx';
-import PhysicsSettingsManager from './PhysicsSettingsManager.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 
-function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, balls, levelMode, toggleLevelMode, onApplyColorScheme, onResetToDefaults }) {
+function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, levelMode, toggleLevelMode, onResetToDefaults }) {
     // Persisted resizable width for the controls panel
     const LS_KEY_PANEL_WIDTH = 'ui:controlsPanelWidth';
     const readSavedWidth = () => {
@@ -69,7 +67,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     const deformationRef = useRef(null);
     const gameplayRef = useRef(null);
     const objectsRef = useRef(null);
-    const presetsRef = useRef(null);
+    // Removed presets section
 
     usePersistentDetails([
         simulationRef,
@@ -77,7 +75,6 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
         deformationRef,
         gameplayRef,
         objectsRef,
-        presetsRef,
     ]);
 
     const handleSliderChange = (setting, value) => {
@@ -131,24 +128,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
         });
     };
 
-    const handleApplyColorScheme = (scheme) => {
-        if (onApplyColorScheme) {
-            onApplyColorScheme(scheme);
-        } else {
-            // Fallback: preserve previous behavior if parent didn't pass a handler
-            onPhysicsSettingsChange({
-                ...physicsSettings,
-                visuals: {
-                    ...physicsSettings.visuals,
-                    backgroundColor: scheme.backgroundColor
-                }
-            });
-        }
-    };
-
-    const handleApplyPhysicsSettings = (settings) => {
-        onPhysicsSettingsChange(settings);
-    };
+    // Presets removed
 
     return (
         <div className="controls-panel" style={{ width: panelWidth }}>
@@ -399,13 +379,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 </div>
             </details>
 
-            <details id="section-presets" open ref={presetsRef}>
-                <summary>Presets</summary>
-                <div className="section-body">
-                    <ColorSchemeManager balls={balls} onApplyColorScheme={handleApplyColorScheme} currentBackgroundColor={physicsSettings.visuals.backgroundColor} />
-                    <PhysicsSettingsManager physicsSettings={physicsSettings} onApplyPhysicsSettings={handleApplyPhysicsSettings} />
-                </div>
-            </details>
+            {/* Presets section removed */}
             {/* Add more controls here */}
         </div>
     );
