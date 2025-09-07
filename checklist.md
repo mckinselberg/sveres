@@ -61,7 +61,7 @@ UI Polish
 
 UX Polish
 
-- improve wasd/nmj logic
+- remove nmj logic. fully debug and implement wasd logic
   - Note: Partially addressed (W jump alias; S slam sandbox-only). Remaining: clarify/implement nmj specifics.
 
 ## Proposed next steps
@@ -69,7 +69,7 @@ UX Polish
 - Tests: add targeted specs to assert no-op behaviors when pop/despawn toggle is off (Canvas Remove Ball, sandbox dead-ball sweep, hazard/goal branches).
   - [STARTED] Added tests: `test/canvas.remove.noop.test.js`, `test/sandbox.deadballs.noop.test.js`. Pending: hazard/goal branches.
 - UX: indicate Remove is disabled when toggle off (disable control or tooltip/subtle shake), and optionally add a quick “Clear dead balls” action when toggle is off.
-  - [STARTED] Remove button is disabled with a tooltip when toggle is off.
+  - [DONE] Acceptance: "Remove Ball" is disabled when the toggle is off and shows a helpful tooltip. Tests pass; optional polish (subtle shake, “Clear dead balls”) deferred.
 - Canvas/responsiveness: implement crisp DPR scaling on resize/devicePixelRatio changes; add a tiny smoke test or manual checklist.
 - Performance: bypass panel-collision work while sliders are dragged (uiDragState short-circuit) and profile FPS.
 - Audio: simple background loop with a persisted toggle; ensure autoplay policy compliance (start on user gesture).
