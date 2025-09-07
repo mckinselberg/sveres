@@ -166,7 +166,8 @@ function App() {
             // Allow typing in editables (import modal textarea, etc.)
             if (isEditable(t)) return;
             const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
-            const handledKeys = new Set([' ', 'Spacebar', 'j', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd']);
+            // TODO: move keys to constants/config
+            const handledKeys = new Set([' ', 'Spacebar', 'j', 'w', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd', 's']);
             if (!handledKeys.has(k)) return;
             // Prevent scrolling/button activation when we handle the key
             event.preventDefault();
@@ -362,8 +363,8 @@ function App() {
                 }
                 return;
             }
-            // Jump on Space if not pausing; keep P as pause key
-            if (k === ' ' || event.code === 'Space') {
+            // Jump on Space or W; keep P as pause key
+            if (k === ' ' || event.code === 'Space' || k === 'w') {
                 event.preventDefault();
                 handleJump();
                 return;
@@ -414,8 +415,13 @@ function App() {
                     activeDirRef.current = 1;
                 }
 
-                if (k === 'j') {
+                if (k === 'j' || k === 'w') {
                     handleJump();
+                } else if (k === 's') {
+                    // Downward slam only if not in gauntlet mode
+                    if (!levelMode) {
+                        canvasRef.current?.slamPlayer?.();
+                    }
                 }
             }
         };
@@ -776,6 +782,7 @@ function App() {
                 ballCount={physicsSettings.ballCount}
                 ballSize={physicsSettings.ballSize}
                 ballShape={physicsSettings.ballShape}
+                applyShapeToExisting={!!physicsSettings.applyShapeToExisting}
                 newBallSize={physicsSettings.newBallSize}
                 onWin={() => setDidWin(true)}
                 onLose={() => setDidLose(true)}

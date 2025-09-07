@@ -8,12 +8,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-  "test": "vitest",
-  "lint": "eslint .",
-  "lint:fix": "eslint . --fix",
-  "typecheck": "tsc --noEmit",
-  "typecheck:src": "tsc --noEmit --project tsconfig.json",
-  "check": "npm run lint && npm run typecheck"
+    "test": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "typecheck:src": "tsc --noEmit --project tsconfig.json",
+    "check": "npm run lint && npm run typecheck"
   },
   "keywords": [
     "physics",
@@ -33,11 +33,12 @@
     "vite": "^5.4.0"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "jsdom": "^26.1.0",
     "typescript": "^5.5.4",
     "vitest": "^2.0.0"
   }

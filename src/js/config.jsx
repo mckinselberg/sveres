@@ -7,6 +7,7 @@ export const DEFAULTS = {
     ballVelocity: 7,
     newBallSize: 45,
     ballCount: 15,
+    applyShapeToExisting: false,
     deformation: {
         enabled: true,
         intensity: 0.5,
@@ -35,6 +36,7 @@ export const GRAVITY_GAUNTLET_DEFAULTS = {
     ballShape: 'mixed', // Mixed shapes for variety
     ballSize: 30, // Smaller balls for more precise navigation
     ballVelocity: 5, // Moderate velocity
+    applyShapeToExisting: false,
     gameplay: {
         ...DEFAULTS.gameplay,
         scoring: true,

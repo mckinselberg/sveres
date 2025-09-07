@@ -36,3 +36,17 @@
 - Remove unused components after presets removal
   - `src/components/ColorSchemeManager.jsx`
   - `src/components/PhysicsSettingsManager.jsx`
+
+Game Polish
+
+- have health bars match parent shape within objects.
+- have balls do a "pop" animation and accompanying sound, then remove from the ui
+
+UI Polish
+
+- [DONE] fix the shape dropdown so that it doesn't change all the shapes to the one specified unless a checkmark is checked
+  - Acceptance: Added checkbox in Controls; Canvas gates re-seeding; added unit test `test/shape.applyToExisting.test.js`.
+
+UX Polish
+
+- improve wasd/nmj logic

@@ -22,6 +22,7 @@ const Canvas = memo(forwardRef(function Canvas({
     ballCount,
     ballSize,
     ballShape,
+    applyShapeToExisting,
     newBallSize,
     onWin,
     onLose,
@@ -32,6 +33,7 @@ const Canvas = memo(forwardRef(function Canvas({
     const ballsRef = useRef([]);
     const selectedBallIdRef = useRef(null);
     const prevSettingsRef = useRef({ ballCount, ballSize, ballVelocity, ballShape });
+    const lastAppliedShapeRef = useRef(ballShape);
     const settingsRef = useRef({ enableGravity, gravityStrength, ballVelocity, deformation, gameplay, backgroundColor, trailOpacity });
     const onSelectedBallChangeRef = useRef(onSelectedBallChange);
     const onSelectedBallMotionRef = useRef(onSelectedBallMotion);
@@ -198,10 +200,29 @@ const Canvas = memo(forwardRef(function Canvas({
             player.velY = jumpVy;
             player.isSleeping = false;
             player._jumpCooldownUntil = now + (isAirJump ? 140 : 280); // ms
+        },
+        slamPlayer: () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const selected = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
+            let player = selected || ballsRef.current.find(b => b.isStartingBall);
+            if (!player) return;
+            // Disable slam in gauntlet mode
+            if (settingsRef.current?.gameplay && settingsRef.current?.gameplay?.mode === 'gauntlet' || (typeof level === 'object' && level && level.type === 'gravityGauntlet')) {
+                return;
+            }
+            const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
+            const grounded = (player.y + effR) >= (canvas.height - 3);
+            if (grounded) return; // Only slam while in the air
+            const s = settingsRef.current;
+            const g = Math.max(0.05, s.gravityStrength || 0.15);
+            const slamVy = Math.max(8, Math.min(18, g * 70));
+            player.velY = slamVy;
+            player.isSleeping = false;
         }
     }), [ballCount, ballSize, ballVelocity, ballShape, newBallSize, emitSnapshot, level]);
 
-    // Seed balls on mount and when level type or shape changes only
+    // Seed balls on mount and when level type changes only
     /* eslint-disable react-hooks/exhaustive-deps */
     useEffect(() => {
     // Initialize WebAudio on first user gesture
@@ -292,7 +313,7 @@ const Canvas = memo(forwardRef(function Canvas({
             window.removeEventListener('resize', handleResize);
             canvas.removeEventListener('mousedown', handleMouseDown);
         };
-    }, [level?.type, ballShape]);
+    }, [level?.type]);
     /* eslint-enable react-hooks/exhaustive-deps */
 
     // Pause/resume the loop without re-seeding
@@ -443,7 +464,7 @@ const Canvas = memo(forwardRef(function Canvas({
         };
     }, [isPaused, level, forceTick, setGlobalScore, setScoredBallsCount, setRemovedBallsCount]);
 
-    // Reconcile when count/size/velocity change (without full re-seed)
+    // Reconcile when count/size/velocity/shape change (without full re-seed)
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -465,6 +486,19 @@ const Canvas = memo(forwardRef(function Canvas({
         }
         prevSettingsRef.current = { ballCount, ballSize, ballVelocity, ballShape };
     }, [ballCount, ballSize, ballVelocity, ballShape, emitSnapshot]);
+
+    // Apply shape change to existing balls when enabled (no full reseed)
+    useEffect(() => {
+        if (!applyShapeToExisting) {
+            // keep tracker in sync but do not mutate existing
+            lastAppliedShapeRef.current = ballShape;
+            return;
+        }
+        if (ballShape === lastAppliedShapeRef.current) return;
+        ballsRef.current.forEach(ball => { ball.shape = ballShape; });
+        emitSnapshot();
+        lastAppliedShapeRef.current = ballShape;
+    }, [applyShapeToExisting, ballShape, emitSnapshot]);
 
     return (
         <canvas

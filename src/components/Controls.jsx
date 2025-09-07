@@ -358,6 +358,16 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                                 <option value="star">Star</option>
                                 <option value="mixed">Mixed Shapes</option>
                             </select>
+                            <div style={{ marginTop: 6 }}>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!physicsSettings.applyShapeToExisting}
+                                        onChange={(e) => handleCheckboxChange('applyShapeToExisting', e.target.checked)}
+                                    />{' '}
+                                    Apply to existing balls
+                                </label>
+                            </div>
                         </div>
                     )}
                     <div className="control-group">
