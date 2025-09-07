@@ -393,7 +393,11 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                                 displayValue={`${physicsSettings.newBallSize}px`}
                             />
                         )}
-                        {!levelMode && <button onClick={onRemoveBall}>Remove Ball</button>}
+                        {!levelMode && (
+                            <button onClick={onRemoveBall} disabled={!physicsSettings?.gameplay?.popDespawnEnabled} title={!physicsSettings?.gameplay?.popDespawnEnabled ? 'Enable "Pop + Despawn on Remove" to remove balls' : undefined}>
+                                Remove Ball
+                            </button>
+                        )}
                         <button onClick={onResetBalls}>Reset Balls</button>
                     </div>
                 </div>
