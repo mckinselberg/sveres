@@ -13,7 +13,6 @@ import './styles/App.scss';
 import Sound from './utils/sound';
 import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
 import { GAME_LEVELS, getLevelById } from './js/levels/levels.js';
-import { decideGasDir } from './utils/inputDirection.js';
 import { localStorageToJSONString, seedLocalStorageFromHash, setHashFromLocalStorage, buildLevelJSON } from './utils/storage.js';
 
 // Expose handy debug helper to the browser console
@@ -226,7 +225,7 @@ function App() {
             if (isEditable(t)) return;
             const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
             // TODO: move keys to constants/config
-            const handledKeys = new Set([' ', 'Spacebar', 'j', 'w', 'p', 'r', 'n', 'm', 'ArrowLeft', 'ArrowRight', 'Shift', 'a', 'd', 's', 'c']);
+            const handledKeys = new Set([' ', 'Spacebar', 'w', 'p', 'r', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Shift', 'a', 'd', 's', 'c']);
             if (!handledKeys.has(k)) return;
             // Prevent scrolling/button activation when we handle the key
             event.preventDefault();
@@ -367,9 +366,8 @@ function App() {
 
     const keysDownRef = React.useRef(new Set());
     const prevVelXRef = React.useRef(0);
-    const activeDirRef = React.useRef(0); // -1 left, 1 right, 0 unknown
-    const lastMotionDirRef = React.useRef(0); // last non-zero velocity direction
     const liveVelXRef = React.useRef(0); // instantaneous velX from Canvas callback
+    const lastMotionDirRef = React.useRef(0); // track last non-zero X direction
     const movementRafRef = React.useRef(null);
 
     // When disabling WASD, purge any held WASD keys and reset activeDir if no arrows are held
@@ -377,15 +375,6 @@ function App() {
         if (!wasdEnabled) {
             const kd = keysDownRef.current;
             kd.delete('w'); kd.delete('a'); kd.delete('s'); kd.delete('d');
-            const arrowsLeft = kd.has('ArrowLeft');
-            const arrowsRight = kd.has('ArrowRight');
-            if (!arrowsLeft && !arrowsRight) {
-                activeDirRef.current = 0;
-            } else if (arrowsLeft && !arrowsRight) {
-                activeDirRef.current = -1;
-            } else if (arrowsRight && !arrowsLeft) {
-                activeDirRef.current = 1;
-            }
         }
     }, [wasdEnabled]);
 
@@ -422,8 +411,8 @@ function App() {
                 }
                 return;
             }
-            // Jump on Space or W; keep P as pause key
-            if (k === ' ' || event.code === 'Space' || k === 'w') {
+            // Jump on Space or W or ArrowUp; keep P as pause key
+            if (k === ' ' || event.code === 'Space' || k === 'w' || k === 'ArrowUp') {
                 event.preventDefault();
                 handleJump();
                 return;
@@ -465,7 +454,7 @@ function App() {
             }
 
             // Track movement keys while held
-            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift','j']);
+            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Shift']);
             if (moveKeys.has(k)) {
                 // Respect WASD toggle
                 if (!wasdEnabled && (k === 'w' || k === 'a' || k === 's' || k === 'd')) {
@@ -474,18 +463,14 @@ function App() {
                 }
                 event.preventDefault();
                 keysDownRef.current.add(k);
-
-                // Update virtual active direction based on the last direction key pressed
-                if ((wasdEnabled && k === 'a') || k === 'ArrowLeft') {
-                    activeDirRef.current = -1;
-                } else if ((wasdEnabled && k === 'd') || k === 'ArrowRight') {
-                    activeDirRef.current = 1;
-                }
-
-                if (k === 'j' || k === 'w') {
+                if (k === 'w' || k === 'ArrowUp') {
                     handleJump();
                 } else if (k === 's') {
                     // Downward slam only if not in gauntlet mode
+                    if (!levelMode) {
+                        canvasRef.current?.slamPlayer?.();
+                    }
+                } else if (k === 'ArrowDown') {
                     if (!levelMode) {
                         canvasRef.current?.slamPlayer?.();
                     }
@@ -503,21 +488,10 @@ function App() {
             }
             if (isGameOver) return;
             const k = (typeof event.key === 'string' && event.key.length === 1) ? event.key.toLowerCase() : event.key;
-            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','m','n','Shift']);
+            const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Shift']);
             if (moveKeys.has(k)) {
                 event.preventDefault();
                 keysDownRef.current.delete(k);
-
-                // If releasing a direction key, keep activeDir if the other is still held; otherwise set to 0
-                const leftHeld = ((wasdEnabled && keysDownRef.current.has('a')) || keysDownRef.current.has('ArrowLeft'));
-                const rightHeld = ((wasdEnabled && keysDownRef.current.has('d')) || keysDownRef.current.has('ArrowRight'));
-                if (!leftHeld && !rightHeld) {
-                    activeDirRef.current = 0;
-                } else if (leftHeld && !rightHeld) {
-                    activeDirRef.current = -1;
-                } else if (rightHeld && !leftHeld) {
-                    activeDirRef.current = 1;
-                }
             }
         };
 
@@ -534,99 +508,47 @@ function App() {
             if (selectedBall) {
                 const hasLeft = ((wasdEnabled && keys.has('a')) || keys.has('ArrowLeft'));
                 const hasRight = ((wasdEnabled && keys.has('d')) || keys.has('ArrowRight'));
-                // Up/Down are ignored for Y control so gravity governs Y
-                // const hasUp = false;
-                // const hasDown = false;
-                // Accelerators: 'n' pushes left, 'm' pushes right; Shift also accelerates using current/arrow direction
-                const gasLeft = keys.has('n');
-                const gasRight = keys.has('m');
-                const gas = gasLeft || gasRight || keys.has('Shift');
+                const boosting = keys.has('Shift');
 
-        // Tunables from selected ball (with sensible defaults)
-        const ct = selectedBall.controlTuning || {};
-    const baseMaxSpeed = ct.maxSpeedBase ?? 2.0;         // px/frame
-    const boostMultiplier = ct.boostMultiplier ?? 2.0;    // gas boost
-    const accelRate = ct.accelRate ?? 0.35;               // px/frame^2 toward target
-    const accelBoostMultiplier = ct.accelBoostMultiplier ?? 1.4; // stronger accel while gassing
-    const epsilon = 0.03;                                 // snap-to-zero threshold
+                // Tunables from selected ball (with sensible defaults)
+                const ct = selectedBall.controlTuning || {};
+                const baseMaxSpeed = ct.maxSpeedBase ?? 2.0;         // px/frame
+                const boostMultiplier = ct.boostMultiplier ?? 2.0;    // boost
+                const accelRate = ct.accelRate ?? 0.35;               // px/frame^2
+                const accelBoostMultiplier = ct.accelBoostMultiplier ?? 1.4;
+                const epsilon = 0.03;
 
-                const maxSpeedX = gas ? baseMaxSpeed * boostMultiplier : baseMaxSpeed; // gas only affects X
-                const effectiveAccelX = gas ? accelRate * accelBoostMultiplier : accelRate;
+                const maxSpeedX = boosting ? baseMaxSpeed * boostMultiplier : baseMaxSpeed;
+                const effectiveAccelX = boosting ? accelRate * accelBoostMultiplier : accelRate;
 
-                // Determine active direction obeying physics
-                // Prefer live velocity from Canvas over possibly stale selectedBall snapshot
-                const currentVX = typeof liveVelXRef.current === 'number' ? liveVelXRef.current : selectedBall.velX;
-                const velSign = Math.abs(currentVX) < epsilon ? 0 : Math.sign(currentVX);
-                if (velSign !== 0) {
-                    lastMotionDirRef.current = velSign;
-                }
-                const prevSign = Math.abs(prevVelXRef.current) < epsilon ? 0 : Math.sign(prevVelXRef.current);
-                const flipped = prevSign !== 0 && velSign !== 0 && prevSign !== velSign;
-
-                // On flip, swap the virtual active direction to follow physics
-                if (flipped) {
-                    activeDirRef.current = velSign;
-                }
-
-                // Choose direction using pure helper for consistency and testability
-                // Primary direction from accelerators; fallback to arrows/WASD when using Shift as gas
+                // Determine desired direction; neutral if both or neither
                 let dirX = 0;
-                if (gasLeft && !gasRight) dirX = -1;
-                else if (gasRight && !gasLeft) dirX = 1;
-                else if (gas) {
-                    dirX = decideGasDir({
-                        hasLeft,
-                        hasRight,
-                        gas,
-                        velSign,
-                        activeDir: activeDirRef.current,
-                        lastMotionDir: lastMotionDirRef.current,
-                    });
-                    if (dirX === 0) dirX = (lastMotionDirRef.current !== 0) ? lastMotionDirRef.current : 1;
-                }
+                if (hasLeft && !hasRight) dirX = -1;
+                else if (hasRight && !hasLeft) dirX = 1;
+                else dirX = 0; // neutral when both held
+
+                const currentVX = typeof liveVelXRef.current === 'number' ? liveVelXRef.current : selectedBall.velX;
                 const targetVX = dirX === 0 ? currentVX : dirX * maxSpeedX;
-                // Y not controlled by input
 
-                let newVX = currentVX;
-                // let newVY = selectedBall.velY; // Y axis is governed by gravity only
-
-                // Helper to move current toward target by up to delta per frame
                 const moveTowards = (current, target, delta) => {
                     if (current < target) return Math.min(current + delta, target);
                     if (current > target) return Math.max(current - delta, target);
                     return current;
                 };
 
-                // Overrides
-                // X-axis: gas/brake control speed, left/right control direction only
-                if (gas) {
-                    // accelerate toward target velocity with limited delta per frame (only if direction known)
-                    if (dirX === 0) {
-                        // still no direction; nudge right to get moving
-                        newVX = moveTowards(currentVX, maxSpeedX, effectiveAccelX);
-                    } else {
-                        newVX = moveTowards(currentVX, targetVX, effectiveAccelX);
-                    }
-                    // snap tiny values to zero to avoid jitter
+                let newVX = currentVX;
+                if (dirX !== 0) {
+                    newVX = moveTowards(currentVX, targetVX, effectiveAccelX);
                     if (Math.abs(newVX) < epsilon) newVX = 0;
                 } else {
-                    // Coasting: keep current velocity (no release friction)
+                    // neutral: coast
                     newVX = currentVX;
                 }
 
-                // Y-axis untouched by input so gravity in physics loop governs it
-
-                // Always push an update when gas/brake is held, or when velocity changed
                 const changedX = Math.abs(newVX - currentVX) > 1e-3;
-                // const changedY = Math.abs(newVY - selectedBall.velY) > 1e-3;
-                const payload = { id: selectedBall.id };
-                // Always send X when brake/gas held or X changed
-                if (gas && dirX !== 0 || changedX) Object.assign(payload, { velX: newVX });
-                // Never send Y (no vertical input control)
-                if (Object.keys(payload).length > 1) {
-                    canvasRef.current?.updateSelectedBall?.(payload);
+                if (changedX) {
+                    canvasRef.current?.updateSelectedBall?.({ id: selectedBall.id, velX: newVX });
                 }
-                // Track previous X velocity sign across frames
                 prevVelXRef.current = newVX;
             }
             movementRafRef.current = requestAnimationFrame(tick);

@@ -48,9 +48,16 @@
   - Candidates if unused:
     - `src/components/ColorSchemeManager.jsx`
     - `src/components/PhysicsSettingsManager.jsx`
+- add linting for indentation, discuss how to enable eslint to automatically fix indentation
+
+- Stabilize and unskip WASD Gauntlet test (low priority)
+  - Acceptance: `test/wasd.gauntlet.movement.test.js` runs reliably in CI, asserting: D accelerates right (velX > 0), A accelerates left (velX < 0), A+D held is neutral (no new updates). Uses deterministic RAF/time mocking and avoids flakiness.
 
 Game Polish
 
+- update instructions for gauntlet mode
+- rename Gravity Gauntlet mode to Gauntlet mode
+- establish extensible registry system for modes and levels
 - [DONE] have health bars match parent shape within objects.
   - Acceptance: Health bar outline matches object shape (circle/square/triangle/etc.). Implemented in Ball draw routines; visually verified; no perf regressions.
 - [DONE] have balls do a "pop" animation and accompanying sound, then remove from the ui
