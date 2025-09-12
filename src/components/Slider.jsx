@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { beginUiDrag, endUiDrag } from '../utils/dom.js';
 
 function Slider({ label, value, onChange, min, max, step, displayValue, logarithmic }) {
     // Coerce numeric inputs to avoid React warnings about NaN/undefined
@@ -42,6 +43,7 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
         : toNumber(value, numericMin);
     const cleanedDisplay = displayValue ?? toNumber(value, numericMin);
 
+    const draggingRef = useRef(false);
     return (
         <div className="control-group">
             <label>{label}:</label>
@@ -53,7 +55,10 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
                 value={cleanedValue}
                 onChange={logarithmic ? handleLogarithmicChange : onChange}
                 data-refocus-canvas="true"
+                onMouseDown={() => { draggingRef.current = true; beginUiDrag(); }}
+                onTouchStart={() => { draggingRef.current = true; beginUiDrag(); }}
                 onMouseUp={() => {
+                    if (draggingRef.current) { draggingRef.current = false; endUiDrag(); }
                     // After releasing the slider, refocus the canvas so game keys work immediately
                     requestAnimationFrame(() => {
                         const cnv = document.querySelector('canvas');
@@ -61,6 +66,7 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
                     });
                 }}
                 onTouchEnd={() => {
+                    if (draggingRef.current) { draggingRef.current = false; endUiDrag(); }
                     requestAnimationFrame(() => {
                         const cnv = document.querySelector('canvas');
                         if (cnv && typeof cnv.focus === 'function') cnv.focus();

@@ -1,5 +1,5 @@
 import { gsap } from 'gsap';
-import { getControlsPanel } from './dom.js';
+import { getControlsPanel, isUiDragging } from './dom.js';
 import { ENGINE_CONSTANTS } from '../js/physics.constants.js';
 
 let __BALL_ID_SEQ = 1;
@@ -381,8 +381,9 @@ export class Ball {
       this.velY += gravityStrength;
     }
 
-    const controlsPanel = getControlsPanel();
-    if (controlsPanel) {
+  const controlsPanel = getControlsPanel();
+  // Skip panel-collision math during UI drags to improve responsiveness
+  if (controlsPanel && !isUiDragging()) {
       const panelRect = controlsPanel.getBoundingClientRect();
       let closestX = Math.max(panelRect.left, Math.min(this.x, panelRect.right));
       let closestY = Math.max(panelRect.top, Math.min(this.y, panelRect.bottom));

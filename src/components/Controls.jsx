@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Slider from './Slider.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
+import { beginUiDrag, endUiDrag } from '../utils/dom.js';
 
 function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, levelMode, toggleLevelMode, onResetToDefaults }) {
     // Persisted resizable width for the controls panel
@@ -46,6 +47,9 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
         setPanelWidth(clampWidth(startWRef.current + dx));
     }, []);
     const teardown = useCallback(() => {
+        if (draggingRef.current) {
+            endUiDrag();
+        }
         draggingRef.current = false;
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', teardown);
@@ -55,6 +59,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     const onHandleDown = useCallback((ev) => {
         ev.preventDefault();
         draggingRef.current = true;
+        beginUiDrag();
         startXRef.current = getClientX(ev);
         startWRef.current = panelWidth;
         window.addEventListener('mousemove', onMove);
@@ -67,6 +72,10 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     const deformationRef = useRef(null);
     const gameplayRef = useRef(null);
     const objectsRef = useRef(null);
+    // Nested advanced sections persist expansion state too
+    const gameplayAdvancedRef = useRef(null);
+    const visualsAdvancedRef = useRef(null);
+    const deformationAdvancedRef = useRef(null);
     // Removed presets section
 
     usePersistentDetails([
@@ -75,6 +84,9 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
         deformationRef,
         gameplayRef,
         objectsRef,
+        gameplayAdvancedRef,
+        visualsAdvancedRef,
+        deformationAdvancedRef,
     ]);
 
     const handleSliderChange = (setting, value) => {
@@ -140,13 +152,15 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                 aria-orientation="vertical"
                 aria-label="Resize controls panel"
             />
-            <h2>Simulation Controls</h2>
-            <button onClick={toggleLevelMode} className="button button--primary button--full" style={{ marginBottom: '10px' }}>
-                Switch to {levelMode ? 'Sandbox' : 'Gravity Gauntlet'} Mode
-            </button>
-            <button onClick={onResetToDefaults} className="button button--secondary button--full" style={{ marginBottom: '10px' }}>
-                Reset Settings to Defaults
-            </button>
+            <h2>Controls</h2>
+            <div className="control-group" style={{ display: 'grid', gap: 8 }}>
+                <button onClick={toggleLevelMode} className="button button--primary button--full">
+                    Switch to {levelMode ? 'Sandbox' : 'Gravity Gauntlet'} Mode
+                </button>
+                <button onClick={onResetToDefaults} className="button button--secondary button--full">
+                    Reset Settings to Defaults
+                </button>
+            </div>
             <details id="section-simulation" open ref={simulationRef}>
                 <summary>Simulation</summary>
                 <div className="section-body">
@@ -222,14 +236,19 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                         value={physicsSettings.visuals.trailOpacity}
                         onChange={(e) => handleVisualsChange('trailOpacity', e.target.value)}
                     />
-                    <Slider
-                        label="UI Opacity"
-                        min={0.1}
-                        max={1}
-                        step={0.05}
-                        value={physicsSettings.visuals.uiOpacity}
-                        onChange={(e) => handleVisualsChange('uiOpacity', e.target.value)}
-                    />
+                    <details id="section-visuals-advanced" ref={visualsAdvancedRef} style={{ marginTop: 8 }}>
+                        <summary>Advanced</summary>
+                        <div className="control-group" style={{ marginTop: 6 }}>
+                            <Slider
+                                label="UI Opacity"
+                                min={0.1}
+                                max={1}
+                                step={0.05}
+                                value={physicsSettings.visuals.uiOpacity}
+                                onChange={(e) => handleVisualsChange('uiOpacity', e.target.value)}
+                            />
+                        </div>
+                    </details>
                 </div>
             </details>
 
@@ -262,37 +281,50 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                         value={physicsSettings.deformation.speed}
                         onChange={(e) => handleDeformationChange('speed', e.target.value)}
                     />
-                    <div className="control-group">
-                        <label>Deformation Ease:</label>
-                        <select
-                            value={physicsSettings.deformation.ease}
-                            onChange={(e) => handleDeformationChange('ease', e.target.value)}
-                        >
-                            <option value="elastic.out(1.1, 0.5)">Elastic</option>
-                            <option value="bounce.out">Bounce</option>
-                            <option value="power2.out">Smooth</option>
-                            <option value="back.out(1.7)">Overshoot</option>
-                            <option value="slow(0.7, 0.7, false)">Slow Mo</option>
-                            <option value="steps(12)">Stepped</option>
-                            <option value="circ.out">Circular</option>
-                            <option value="expo.out">Exponential</option>
-                        </select>
-                    </div>
-                    <div className="control-group">
-                        <label>Ease Override:</label>
-                        <input
-                            type="text"
-                            value={physicsSettings.deformation.easeOverride}
-                            onChange={(e) => handleDeformationChange('easeOverride', e.target.value)}
-                            placeholder="e.g., elastic.out(1, 0.3)"
-                        />
-                    </div>
+                    <details id="section-deformation-advanced" ref={deformationAdvancedRef} style={{ marginTop: 8 }}>
+                        <summary>Advanced</summary>
+                        <div className="control-group" style={{ marginTop: 6 }}>
+                            <label>Deformation Ease:</label>
+                            <select
+                                value={physicsSettings.deformation.ease}
+                                onChange={(e) => handleDeformationChange('ease', e.target.value)}
+                            >
+                                <option value="elastic.out(1.1, 0.5)">Elastic</option>
+                                <option value="bounce.out">Bounce</option>
+                                <option value="power2.out">Smooth</option>
+                                <option value="back.out(1.7)">Overshoot</option>
+                                <option value="slow(0.7, 0.7, false)">Slow Mo</option>
+                                <option value="steps(12)">Stepped</option>
+                                <option value="circ.out">Circular</option>
+                                <option value="expo.out">Exponential</option>
+                            </select>
+                        </div>
+                        <div className="control-group" style={{ marginTop: 6 }}>
+                            <label>Ease Override:</label>
+                            <input
+                                type="text"
+                                value={physicsSettings.deformation.easeOverride}
+                                onChange={(e) => handleDeformationChange('easeOverride', e.target.value)}
+                                placeholder="e.g., elastic.out(1, 0.3)"
+                            />
+                        </div>
+                    </details>
                 </div>
             </details>
 
             <details id="section-gameplay" open ref={gameplayRef}>
                 <summary>Gameplay</summary>
                 <div className="section-body">
+                    <div className="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={!!physicsSettings.gameplay.popDespawnEnabled}
+                                onChange={(e) => handleGameplayChange('popDespawnEnabled', e.target.checked)}
+                            />
+                            Pop + Despawn on Remove
+                        </label>
+                    </div>
                     <div className="control-group">
                         <label>
                             <input
@@ -326,25 +358,20 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                             Enable Health System
                         </label>
                     </div>
-                    <div className="control-group">
-                        <label>
-                            <input
-                                type="checkbox"
-                                checked={!!physicsSettings.gameplay.popDespawnEnabled}
-                                onChange={(e) => handleGameplayChange('popDespawnEnabled', e.target.checked)}
+                    <details id="section-gameplay-advanced" ref={gameplayAdvancedRef} style={{ marginTop: 8 }}>
+                        <summary>Advanced</summary>
+                        <div className="control-group" style={{ marginTop: 6 }}>
+                            <Slider
+                                label="Health Damage Multiplier"
+                                min={0.01}
+                                max={1.0}
+                                step={0.01}
+                                value={physicsSettings.gameplay.healthDamageMultiplier}
+                                onChange={(e) => handleGameplayChange('healthDamageMultiplier', e.target.value)}
+                                disabled={levelMode} // Disable in level mode
                             />
-                            Pop + Despawn on Remove
-                        </label>
-                    </div>
-                    <Slider
-                        label="Health Damage Multiplier"
-                        min={0.01}
-                        max={1.0}
-                        step={0.01}
-                        value={physicsSettings.gameplay.healthDamageMultiplier}
-                        onChange={(e) => handleGameplayChange('healthDamageMultiplier', e.target.value)}
-                        disabled={levelMode} // Disable in level mode
-                    />
+                        </div>
+                    </details>
                 </div>
             </details>
 
