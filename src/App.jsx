@@ -31,6 +31,9 @@ const LS_KEYS = {
     showControls: 'ui:showControls',
     wasdEnabled: 'ui:wasdEnabled',
     gauntletInstructionsDismissed: 'ui:gauntletInstructions:dismissed',
+    musicOn: 'ui:musicOn',
+    musicVolume: 'ui:musicVolume',
+    musicMuted: 'ui:musicMuted',
 };
 
 function loadJSON(key, fallback) {
@@ -106,6 +109,22 @@ function App() {
     const [soundOn, setSoundOn] = useState(() => {
         try { const raw = localStorage.getItem('ui:soundOn'); if (raw == null) return true; return JSON.parse(raw); } catch { return true; }
     });
+    const [musicOn, setMusicOn] = useState(() => {
+        try {
+            const raw = localStorage.getItem(LS_KEYS.musicOn);
+            if (raw != null) return JSON.parse(raw);
+            // If no preference, default ON regardless of mode
+            return true;
+        } catch { return true; }
+    });
+    const [musicVolume, setMusicVolume] = useState(() => {
+        try { const raw = localStorage.getItem(LS_KEYS.musicVolume); if (raw != null) return JSON.parse(raw); } catch {}
+        return 0.08; // default audible volume
+    });
+    const [musicMuted, setMusicMuted] = useState(() => {
+        try { const raw = localStorage.getItem(LS_KEYS.musicMuted); if (raw != null) return JSON.parse(raw); } catch {}
+        return false;
+    });
     // Subtle gear pulse when controls are hidden and user idle
     const [gearPulsing, setGearPulsing] = useState(false);
     const gearPulseTimerRef = React.useRef(null);
@@ -168,7 +187,40 @@ function App() {
     useEffect(() => {
         Sound.setEnabled(soundOn);
         try { localStorage.setItem('ui:soundOn', JSON.stringify(soundOn)); } catch {}
-    }, [soundOn]);
+        // If sound is globally off, ensure bgm is stopped; if on and music is preferred, (re)start bgm
+    if (!soundOn) {
+            Sound.stopBgm();
+    } else if (musicOn) {
+        const effectiveVol = musicMuted ? 0 : musicVolume;
+        Sound.startBgm({ volume: effectiveVol });
+        }
+    }, [soundOn, musicOn, musicVolume, musicMuted]);
+
+    // Background music lifecycle: start/stop and persist preference
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.musicOn, JSON.stringify(musicOn)); } catch {}
+    if (musicOn) {
+            // Start bgm; if autoplay is blocked, Sound.startBgm will arm autostart on first gesture
+        const effectiveVol = musicMuted ? 0 : musicVolume;
+        Sound.startBgm({ volume: effectiveVol });
+        } else {
+            Sound.stopBgm();
+        }
+    }, [musicOn, musicVolume, musicMuted]);
+
+    // Persist and apply runtime BGM volume changes
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.musicVolume, JSON.stringify(musicVolume)); } catch {}
+        const effectiveVol = musicMuted ? 0 : musicVolume;
+        Sound.setBgmVolume(effectiveVol);
+    }, [musicVolume, musicMuted]);
+
+    // Persist music mute preference
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.musicMuted, JSON.stringify(musicMuted)); } catch {}
+        const effectiveVol = musicMuted ? 0 : musicVolume;
+        Sound.setBgmVolume(effectiveVol);
+    }, [musicMuted, musicVolume]);
     const handleJump = useCallback(() => {
         if (isGameOver) return;
         canvasRef.current?.jumpPlayer?.();
@@ -798,6 +850,13 @@ function App() {
                     levelMode={levelMode}
                     toggleLevelMode={toggleLevelMode}
                     onResetToDefaults={handleResetToDefaults}
+                    soundOn={soundOn}
+                    musicOn={musicOn}
+                    musicVolume={musicVolume}
+                    musicMuted={musicMuted}
+                    onMusicVolumeChange={setMusicVolume}
+                    onToggleMusicMute={() => setMusicMuted((m) => !m)}
+                    onToggleMusicOn={() => setMusicOn((on) => !on)}
                 />
             )}
             <SelectedBallControls

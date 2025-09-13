@@ -3,7 +3,23 @@ import Slider from './Slider.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 import { beginUiDrag, endUiDrag } from '../utils/dom.js';
 
-function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemoveBall, onResetBalls, levelMode, toggleLevelMode, onResetToDefaults }) {
+function Controls({
+    physicsSettings,
+    onPhysicsSettingsChange,
+    onAddBall,
+    onRemoveBall,
+    onResetBalls,
+    levelMode,
+    toggleLevelMode,
+    onResetToDefaults,
+    soundOn,
+    musicOn,
+    musicVolume,
+    musicMuted,
+    onMusicVolumeChange,
+    onToggleMusicMute,
+    onToggleMusicOn,
+}) {
     // Persisted resizable width for the controls panel
     const LS_KEY_PANEL_WIDTH = 'ui:controlsPanelWidth';
     const readSavedWidth = () => {
@@ -72,6 +88,7 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
     const deformationRef = useRef(null);
     const gameplayRef = useRef(null);
     const objectsRef = useRef(null);
+    const audioRef = useRef(null);
     // Nested advanced sections persist expansion state too
     const gameplayAdvancedRef = useRef(null);
     const visualsAdvancedRef = useRef(null);
@@ -86,7 +103,8 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
         objectsRef,
         gameplayAdvancedRef,
         visualsAdvancedRef,
-        deformationAdvancedRef,
+    deformationAdvancedRef,
+    audioRef,
     ]);
 
     const handleSliderChange = (setting, value) => {
@@ -426,6 +444,42 @@ function Controls({ physicsSettings, onPhysicsSettingsChange, onAddBall, onRemov
                             </button>
                         )}
                         <button onClick={onResetBalls}>Reset Balls</button>
+                    </div>
+                </div>
+            </details>
+
+            <details id="section-audio" open ref={audioRef}>
+                <summary>Audio</summary>
+                <div className="section-body">
+                    <div className="control-group" style={{ marginBottom: 6 }}>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={!!musicOn}
+                                onChange={onToggleMusicOn}
+                                disabled={!soundOn}
+                            />{' '}
+                            Enable Music
+                        </label>
+                    </div>
+                    <Slider
+                        label={`Music Volume ${!soundOn ? '(Sound Off)' : ''}`}
+                        min={0}
+                        max={0.5}
+                        step={0.01}
+                        value={musicVolume}
+                        onChange={(e) => onMusicVolumeChange(parseFloat(e.target.value))}
+                        disabled={!soundOn || !musicOn}
+                        displayValue={`${Math.round((musicVolume || 0) * 100)}%`}
+                    />
+                    <div className="control-group" style={{ marginTop: 6 }}>
+                        <button
+                            onClick={onToggleMusicMute}
+                            disabled={!soundOn || !musicOn}
+                            title={!soundOn ? 'Enable Sound to control music' : (!musicOn ? 'Enable Music to control volume' : (musicMuted ? 'Unmute music' : 'Mute music'))}
+                        >
+                            {musicMuted ? 'Unmute Music' : 'Mute Music'}
+                        </button>
                     </div>
                 </div>
             </details>

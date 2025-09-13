@@ -28,8 +28,8 @@
 - [DONE] Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
   - Acceptance: After resize/DPR change, canvas is crisp (no blur/skew); no memory leaks; smoke test or manual steps documented.
   - Verified: DPR-aware sizing with context scale in `Canvas.jsx`; jsdom-safe stub to keep tests green; suite passes (1 skipped) and production build succeeds.
-- Simple bleep/bloop background music with a UI toggle
-  - Acceptance: Looping bgm with start/stop toggle; persisted; respects user gesture and autoplay rules; no console errors.
+- [DONE] Background music with overlay controls (enable, volume, mute)
+  - Acceptance: Looping BGM that starts automatically in all modes (autoplay-safe: starts after first gesture if blocked). Controls live in the overlay panel only: Enable Music (checkbox), Music Volume slider (0–50%), and Mute toggle. All settings persisted (`ui:musicOn`, `ui:musicVolume`, `ui:musicMuted`). Global Sound toggle still gates all audio. Removed duplicate Music button from the right-side game panel. Verified by `test/bgm.api.safe.test.js` and manual checks; no console errors.
 - FPS cap/control in settings
   - Acceptance: Cap reduces render/update cadence while physics stays stable; can be disabled; simple metric/log confirms rate.
 - Organize overlays/panels
@@ -57,6 +57,9 @@
 
 - Add resolution media query listener for DPR-only changes (low priority)
   - Acceptance: Canvas re-scales when devicePixelRatio changes without a window resize (e.g., monitor move/zoom). Implement via matchMedia resolution listeners or equivalent; manual steps documented.
+
+- [DONE] Remove duplicate Music control from game panel
+  - Acceptance: The Music toggle is removed from `GameControlsPanel`; music controls exist only in overlay `Controls` under Audio section. No broken props.
 
 Game Polish
 
@@ -92,6 +95,7 @@ UX Polish
   - [DONE] Acceptance: "Remove Ball" is disabled when the toggle is off and shows a helpful tooltip. Tests pass; optional polish (subtle shake, “Clear dead balls”) deferred.
 - Performance: bypass panel-collision work while sliders are dragged (uiDragState short-circuit) and profile FPS.
 - Audio: simple background loop with a persisted toggle; ensure autoplay policy compliance (start on user gesture).
+  - [DONE] Replaced by completed Background music feature above (enable, volume, mute; autoplay-safe; persisted; consolidated controls).
 - FPS cap: add optional FPS limiter with clear on/off and a simple on-screen metric for verification.
 - Overlays: organize z-index/layers and keyboard navigation for panels/overlays; verify mobile layout.
 - Welcome/Intro: refine first-run experience in `IntroOverlay.jsx` (labels/contrast/focus behavior) and persist dismissal.
