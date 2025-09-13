@@ -23,7 +23,7 @@
 
 ### Medium impact
 
-- Performance: skip panel collisions while sliders are dragged (via `uiDragState`)
+- [DONE] Performance: skip panel collisions while sliders are dragged (via `uiDragState`)
   - Acceptance: During slider drag, panel-collision logic is bypassed; FPS remains stable; unit test asserts drag-flag short-circuit.
 - [DONE] Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
   - Acceptance: After resize/DPR change, canvas is crisp (no blur/skew); no memory leaks; smoke test or manual steps documented.
@@ -98,7 +98,7 @@ UX Polish
     - Hazard removal without pop: `test/hazard.noPop.remove.test.js`
 - UX: indicate Remove is disabled when toggle off (disable control or tooltip/subtle shake), and optionally add a quick “Clear dead balls” action when toggle is off.
   - [DONE] Acceptance: "Remove Ball" is disabled when the toggle is off and shows a helpful tooltip. Tests pass; optional polish (subtle shake, “Clear dead balls”) deferred.
-- Performance: bypass panel-collision work while sliders are dragged (uiDragState short-circuit) and profile FPS.
+- [DONE] Performance: bypass panel-collision work while sliders are dragged (uiDragState short-circuit) and profile FPS.
 - Audio: simple background loop with a persisted toggle; ensure autoplay policy compliance (start on user gesture).
   - [DONE] Replaced by completed Background music feature above (enable, volume, mute; autoplay-safe; persisted; consolidated controls).
 - FPS cap: add optional FPS limiter with clear on/off and a simple on-screen metric for verification.
@@ -109,5 +109,10 @@ UX Polish
 
 Additional nice-to-haves (Audio)
 
-- Add a tiny unit test to assert SFX mute/volume gating for `blip`/`noiseHit` in `utils/sound.js`.
-- Migrate/clean legacy localStorage key `ui:soundOn` (optional) and note in README.
+- [DONE] Add a tiny unit test to assert SFX mute/volume gating for `blip`/`noiseHit` in `utils/sound.js`.
+- [DONE] Migrate/clean legacy localStorage key `ui:soundOn` (optional) and note in README.
+
+## Game Levels
+
+- bullet hell - last 1 minute in bullet hell to proceed
+- slam - destroy the target balls by using the slam (down arrow) to attack them
