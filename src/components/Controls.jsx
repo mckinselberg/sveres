@@ -12,6 +12,8 @@ function Controls({
     levelMode,
     toggleLevelMode,
     onResetToDefaults,
+    fpsLimit,
+    onFpsLimitChange,
     musicOn,
     musicVolume,
     onMusicVolumeChange,
@@ -183,6 +185,18 @@ function Controls({
             <details id="section-simulation" open ref={simulationRef}>
                 <summary>Simulation</summary>
                 <div className="section-body">
+                    <div className="control-group">
+                        <label>FPS Limit:</label>
+                        <select
+                            value={String(fpsLimit ?? 0)}
+                            onChange={(e) => onFpsLimitChange(parseInt(e.target.value, 10))}
+                        >
+                            <option value="0">Off (VSync)</option>
+                            <option value="30">30 FPS</option>
+                            <option value="60">60 FPS</option>
+                            <option value="120">120 FPS</option>
+                        </select>
+                    </div>
                     {!levelMode && (
                         <>
                             <Slider

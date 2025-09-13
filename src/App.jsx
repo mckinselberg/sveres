@@ -36,6 +36,7 @@ const LS_KEYS = {
     musicMuted: 'ui:musicMuted',
     sfxVolume: 'ui:sfxVolume',
     sfxMuted: 'ui:sfxMuted',
+    fpsLimit: 'ui:fpsLimit',
 };
 
 function loadJSON(key, fallback) {
@@ -124,6 +125,10 @@ function App() {
     const [showImportModal, setShowImportModal] = useState(false);
     const [importText, setImportText] = useState('');
     const [importError, setImportError] = useState('');
+    const [fpsLimit, setFpsLimit] = useState(() => {
+        try { const raw = localStorage.getItem(LS_KEYS.fpsLimit); if (raw != null) return JSON.parse(raw); } catch {}
+        return 0; // Off by default
+    });
     const [musicOn, setMusicOn] = useState(() => {
         try {
             const raw = localStorage.getItem(LS_KEYS.musicOn);
@@ -247,6 +252,10 @@ function App() {
         try { localStorage.setItem(LS_KEYS.sfxVolume, JSON.stringify(sfxVolume)); } catch {}
         Sound.setSfxVolume(sfxVolume);
     }, [sfxVolume]);
+    // Persist FPS limit
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.fpsLimit, JSON.stringify(fpsLimit)); } catch {}
+    }, [fpsLimit]);
     const handleJump = useCallback(() => {
         if (isGameOver) return;
         canvasRef.current?.jumpPlayer?.();
@@ -853,6 +862,7 @@ function App() {
                         }
                     }
                 }, [])}
+                fpsLimit={fpsLimit}
             />
             {/* Lightweight HUD: show active powerups on the player with countdowns */}
             {levelMode && selectedBall && <HUDPowerups selectedBall={selectedBall} />}
@@ -866,6 +876,8 @@ function App() {
                     levelMode={levelMode}
                     toggleLevelMode={toggleLevelMode}
                     onResetToDefaults={handleResetToDefaults}
+                    fpsLimit={fpsLimit}
+                    onFpsLimitChange={setFpsLimit}
                     musicOn={musicOn}
                     musicVolume={musicVolume}
                     musicMuted={musicMuted}

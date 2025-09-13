@@ -26,7 +26,8 @@ const Canvas = memo(forwardRef(function Canvas({
     newBallSize,
     onWin,
     onLose,
-    onSelectedBallMotion
+    onSelectedBallMotion,
+    fpsLimit = 0
 }, ref) {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
@@ -42,6 +43,12 @@ const Canvas = memo(forwardRef(function Canvas({
     const onLoseRef = useRef(onLose);
     const loseRef = useRef(false);
     const [forceTick, setForceTick] = useState(0);
+    const [fps, setFps] = useState(0);
+    const fpsLimitRef = useRef(0);
+    fpsLimitRef.current = Math.max(0, Number(fpsLimit) || 0);
+    const lastFrameMsRef = useRef(0);
+    const fpsCounterRef = useRef(0);
+    const fpsLastSampleRef = useRef(0);
     // Frame-batched increments to reduce React updates inside RAF
     const scoreDeltaRef = useRef(0);
     const scoredBallsDeltaRef = useRef(0);
@@ -425,6 +432,25 @@ const Canvas = memo(forwardRef(function Canvas({
             animationFrameId.current = null;
         }
         const render = () => {
+            // Throttle based on fpsLimit if set
+            const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            if (fpsLimitRef.current > 0) {
+                const minDelta = 1000 / fpsLimitRef.current;
+                if (nowMs - lastFrameMsRef.current < minDelta) {
+                    animationFrameId.current = requestAnimationFrame(render);
+                    return;
+                }
+            }
+            // Count frames only when we actually run a frame
+            fpsCounterRef.current += 1;
+            if (!fpsLastSampleRef.current) fpsLastSampleRef.current = nowMs;
+            if (!lastFrameMsRef.current) lastFrameMsRef.current = nowMs;
+            lastFrameMsRef.current = nowMs;
+            if (nowMs - fpsLastSampleRef.current >= 1000) {
+                setFps(fpsCounterRef.current);
+                fpsCounterRef.current = 0;
+                fpsLastSampleRef.current = nowMs;
+            }
             const selectedForDraw = selectedBallIdRef.current ? ballsRef.current.find(b => b.id === selectedBallIdRef.current) : null;
             const s = settingsRef.current;
             // reset deltas
@@ -543,7 +569,7 @@ const Canvas = memo(forwardRef(function Canvas({
                 }
             }
 
-            animationFrameId.current = requestAnimationFrame(render);
+        animationFrameId.current = requestAnimationFrame(render);
         };
         render();
         return () => {
@@ -591,14 +617,31 @@ const Canvas = memo(forwardRef(function Canvas({
     }, [applyShapeToExisting, ballShape, emitSnapshot]);
 
     return (
-        <canvas
-            ref={canvasRef}
-            tabIndex={0}
-            onMouseDown={() => {
-                try { canvasRef.current && canvasRef.current.focus && canvasRef.current.focus(); } catch {}
-            }}
-            style={{ display: 'block' }}
-        />
+        <div style={{ position: 'relative' }}>
+            <canvas
+                ref={canvasRef}
+                tabIndex={0}
+                onMouseDown={() => {
+                    try { canvasRef.current && canvasRef.current.focus && canvasRef.current.focus(); } catch {}
+                }}
+                style={{ display: 'block' }}
+            />
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    padding: '2px 6px',
+                    fontSize: 12,
+                    borderRadius: 4,
+                    background: 'rgba(0,0,0,0.45)',
+                    color: '#fff',
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                }}
+                aria-hidden
+            >{`FPS: ${fps}${fpsLimitRef.current ? ` / cap ${fpsLimitRef.current}` : ''}`}</div>
+        </div>
     );
 }));
 
