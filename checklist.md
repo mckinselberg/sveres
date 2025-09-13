@@ -28,8 +28,11 @@
 - [DONE] Canvas/responsiveness: re-apply DPR sizing/backing-store scaling on viewport/devicePixelRatio changes
   - Acceptance: After resize/DPR change, canvas is crisp (no blur/skew); no memory leaks; smoke test or manual steps documented.
   - Verified: DPR-aware sizing with context scale in `Canvas.jsx`; jsdom-safe stub to keep tests green; suite passes (1 skipped) and production build succeeds.
-- [DONE] Background music with overlay controls (enable, volume, mute)
-  - Acceptance: Looping BGM that starts automatically in all modes (autoplay-safe: starts after first gesture if blocked). Controls live in the overlay panel only: Enable Music (checkbox), Music Volume slider (0–50%), and Mute toggle. All settings persisted (`ui:musicOn`, `ui:musicVolume`, `ui:musicMuted`). Global Sound toggle still gates all audio. Removed duplicate Music button from the right-side game panel. Verified by `test/bgm.api.safe.test.js` and manual checks; no console errors.
+- [DONE] Background music with overlay controls (enable, volume, mute) — consolidated audio UX
+  - Acceptance: Looping BGM starts automatically in all modes (autoplay-safe: starts after first gesture if blocked). Controls live in the overlay panel only: Enable Music (checkbox), Music Volume slider (0–50%), and Mute toggle. All settings persisted (`ui:musicOn`, `ui:musicVolume`, `ui:musicMuted`). Removed duplicate Music button from the right-side game panel. Verified by `test/bgm.api.safe.test.js` and manual checks; no console errors.
+
+- [DONE] SFX controls & audio consolidation (remove global Sound toggle)
+  - Acceptance: SFX has Enable (mute toggle) and Volume slider (0–100%) in the overlay Audio section; persisted via `ui:sfxMuted` and `ui:sfxVolume`. Global Sound toggle removed from UI and app state; audio engine is always enabled, while Music/SFX paths are controlled independently. Right-side game panel has no audio controls. Tests remain green (1 skipped).
 - FPS cap/control in settings
   - Acceptance: Cap reduces render/update cadence while physics stays stable; can be disabled; simple metric/log confirms rate.
 - Organize overlays/panels
@@ -56,6 +59,7 @@
   - Acceptance: `test/wasd.gauntlet.movement.test.js` runs reliably in CI, asserting: D accelerates right (velX > 0), A accelerates left (velX < 0), A+D held is neutral (no new updates). Uses deterministic RAF/time mocking and avoids flakiness.
 
 - Add resolution media query listener for DPR-only changes (low priority)
+
   - Acceptance: Canvas re-scales when devicePixelRatio changes without a window resize (e.g., monitor move/zoom). Implement via matchMedia resolution listeners or equivalent; manual steps documented.
 
 - [DONE] Remove duplicate Music control from game panel
@@ -100,3 +104,8 @@ UX Polish
 - Overlays: organize z-index/layers and keyboard navigation for panels/overlays; verify mobile layout.
 - Welcome/Intro: refine first-run experience in `IntroOverlay.jsx` (labels/contrast/focus behavior) and persist dismissal.
 - Cleanup: confirm whether `ColorSchemeManager.jsx` and `PhysicsSettingsManager.jsx` are still in active use; if not, remove plus update imports.
+
+Additional nice-to-haves (Audio)
+
+- Add a tiny unit test to assert SFX mute/volume gating for `blip`/`noiseHit` in `utils/sound.js`.
+- Migrate/clean legacy localStorage key `ui:soundOn` (optional) and note in README.

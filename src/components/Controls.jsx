@@ -12,13 +12,16 @@ function Controls({
     levelMode,
     toggleLevelMode,
     onResetToDefaults,
-    soundOn,
     musicOn,
     musicVolume,
     musicMuted,
     onMusicVolumeChange,
     onToggleMusicMute,
     onToggleMusicOn,
+    sfxVolume,
+    sfxMuted,
+    onSfxVolumeChange,
+    onToggleSfxMute,
 }) {
     // Persisted resizable width for the controls panel
     const LS_KEY_PANEL_WIDTH = 'ui:controlsPanelWidth';
@@ -457,30 +460,45 @@ function Controls({
                                 type="checkbox"
                                 checked={!!musicOn}
                                 onChange={onToggleMusicOn}
-                                disabled={!soundOn}
                             />{' '}
                             Enable Music
                         </label>
                     </div>
                     <Slider
-                        label={`Music Volume ${!soundOn ? '(Sound Off)' : ''}`}
+                        label={`Music Volume`}
                         min={0}
                         max={0.5}
                         step={0.01}
                         value={musicVolume}
                         onChange={(e) => onMusicVolumeChange(parseFloat(e.target.value))}
-                        disabled={!soundOn || !musicOn}
+                        disabled={!musicOn}
                         displayValue={`${Math.round((musicVolume || 0) * 100)}%`}
                     />
                     <div className="control-group" style={{ marginTop: 6 }}>
                         <button
                             onClick={onToggleMusicMute}
-                            disabled={!soundOn || !musicOn}
-                            title={!soundOn ? 'Enable Sound to control music' : (!musicOn ? 'Enable Music to control volume' : (musicMuted ? 'Unmute music' : 'Mute music'))}
+                            disabled={!musicOn}
+                            title={!musicOn ? 'Enable Music to control volume' : (musicMuted ? 'Unmute music' : 'Mute music')}
                         >
                             {musicMuted ? 'Unmute Music' : 'Mute Music'}
                         </button>
                     </div>
+                    <hr style={{ margin: '10px 0', opacity: 0.2 }} />
+                    <div className="control-group" style={{ marginBottom: 6 }}>
+                        <label>
+                            <input type="checkbox" checked={!sfxMuted} onChange={onToggleSfxMute} /> Enable SFX
+                        </label>
+                    </div>
+                    <Slider
+                        label={`SFX Volume`}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={sfxVolume}
+                        onChange={(e) => onSfxVolumeChange(parseFloat(e.target.value))}
+                        disabled={sfxMuted}
+                        displayValue={`${Math.round((sfxVolume || 0) * 100)}%`}
+                    />
                 </div>
             </details>
 

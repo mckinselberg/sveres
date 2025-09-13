@@ -3,8 +3,6 @@ export default function GameControlsPanel({
   levelMode,
   wasdEnabled,
   onToggleWasd,
-  soundOn,
-  onToggleSound,
   onResetGauntlet,
   onShowInstructions,
   onJump,
@@ -33,15 +31,6 @@ export default function GameControlsPanel({
             title="Toggle WASD input"
           >
             {wasdEnabled ? 'WASD: On' : 'WASD: Off'}
-          </button>
-          <button
-            data-refocus-canvas="true"
-            className="gauntlet-wasd-toggle"
-            onClick={onToggleSound}
-            aria-label="Toggle Sound"
-            title="Toggle Sound"
-          >
-            {soundOn ? 'Sound: On' : 'Sound: Off'}
           </button>
         </div>
       )}

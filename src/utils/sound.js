@@ -9,6 +9,8 @@ const Sound = (() => {
       : Date.now();
   let ctx = null;
   let enabled = true;
+  let sfxMuted = false;
+  let sfxVolume = 0.25; // 0..1 linear, applied as gain multiplier on SFX
   let lastPlayAt = 0;
   let confirmedOnce = false;
 
@@ -74,13 +76,17 @@ const Sound = (() => {
   function setEnabled(v) {
     enabled = !!v;
   }
+  function setSfxMuted(v) { sfxMuted = !!v; }
+  function setSfxVolume(v) { sfxVolume = Math.max(0, Math.min(1, Number(v))); }
+  function getSfxMuted() { return !!sfxMuted; }
+  function getSfxVolume() { return sfxVolume; }
   function isEnabled() {
     return !!enabled;
   }
 
   // Simple percussive note
   function blip({ freq = 440, dur = 0.08, type = 'sine', gain = 0.08, pan = 0 }) {
-    if (!enabled) return;
+    if (!enabled || sfxMuted) return;
     const c = ensureContext();
     if (!c) return;
     if (c.state !== 'running') {
@@ -96,7 +102,8 @@ const Sound = (() => {
     osc.type = type;
     osc.frequency.value = freq;
     g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+  const finalGain = Math.max(0, gain * sfxVolume);
+  g.gain.exponentialRampToValueAtTime(finalGain, now + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
     if (p) {
@@ -115,7 +122,7 @@ const Sound = (() => {
 
   // White noise hit for rough impacts
   function noiseHit({ dur = 0.05, gain = 0.06 }) {
-    if (!enabled) return;
+    if (!enabled || sfxMuted) return;
     const c = ensureContext();
     if (!c) return;
     if (c.state !== 'running') {
@@ -131,7 +138,7 @@ const Sound = (() => {
     const src = c.createBufferSource();
     src.buffer = buffer;
     const g = c.createGain();
-    g.gain.setValueAtTime(gain, c.currentTime);
+  g.gain.setValueAtTime(Math.max(0, gain * sfxVolume), c.currentTime);
     g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
 
     src.connect(g);
@@ -325,6 +332,10 @@ const Sound = (() => {
   return {
     init,
     setEnabled,
+  setSfxMuted,
+  setSfxVolume,
+  getSfxMuted,
+  getSfxVolume,
     isEnabled,
     playCollision,
     playWall,

@@ -34,6 +34,8 @@ const LS_KEYS = {
     musicOn: 'ui:musicOn',
     musicVolume: 'ui:musicVolume',
     musicMuted: 'ui:musicMuted',
+    sfxVolume: 'ui:sfxVolume',
+    sfxMuted: 'ui:sfxMuted',
 };
 
 function loadJSON(key, fallback) {
@@ -106,9 +108,6 @@ function App() {
     const [showImportModal, setShowImportModal] = useState(false);
     const [importText, setImportText] = useState('');
     const [importError, setImportError] = useState('');
-    const [soundOn, setSoundOn] = useState(() => {
-        try { const raw = localStorage.getItem('ui:soundOn'); if (raw == null) return true; return JSON.parse(raw); } catch { return true; }
-    });
     const [musicOn, setMusicOn] = useState(() => {
         try {
             const raw = localStorage.getItem(LS_KEYS.musicOn);
@@ -123,6 +122,14 @@ function App() {
     });
     const [musicMuted, setMusicMuted] = useState(() => {
         try { const raw = localStorage.getItem(LS_KEYS.musicMuted); if (raw != null) return JSON.parse(raw); } catch {}
+        return false;
+    });
+    const [sfxVolume, setSfxVolume] = useState(() => {
+        try { const raw = localStorage.getItem(LS_KEYS.sfxVolume); if (raw != null) return JSON.parse(raw); } catch {}
+        return 0.25;
+    });
+    const [sfxMuted, setSfxMuted] = useState(() => {
+        try { const raw = localStorage.getItem(LS_KEYS.sfxMuted); if (raw != null) return JSON.parse(raw); } catch {}
         return false;
     });
     // Subtle gear pulse when controls are hidden and user idle
@@ -184,17 +191,10 @@ function App() {
             }
         }
     }, [showControls, scheduleGearPulse]);
+    // Always enable sound engine; manage music/SFX via their own controls
     useEffect(() => {
-        Sound.setEnabled(soundOn);
-        try { localStorage.setItem('ui:soundOn', JSON.stringify(soundOn)); } catch {}
-        // If sound is globally off, ensure bgm is stopped; if on and music is preferred, (re)start bgm
-    if (!soundOn) {
-            Sound.stopBgm();
-    } else if (musicOn) {
-        const effectiveVol = musicMuted ? 0 : musicVolume;
-        Sound.startBgm({ volume: effectiveVol });
-        }
-    }, [soundOn, musicOn, musicVolume, musicMuted]);
+        Sound.setEnabled(true);
+    }, []);
 
     // Background music lifecycle: start/stop and persist preference
     useEffect(() => {
@@ -221,6 +221,16 @@ function App() {
         const effectiveVol = musicMuted ? 0 : musicVolume;
         Sound.setBgmVolume(effectiveVol);
     }, [musicMuted, musicVolume]);
+
+    // Persist and apply SFX prefs
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.sfxMuted, JSON.stringify(sfxMuted)); } catch {}
+        Sound.setSfxMuted(sfxMuted);
+    }, [sfxMuted]);
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.sfxVolume, JSON.stringify(sfxVolume)); } catch {}
+        Sound.setSfxVolume(sfxVolume);
+    }, [sfxVolume]);
     const handleJump = useCallback(() => {
         if (isGameOver) return;
         canvasRef.current?.jumpPlayer?.();
@@ -742,8 +752,6 @@ function App() {
                 levelMode={levelMode}
                 wasdEnabled={wasdEnabled}
                 onToggleWasd={() => setWasdEnabled(v => !v)}
-                soundOn={soundOn}
-                onToggleSound={() => setSoundOn(v => !v)}
                 onResetGauntlet={handleResetGauntlet}
                 onShowInstructions={() => setShowGauntletHelp(true)}
                 onJump={handleJump}
@@ -850,13 +858,16 @@ function App() {
                     levelMode={levelMode}
                     toggleLevelMode={toggleLevelMode}
                     onResetToDefaults={handleResetToDefaults}
-                    soundOn={soundOn}
                     musicOn={musicOn}
                     musicVolume={musicVolume}
                     musicMuted={musicMuted}
                     onMusicVolumeChange={setMusicVolume}
                     onToggleMusicMute={() => setMusicMuted((m) => !m)}
                     onToggleMusicOn={() => setMusicOn((on) => !on)}
+                    sfxVolume={sfxVolume}
+                    sfxMuted={sfxMuted}
+                    onSfxVolumeChange={setSfxVolume}
+                    onToggleSfxMute={() => setSfxMuted((m) => !m)}
                 />
             )}
             <SelectedBallControls
