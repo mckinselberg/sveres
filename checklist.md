@@ -66,7 +66,11 @@
 - [DONE] Remove duplicate Music control from game panel
   - Acceptance: The Music toggle is removed from `GameControlsPanel`; music controls exist only in overlay `Controls` under Audio section. No broken props.
 
-Game Polish
+## a11y polish
+
+- We don’t flip aria-hidden on the app root; current focus trap role/aria-modal is sufficient. If you want, I can add aria-hidden="true" to the app container when any overlay/modal is open.
+
+## Game Polish
 
 - update instructions for gauntlet mode
 - rename Gravity Gauntlet mode to Gauntlet mode
@@ -112,7 +116,22 @@ Additional nice-to-haves (Audio)
 - [DONE] Add a tiny unit test to assert SFX mute/volume gating for `blip`/`noiseHit` in `utils/sound.js`.
 - [DONE] Migrate/clean legacy localStorage key `ui:soundOn` (optional) and note in README.
 
+## Music Enhancements
+
+- enable ability to start multiple bgm tracks
+- dynamic BGM intensity (react to game state via filters/volume; e.g., hazards, near-misses)
+- pause/resume smoothing (short fades and subtle filter sweeps to avoid abrupt transitions)
+- per-level themes/playlist with crossfade on level switch
+- volume ducking when important SFX play (win/lose, hazard impact)
+- music hotkeys and hints (mute/volume shortcuts, overlay tooltip hints)
+
 ## Game Levels
 
 - bullet hell - last 1 minute in bullet hell to proceed
 - slam - destroy the target balls by using the slam (down arrow) to attack them
+
+## Let's come back to this
+
+Add a tiny helper to toggle aria-hidden on the main app while any dialog is open (optional).
+Do a quick manual check on mobile (Chrome dev tools emulator) for tab order and dismissal affordances.
+Move on to the WASD test stabilization once you’re satisfied with overlays.
