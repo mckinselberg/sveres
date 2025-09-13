@@ -18,6 +18,16 @@ function Controls({
     musicVolume,
     onMusicVolumeChange,
     onToggleMusicOn,
+    bgmTracks,
+    onAddBgmTrack,
+    onRemoveBgmTrack,
+    onToggleBgmTrack,
+    bgmSongs,
+    selectedBgmSong,
+    onSaveBgmSong,
+    onLoadBgmSong,
+    onDeleteBgmSong,
+    onSelectBgmSong,
     sfxVolume,
     sfxMuted,
     onSfxVolumeChange,
@@ -510,6 +520,89 @@ function Controls({
                             />{' '}
                             Enable Music
                         </label>
+                    </div>
+                    {/* Multi-BGM controls */}
+                    <div className="control-group" style={{ display: 'grid', gap: 6, marginBottom: 6 }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+                            <strong>BGM Tracks</strong>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                <button
+                                    type="button"
+                                    onClick={onAddBgmTrack}
+                                    disabled={!musicOn || (Array.isArray(bgmTracks) && bgmTracks.length >= 10)}
+                                    title="Add a BGM track (max 10)"
+                                >Add Track</button>
+                                <button
+                                    type="button"
+                                    onClick={onRemoveBgmTrack}
+                                    disabled={!musicOn || !Array.isArray(bgmTracks) || bgmTracks.length <= 0}
+                                    title="Remove the last BGM track"
+                                >Remove Track</button>
+                            </div>
+                        </div>
+                        {Array.isArray(bgmTracks) && bgmTracks.length > 0 ? (
+                            <div style={{ display: 'grid', gap: 4 }}>
+                                {bgmTracks.map((on, id) => (
+                                    <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={!!on}
+                                            disabled={!musicOn}
+                                            onChange={() => onToggleBgmTrack(id)}
+                                        />
+                                        Track {id + 1}
+                                    </label>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: 12, opacity: 0.8 }}>No tracks configured.</div>
+                        )}
+                    </div>
+                    {/* Songs persistence */}
+                    <div className="control-group" style={{ display: 'grid', gap: 6, marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input
+                                type="text"
+                                placeholder="Song name"
+                                value={selectedBgmSong || ''}
+                                onChange={(e) => onSelectBgmSong(e.target.value)}
+                                style={{ flex: 1 }}
+                                disabled={!musicOn}
+                                aria-label="Song name"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => onSaveBgmSong(selectedBgmSong)}
+                                disabled={!musicOn || !(selectedBgmSong || '').trim()}
+                                title="Save current tracks as song"
+                            >Save</button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <select
+                                value={(selectedBgmSong && bgmSongs && bgmSongs[selectedBgmSong]) ? selectedBgmSong : ''}
+                                onChange={(e) => onSelectBgmSong(e.target.value)}
+                                style={{ flex: 1 }}
+                                disabled={!musicOn || !bgmSongs || Object.keys(bgmSongs).length === 0}
+                                aria-label="Saved songs"
+                            >
+                                <option value="">Select saved song…</option>
+                                {bgmSongs && Object.keys(bgmSongs).sort().map((name) => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
+                            </select>
+                            <button
+                                type="button"
+                                onClick={() => onLoadBgmSong(selectedBgmSong)}
+                                disabled={!musicOn || !selectedBgmSong || !bgmSongs || !bgmSongs[selectedBgmSong]}
+                                title="Load selected song"
+                            >Load</button>
+                            <button
+                                type="button"
+                                onClick={() => onDeleteBgmSong(selectedBgmSong)}
+                                disabled={!selectedBgmSong || !bgmSongs || !bgmSongs[selectedBgmSong]}
+                                title="Delete selected song"
+                            >Delete</button>
+                        </div>
                     </div>
                     <Slider
                         label={`Music Volume`}

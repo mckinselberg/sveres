@@ -14,18 +14,30 @@ const Sound = (() => {
   let lastPlayAt = 0;
   let confirmedOnce = false;
 
-  // Background music state
-  const bgm = {
-    playing: false,
-    timerId: null,
-    nextNoteTime: 0,
-    tempo: 92,
-    step: 0,
-    gainNode: null,
-    filterNode: null,
-    wantAutostart: false,
-    desiredVolume: 0.06,
-  };
+  // Background music tracks (multi-instance)
+  // Track IDs are numeric; 0 is the default/back-compat track
+  const bgmTracks = new Map();
+  function getTrack(id = 0) {
+    const key = Number(id) || 0;
+    let t = bgmTracks.get(key);
+    if (!t) {
+      t = {
+        id: key,
+        playing: false,
+        timerId: null,
+        nextNoteTime: 0,
+        tempo: 92,
+        step: 0,
+        gainNode: null,
+        filterNode: null,
+        wantAutostart: false,
+        desiredVolume: 0.06,
+        seed: key % 16, // small variation per track
+      };
+      bgmTracks.set(key, t);
+    }
+    return t;
+  }
 
   function ensureContext() {
     if (!hasWindow) return null;
@@ -51,12 +63,15 @@ const Sound = (() => {
           } catch {}
           confirmedOnce = true;
         }
-        // Autostart bgm if requested
-        if (bgm.wantAutostart && !bgm.playing) {
-          try {
-            startBgm();
-          } catch {}
-        }
+        // Autostart any tracks that requested it
+        try {
+          bgmTracks.forEach((t) => {
+            if (t && t.wantAutostart && !t.playing) {
+              try { startBgm(t.id, { volume: t.desiredVolume }); } catch {}
+            }
+            if (t) t.wantAutostart = false;
+          });
+        } catch {}
         window.removeEventListener('pointerdown', resume);
         window.removeEventListener('mousedown', resume);
         window.removeEventListener('click', resume);
@@ -203,7 +218,7 @@ const Sound = (() => {
   }
 
   // --- Background music (simple generative loop) ---
-  function scheduleBgmNoteAt(time, freq, dur = 0.24, gain = 0.025) {
+  function scheduleBgmNoteAt(track, time, freq, dur = 0.24, gain = 0.025) {
     const c = ctx;
     if (!c) return;
     const osc = c.createOscillator();
@@ -215,10 +230,10 @@ const Sound = (() => {
     g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
     osc.connect(g);
     // route through filter then bgm gain -> destination
-    if (bgm.filterNode) {
-      g.connect(bgm.filterNode);
-    } else if (bgm.gainNode) {
-      g.connect(bgm.gainNode);
+    if (track.filterNode) {
+      g.connect(track.filterNode);
+    } else if (track.gainNode) {
+      g.connect(track.gainNode);
     } else {
       g.connect(c.destination);
     }
@@ -238,96 +253,140 @@ const Sound = (() => {
     return base * octave;
   }
 
-  function startBgm(options = {}) {
+  function startBgm(idOrOptions, maybeOptions) {
+    // Back-compat: startBgm(options)
+    let id = 0;
+    let options = {};
+    if (typeof idOrOptions === 'object' && idOrOptions !== null) {
+      options = idOrOptions;
+    } else {
+      id = Number(idOrOptions) || 0;
+      options = maybeOptions || {};
+    }
     if (!enabled) return false;
     const c = ensureContext();
     if (!c) {
       return false;
     }
-    if (bgm.playing) return true;
+    const track = getTrack(id);
+    if (track.playing) return true;
     if (c.state !== 'running') {
       // Defer until user gesture resumes audio; set a one-off autostart flag
-      bgm.wantAutostart = true;
+      track.wantAutostart = true;
       resumeOnGestureOnce();
       return false;
     }
-    bgm.wantAutostart = false;
+    track.wantAutostart = false;
     // Create a bgm master gain and soft LPF for warmth
-    bgm.gainNode = c.createGain();
+    track.gainNode = c.createGain();
     const vol = Math.max(
       0.0,
-      Math.min(0.5, options.volume ?? bgm.desiredVolume ?? 0.06)
+      Math.min(0.5, options.volume ?? track.desiredVolume ?? 0.06)
     );
-    bgm.desiredVolume = vol;
-    bgm.gainNode.gain.value = vol;
+    track.desiredVolume = vol;
+    track.gainNode.gain.value = vol;
     try {
-      bgm.filterNode = c.createBiquadFilter();
-      bgm.filterNode.type = 'lowpass';
-      bgm.filterNode.frequency.setValueAtTime(1600, c.currentTime);
-      bgm.filterNode.Q.value = 0.3;
-      bgm.filterNode.connect(bgm.gainNode);
+      track.filterNode = c.createBiquadFilter();
+      track.filterNode.type = 'lowpass';
+      track.filterNode.frequency.setValueAtTime(1600, c.currentTime);
+      track.filterNode.Q.value = 0.3;
+      track.filterNode.connect(track.gainNode);
     } catch {
-      bgm.filterNode = null;
+      track.filterNode = null;
     }
-    bgm.gainNode.connect(c.destination);
-    bgm.tempo = Math.max(60, Math.min(140, options.tempo ?? bgm.tempo));
-    bgm.step = 0;
-    bgm.nextNoteTime = c.currentTime + 0.05;
-    const secondsPerBeat = 60.0 / bgm.tempo; // quarter
+    track.gainNode.connect(c.destination);
+    track.tempo = Math.max(60, Math.min(140, options.tempo ?? track.tempo));
+    track.step = track.seed || 0;
+    track.nextNoteTime = c.currentTime + 0.05;
+  const secondsPerBeat = 60.0 / track.tempo; // quarter
     const scheduleAheadTime = 0.12;
     const lookaheadMs = 25;
-    bgm.playing = true;
-    bgm.timerId = window.setInterval(() => {
+    track.playing = true;
+    track.timerId = window.setInterval(() => {
       // Schedule notes slightly ahead
-      while (c.currentTime + scheduleAheadTime >= bgm.nextNoteTime) {
-        const freq = bgmFreqForStep(bgm.step);
+      while (c.currentTime + scheduleAheadTime >= track.nextNoteTime) {
+        const freq = bgmFreqForStep(track.step);
         // light syncopation: every other step longer
-        const dur = bgm.step % 2 === 0 ? 0.26 : 0.18;
+        const dur = track.step % 2 === 0 ? 0.26 : 0.18;
         scheduleBgmNoteAt(
-          bgm.nextNoteTime,
+          track,
+          track.nextNoteTime,
           freq,
           dur,
           options.noteGain ?? 0.025
         );
-        bgm.nextNoteTime += secondsPerBeat / 2; // 8th notes
-        bgm.step = (bgm.step + 1) % 64;
+        track.nextNoteTime += secondsPerBeat / 2; // 8th notes
+        track.step = (track.step + 1) % 64;
       }
     }, lookaheadMs);
     return true;
   }
 
-  function stopBgm() {
-    bgm.wantAutostart = false;
-    if (bgm.timerId != null) {
+  function stopBgm(id = 0) {
+    const track = getTrack(id);
+    track.wantAutostart = false;
+    if (track.timerId != null) {
       try {
-        clearInterval(bgm.timerId);
+        clearInterval(track.timerId);
       } catch {}
-      bgm.timerId = null;
+      track.timerId = null;
     }
     try {
-      if (bgm.filterNode) bgm.filterNode.disconnect();
+      if (track.filterNode) track.filterNode.disconnect();
     } catch {}
     try {
-      if (bgm.gainNode) bgm.gainNode.disconnect();
+      if (track.gainNode) track.gainNode.disconnect();
     } catch {}
-    bgm.filterNode = null;
-    bgm.gainNode = null;
-    bgm.playing = false;
+    track.filterNode = null;
+    track.gainNode = null;
+    track.playing = false;
   }
 
-  function isBgmPlaying() {
-    return !!bgm.playing;
+  function stopAllBgm() {
+    try {
+      bgmTracks.forEach((t) => {
+        try { stopBgm(t.id); } catch {}
+      });
+    } catch {}
   }
 
-  function setBgmVolume(volume) {
+  function isBgmPlaying(id = 0) {
+    const track = getTrack(id);
+    return !!track.playing;
+  }
+
+  function setBgmVolume(idOrVolume, maybeVolume) {
+    // Back-compat: setBgmVolume(volume) -> track 0
+    let id = 0;
+    let volume = 0;
+    if (typeof idOrVolume === 'number' && typeof maybeVolume === 'number') {
+      id = Number(idOrVolume) || 0;
+      volume = maybeVolume;
+    } else {
+      volume = Number(idOrVolume);
+    }
     const vol = Math.max(0, Math.min(0.5, Number(volume)));
-    bgm.desiredVolume = vol;
-    if (bgm.gainNode) {
+    const track = getTrack(id);
+    track.desiredVolume = vol;
+    if (track.gainNode) {
       try {
-        bgm.gainNode.gain.value = vol;
+        track.gainNode.gain.value = vol;
       } catch {}
     }
   }
+
+  function getBgmTracks() {
+    return Array.from(bgmTracks.values()).map(t => ({ id: t.id, playing: !!t.playing, volume: t.desiredVolume }));
+  }
+
+  // HMR safety: stop any running intervals/nodes on module dispose to prevent duplicates
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.hot && typeof window !== 'undefined') {
+      import.meta.hot.dispose(() => {
+        try { stopAllBgm(); } catch {}
+      });
+    }
+  } catch {}
 
   return {
     init,
@@ -346,8 +405,10 @@ const Sound = (() => {
     playPop,
     startBgm,
     stopBgm,
+    stopAllBgm,
     isBgmPlaying,
     setBgmVolume,
+    getBgmTracks,
   };
 })();
 
