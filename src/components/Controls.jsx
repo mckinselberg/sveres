@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import Slider from './Slider.jsx';
 import { usePersistentDetails } from '../hooks/usePersistentDetails.js';
 import { beginUiDrag, endUiDrag } from '../utils/dom.js';
+import Sound from '../utils/sound';
 
 function Controls({
     physicsSettings,
@@ -30,11 +31,37 @@ function Controls({
     onLoadBgmSong,
     onDeleteBgmSong,
     onSelectBgmSong,
+    onMuteAllBgmTracks,
+    onUnmuteAllBgmTracks,
     sfxVolume,
     sfxMuted,
     onSfxVolumeChange,
     onToggleSfxMute,
 }) {
+    // Lightweight playing-state poller for BGM tracks
+    const [bgmPlayingStates, setBgmPlayingStates] = useState([]);
+    useEffect(() => {
+        let intervalId = null;
+        const update = () => {
+            try {
+                if (!musicOn || !Array.isArray(bgmTracks) || bgmTracks.length === 0) {
+                    setBgmPlayingStates([]);
+                    return;
+                }
+                const next = bgmTracks.map((_, id) => {
+                    try { return !!Sound.isBgmPlaying(id); } catch { return false; }
+                });
+                setBgmPlayingStates(next);
+            } catch {
+                setBgmPlayingStates([]);
+            }
+        };
+        update();
+        intervalId = window.setInterval(update, 450);
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [musicOn, bgmTracks]);
     // Persisted resizable width for the controls panel
     const LS_KEY_PANEL_WIDTH = 'ui:controlsPanelWidth';
     const readSavedWidth = () => {
@@ -532,14 +559,34 @@ function Controls({
                                     type="button"
                                     onClick={onAddBgmTrack}
                                     disabled={!musicOn || (Array.isArray(bgmTracks) && bgmTracks.length >= 10)}
-                                    title="Add a BGM track (max 10)"
-                                >Add Track</button>
+                                    title="Add track"
+                                    aria-label="Add BGM track"
+                                    style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                >➕</button>
                                 <button
                                     type="button"
                                     onClick={onRemoveBgmTrack}
                                     disabled={!musicOn || !Array.isArray(bgmTracks) || bgmTracks.length <= 0}
-                                    title="Remove the last BGM track"
-                                >Remove Track</button>
+                                    title="Remove track"
+                                    aria-label="Remove BGM track"
+                                    style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                >➖</button>
+                                <button
+                                    type="button"
+                                    onClick={onMuteAllBgmTracks}
+                                    disabled={!musicOn || !Array.isArray(bgmTracks) || bgmTracks.length === 0}
+                                    title="Mute all tracks"
+                                    aria-label="Mute all BGM tracks"
+                                    style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                >🔇</button>
+                                <button
+                                    type="button"
+                                    onClick={onUnmuteAllBgmTracks}
+                                    disabled={!musicOn || !Array.isArray(bgmTracks) || bgmTracks.length === 0}
+                                    title="Unmute all tracks"
+                                    aria-label="Unmute all BGM tracks"
+                                    style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                >🔊</button>
                             </div>
                         </div>
                         {Array.isArray(bgmTracks) && bgmTracks.length > 0 ? (
@@ -553,7 +600,21 @@ function Controls({
                                                 disabled={!musicOn}
                                                 onChange={() => onToggleBgmTrack(id)}
                                             />
-                                            Track {id + 1}
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                                <span
+                                                    aria-label={bgmPlayingStates?.[id] ? 'Playing' : 'Stopped'}
+                                                    title={bgmPlayingStates?.[id] ? 'Playing' : 'Stopped'}
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        width: 8,
+                                                        height: 8,
+                                                        borderRadius: 6,
+                                                        background: bgmPlayingStates?.[id] ? '#3ddc84' : 'rgba(255,255,255,0.25)',
+                                                        boxShadow: bgmPlayingStates?.[id] ? '0 0 6px rgba(61,220,132,0.9)' : 'none',
+                                                    }}
+                                                />
+                                                Track {id + 1}
+                                            </span>
                                         </label>
                                         <input
                                             type="range"
@@ -565,7 +626,7 @@ function Controls({
                                             disabled={!musicOn}
                                             aria-label={`Track ${id + 1} gain`}
                                         />
-                                        <span style={{ fontSize: 12, opacity: 0.8, width: 36, textAlign: 'right' }}>
+                                        <span style={{ fontSize: 12, opacity: 0.8, width: 44, textAlign: 'right', whiteSpace: 'nowrap' }}>
                                             {Math.round(((bgmTrackGains?.[id] ?? 1) * 100))}%
                                         </span>
                                     </div>

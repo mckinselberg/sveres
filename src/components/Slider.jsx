@@ -45,7 +45,7 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
 
     const draggingRef = useRef(false);
     return (
-        <div className="control-group">
+        <div className="control-group" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 8 }}>
             <label>{label}:</label>
             <input
                 type="range"
@@ -73,7 +73,7 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
                     });
                 }}
             />
-            <span>{cleanedDisplay}</span>
+            <span style={{ fontSize: 12, opacity: 0.8, minWidth: 48, textAlign: 'right', whiteSpace: 'nowrap' }}>{cleanedDisplay}</span>
         </div>
     );
 }
