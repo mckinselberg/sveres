@@ -407,6 +407,28 @@ function App() {
         try { Sound.setBgmVolume(id, baseVol * (Number(value) || 0)); } catch {}
     }, [bgmTracks.length, musicMuted, musicVolume]);
 
+    // Bulk controls: mute/unmute all BGM track gains
+    const muteAllBgmTracks = useCallback(() => {
+        setBgmTrackGains(() => {
+            const len = Math.min(10, Math.max(0, bgmTracks.length));
+            return Array.from({ length: len }, () => 0);
+        });
+        const baseVol = 0; // muting sets effective volume to zero
+        bgmTracks.forEach((on, id) => {
+            try { Sound.setBgmVolume(id, baseVol); } catch {}
+        });
+    }, [bgmTracks]);
+    const unmuteAllBgmTracks = useCallback(() => {
+        setBgmTrackGains(() => {
+            const len = Math.min(10, Math.max(0, bgmTracks.length));
+            return Array.from({ length: len }, () => 1);
+        });
+        const baseVol = musicMuted ? 0 : musicVolume;
+        bgmTracks.forEach((on, id) => {
+            try { Sound.setBgmVolume(id, baseVol * 1); } catch {}
+        });
+    }, [bgmTracks, musicMuted, musicVolume]);
+
     // Persist and apply SFX prefs
     useEffect(() => {
         try { localStorage.setItem(LS_KEYS.sfxMuted, JSON.stringify(sfxMuted)); } catch {}
@@ -1060,6 +1082,8 @@ function App() {
                     onLoadBgmSong={loadBgmSong}
                     onDeleteBgmSong={deleteBgmSong}
                     onSelectBgmSong={setSelectedBgmSong}
+                    onMuteAllBgmTracks={muteAllBgmTracks}
+                    onUnmuteAllBgmTracks={unmuteAllBgmTracks}
                     sfxVolume={sfxVolume}
                     sfxMuted={sfxMuted}
                     onSfxVolumeChange={setSfxVolume}
