@@ -40,6 +40,7 @@ const LS_KEYS = {
     bgmTracks: 'ui:bgmTracks',
     bgmSongs: 'ui:bgmSongs',
     bgmSelectedSong: 'ui:bgmSelectedSong',
+    bgmTrackGains: 'ui:bgmTrackGains',
 };
 
 function loadJSON(key, fallback) {
@@ -165,6 +166,22 @@ function App() {
         // Default to one logical track present but not necessarily playing; align with musicOn
         return [true];
     });
+    // Per-track gains (0..1), multiplied by global musicVolume (0..0.5)
+    const [bgmTrackGains, setBgmTrackGains] = useState(() => {
+        try {
+            const raw = localStorage.getItem(LS_KEYS.bgmTrackGains);
+            if (raw != null) {
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) {
+                    return arr.slice(0, 10).map(v => {
+                        const n = Number(v);
+                        return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 1;
+                    });
+                }
+            }
+        } catch {}
+        return [];
+    });
     const [sfxVolume, setSfxVolume] = useState(() => {
         try { const raw = localStorage.getItem(LS_KEYS.sfxVolume); if (raw != null) return JSON.parse(raw); } catch {}
         return 0.25;
@@ -249,43 +266,56 @@ function App() {
     // Background music lifecycle: start/stop and persist preference
     useEffect(() => {
         try { localStorage.setItem(LS_KEYS.musicOn, JSON.stringify(musicOn)); } catch {}
-        const effectiveVol = musicMuted ? 0 : musicVolume;
+        const baseVol = musicMuted ? 0 : musicVolume;
         // For each track id, start/stop depending on global musicOn and per-track toggle
         if (!musicOn) {
             try { Sound.stopAllBgm(); } catch {}
         } else {
             bgmTracks.forEach((on, id) => {
                 if (on) {
-                    Sound.startBgm(id, { volume: effectiveVol });
+                    const trackVol = baseVol * (bgmTrackGains[id] ?? 1);
+                    Sound.startBgm(id, { volume: trackVol });
                 } else {
                     Sound.stopBgm(id);
                 }
             });
         }
-    }, [musicOn, musicVolume, musicMuted, bgmTracks]);
+    }, [musicOn, musicVolume, musicMuted, bgmTracks, bgmTrackGains]);
 
     // Persist and apply runtime BGM volume changes (all tracks)
     useEffect(() => {
         try { localStorage.setItem(LS_KEYS.musicVolume, JSON.stringify(musicVolume)); } catch {}
-        const effectiveVol = musicMuted ? 0 : musicVolume;
+        const baseVol = musicMuted ? 0 : musicVolume;
         bgmTracks.forEach((on, id) => {
-            // Apply volume on each track regardless of playing state; Sound will latch desiredVolume
-            Sound.setBgmVolume(id, effectiveVol);
+            const trackVol = baseVol * (bgmTrackGains[id] ?? 1);
+            Sound.setBgmVolume(id, trackVol);
         });
-    }, [musicVolume, musicMuted, bgmTracks]);
+    }, [musicVolume, musicMuted, bgmTracks, bgmTrackGains]);
 
     // Persist music mute preference
     useEffect(() => {
         try { localStorage.setItem(LS_KEYS.musicMuted, JSON.stringify(musicMuted)); } catch {}
-        const effectiveVol = musicMuted ? 0 : musicVolume;
+        const baseVol = musicMuted ? 0 : musicVolume;
         bgmTracks.forEach((on, id) => {
-            Sound.setBgmVolume(id, effectiveVol);
+            const trackVol = baseVol * (bgmTrackGains[id] ?? 1);
+            Sound.setBgmVolume(id, trackVol);
         });
-    }, [musicMuted, musicVolume, bgmTracks]);
+    }, [musicMuted, musicVolume, bgmTracks, bgmTrackGains]);
 
     // Persist BGM tracks
     useEffect(() => {
         try { localStorage.setItem(LS_KEYS.bgmTracks, JSON.stringify(bgmTracks)); } catch {}
+    }, [bgmTracks]);
+    // Persist per-track gains and align length with tracks
+    useEffect(() => {
+        try { localStorage.setItem(LS_KEYS.bgmTrackGains, JSON.stringify(bgmTrackGains)); } catch {}
+    }, [bgmTrackGains]);
+    useEffect(() => {
+        setBgmTrackGains(prev => {
+            let next = prev.slice(0, Math.min(10, bgmTracks.length));
+            while (next.length < bgmTracks.length && next.length < 10) next.push(1);
+            return next;
+        });
     }, [bgmTracks]);
 
     // Persist songs and selected song
@@ -333,6 +363,7 @@ function App() {
             // Default new track OFF; user can toggle per-track
             return [...prev, false];
         });
+        setBgmTrackGains(prev => (prev.length >= 10 ? prev : [...prev, 1]));
     }, []);
     const removeBgmTrack = useCallback(() => {
         setBgmTracks(prev => {
@@ -343,6 +374,7 @@ function App() {
             try { Sound.stopBgm(removedId); } catch {}
             return newArr;
         });
+        setBgmTrackGains(prev => (prev.length > 0 ? prev.slice(0, prev.length - 1) : prev));
     }, []);
     const toggleBgmTrack = useCallback((id) => {
         setBgmTracks(prev => {
@@ -350,15 +382,30 @@ function App() {
             const next = [...prev];
             next[id] = !next[id];
             // Immediate side-effect: start/stop this track according to global musicOn and new value
-            const effectiveVol = musicMuted ? 0 : musicVolume;
+            const baseVol = musicMuted ? 0 : musicVolume;
+            const gain = bgmTrackGains[id] ?? 1;
             if (musicOn && next[id]) {
-                try { Sound.startBgm(id, { volume: effectiveVol }); } catch {}
+                try { Sound.startBgm(id, { volume: baseVol * gain }); } catch {}
             } else {
                 try { Sound.stopBgm(id); } catch {}
             }
             return next;
         });
-    }, [musicOn, musicMuted, musicVolume]);
+    }, [musicOn, musicMuted, musicVolume, bgmTrackGains]);
+
+    const setBgmTrackGain = useCallback((id, value) => {
+        setBgmTrackGains(prev => {
+            const n = Number(value);
+            const clamped = Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 1;
+            if (id < 0 || id >= Math.max(prev.length, bgmTracks.length)) return prev;
+            const next = prev.slice();
+            while (next.length < bgmTracks.length) next.push(1);
+            next[id] = clamped;
+            return next;
+        });
+        const baseVol = musicMuted ? 0 : musicVolume;
+        try { Sound.setBgmVolume(id, baseVol * (Number(value) || 0)); } catch {}
+    }, [bgmTracks.length, musicMuted, musicVolume]);
 
     // Persist and apply SFX prefs
     useEffect(() => {
@@ -1005,6 +1052,8 @@ function App() {
                     onAddBgmTrack={addBgmTrack}
                     onRemoveBgmTrack={removeBgmTrack}
                     onToggleBgmTrack={toggleBgmTrack}
+                    bgmTrackGains={bgmTrackGains}
+                    onSetBgmTrackGain={setBgmTrackGain}
                     bgmSongs={bgmSongs}
                     selectedBgmSong={selectedBgmSong}
                     onSaveBgmSong={saveBgmSong}

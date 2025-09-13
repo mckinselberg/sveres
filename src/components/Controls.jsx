@@ -22,6 +22,8 @@ function Controls({
     onAddBgmTrack,
     onRemoveBgmTrack,
     onToggleBgmTrack,
+    bgmTrackGains,
+    onSetBgmTrackGain,
     bgmSongs,
     selectedBgmSong,
     onSaveBgmSong,
@@ -543,15 +545,30 @@ function Controls({
                         {Array.isArray(bgmTracks) && bgmTracks.length > 0 ? (
                             <div style={{ display: 'grid', gap: 4 }}>
                                 {bgmTracks.map((on, id) => (
-                                    <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div key={id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 8 }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={!!on}
+                                                disabled={!musicOn}
+                                                onChange={() => onToggleBgmTrack(id)}
+                                            />
+                                            Track {id + 1}
+                                        </label>
                                         <input
-                                            type="checkbox"
-                                            checked={!!on}
+                                            type="range"
+                                            min={0}
+                                            max={1}
+                                            step={0.01}
+                                            value={bgmTrackGains?.[id] ?? 1}
+                                            onChange={(e) => onSetBgmTrackGain(id, parseFloat(e.target.value))}
                                             disabled={!musicOn}
-                                            onChange={() => onToggleBgmTrack(id)}
+                                            aria-label={`Track ${id + 1} gain`}
                                         />
-                                        Track {id + 1}
-                                    </label>
+                                        <span style={{ fontSize: 12, opacity: 0.8, width: 36, textAlign: 'right' }}>
+                                            {Math.round(((bgmTrackGains?.[id] ?? 1) * 100))}%
+                                        </span>
+                                    </div>
                                 ))}
                             </div>
                         ) : (

@@ -124,6 +124,12 @@ Additional nice-to-haves (Audio)
 - per-level themes/playlist with crossfade on level switch
 - volume ducking when important SFX play (win/lose, hazard impact)
 - music hotkeys and hints (mute/volume shortcuts, overlay tooltip hints)
+- per-track gain sliders (implemented)
+- playing-state indicator per track (LED/dot animation)
+- “Save As…” to avoid overwriting the current song name
+- include tempo/noteGain per song if/when exposed
+- optional per-track pan for stereo width
+- quick “Mute All Tracks” button
 
 ## Game Levels
 
