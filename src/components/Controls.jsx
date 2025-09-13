@@ -187,15 +187,50 @@ function Controls({
                 <div className="section-body">
                     <div className="control-group">
                         <label>FPS Limit:</label>
-                        <select
-                            value={String(fpsLimit ?? 0)}
-                            onChange={(e) => onFpsLimitChange(parseInt(e.target.value, 10))}
-                        >
-                            <option value="0">Off (VSync)</option>
-                            <option value="30">30 FPS</option>
-                            <option value="60">60 FPS</option>
-                            <option value="120">120 FPS</option>
-                        </select>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            {(() => {
+                                const presets = new Set([0, 30, 60, 120]);
+                                const isPreset = presets.has(Number(fpsLimit || 0));
+                                const selectValue = isPreset ? String(fpsLimit || 0) : 'custom';
+                                return (
+                                    <>
+                                        <select
+                                            value={selectValue}
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                if (v === 'custom') { onFpsLimitChange(1); return; } // switch to custom with safe default
+                                                const n = parseInt(v, 10);
+                                                onFpsLimitChange(Number.isFinite(n) ? n : 0);
+                                            }}
+                                        >
+                                            <option value="0">Off (VSync)</option>
+                                            <option value="30">30 FPS</option>
+                                            <option value="60">60 FPS</option>
+                                            <option value="120">120 FPS</option>
+                                            <option value="custom">Custom…</option>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            min={1}
+                                            max={240}
+                                            step={1}
+                                            value={Number(fpsLimit || 0) > 0 ? String(fpsLimit) : ''}
+                                            onChange={(e) => {
+                                                const n = parseInt(e.target.value, 10);
+                                                if (!Number.isFinite(n)) return;
+                                                const clamped = Math.max(1, Math.min(240, n));
+                                                onFpsLimitChange(clamped);
+                                            }}
+                                            placeholder="Custom"
+                                            title="Custom FPS cap (1–240)"
+                                            style={{ width: 90 }}
+                                            disabled={selectValue !== 'custom'}
+                                        />
+                                    </>
+                                );
+                            })()}
+                        </div>
                     </div>
                     {!levelMode && (
                         <>

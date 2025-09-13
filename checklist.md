@@ -34,8 +34,8 @@
 
 - [DONE] SFX controls & audio consolidation (remove global Sound toggle)
   - Acceptance: SFX has Enable (mute toggle) and Volume slider (0–100%) in the overlay Audio section; persisted via `ui:sfxMuted` and `ui:sfxVolume`. Global Sound toggle removed from UI and app state; audio engine is always enabled, while Music/SFX paths are controlled independently. Right-side game panel has no audio controls. Tests remain green (1 skipped).
-- FPS cap/control in settings
-  - Acceptance: Cap reduces render/update cadence while physics stays stable; can be disabled; simple metric/log confirms rate.
+- [DONE] FPS cap/control in settings
+  - Acceptance: Cap reduces render/update cadence while physics stays stable; can be disabled; simple on-screen FPS badge confirms rate. Includes presets (Off/30/60/120) and a Custom numeric input (1–240). Persisted via `ui:fpsLimit`.
 - Organize overlays/panels
   - Acceptance: Z-index/layers correct; keyboard navigation works; no overlay blocks unintended clicks; mobile layout verified.
 
@@ -102,6 +102,7 @@ UX Polish
 - Audio: simple background loop with a persisted toggle; ensure autoplay policy compliance (start on user gesture).
   - [DONE] Replaced by completed Background music feature above (enable, volume, mute; autoplay-safe; persisted; consolidated controls).
 - FPS cap: add optional FPS limiter with clear on/off and a simple on-screen metric for verification.
+  - [DONE] Implemented with presets and custom input; overlay badge shows current FPS and cap.
 - Overlays: organize z-index/layers and keyboard navigation for panels/overlays; verify mobile layout.
 - Welcome/Intro: refine first-run experience in `IntroOverlay.jsx` (labels/contrast/focus behavior) and persist dismissal.
 - Cleanup: confirm whether `ColorSchemeManager.jsx` and `PhysicsSettingsManager.jsx` are still in active use; if not, remove plus update imports.
