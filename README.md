@@ -279,3 +279,11 @@ This project is open source. Please check the license file for details.
 ---
 
 _Built with passion for physics simulation and interactive web experiences._
+
+## Settings persistence and audio migration
+
+- Current UI/settings keys stored in localStorage:
+  - `ui:musicOn`, `ui:musicMuted`, `ui:musicVolume`
+  - `ui:sfxMuted`, `ui:sfxVolume`
+  - `ui:fpsLimit`
+- One-time migration: the legacy `ui:soundOn` key is removed on startup. If it was `false`, we default Music off (`ui:musicOn=false`) and SFX muted (`ui:sfxMuted=true`) to preserve prior intent, then delete `ui:soundOn`.

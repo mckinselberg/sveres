@@ -15,6 +15,19 @@ function IntroOverlay() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Handle Escape to dismiss when visible (unconditional hook; guarded by isVisible)
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key === 'Escape') dismiss();
+        };
+        if (isVisible) {
+            window.addEventListener('keydown', onKey);
+        }
+        return () => {
+            window.removeEventListener('keydown', onKey);
+        };
+    }, [isVisible]);
+
     const dismiss = () => {
         setIsVisible(false);
         try {
@@ -31,10 +44,13 @@ function IntroOverlay() {
     return (
         <div
             className="intro-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Welcome to Sveres"
             data-refocus-canvas="true"
             onClick={(e) => e.target.classList.contains('intro-overlay') && dismiss()}
         >
-            <div className="intro-card">
+            <div className="intro-card" role="document">
                 <h3>Welcome to Sveres</h3>
                 <p>Quick tips to get you started:</p>
                 <ul>
@@ -52,7 +68,7 @@ function IntroOverlay() {
                     <li>Use the WASD or arrow keys to control the selected ball. Use N and M to increase or decrease its velocity.</li>
                 </ul>
                 <div className="actions">
-                    <button data-refocus-canvas="true" onClick={dismiss}>Got it</button>
+                    <button data-refocus-canvas="true" onClick={dismiss} aria-label="Dismiss intro and return to the simulation">Got it</button>
                 </div>
             </div>
         </div>

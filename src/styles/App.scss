@@ -546,7 +546,7 @@ input[type="range"] {
   position: fixed;
   top: 0;
   width: 100vw;
-  z-index: 2000;
+  z-index: 2200; // above panels and right-controls
 
   .intro-card {
     // panel-like look without fixed positioning
@@ -604,7 +604,7 @@ input[type="range"] {
   position: fixed;
   top: 0;
   width: 100vw;
-  z-index: 2000;
+  z-index: 2200; // above panels and right-controls
 
   .intro-card {
     background: $panel-bg; // explicit background for instruction panel
