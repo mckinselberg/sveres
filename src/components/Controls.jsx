@@ -14,9 +14,7 @@ function Controls({
     onResetToDefaults,
     musicOn,
     musicVolume,
-    musicMuted,
     onMusicVolumeChange,
-    onToggleMusicMute,
     onToggleMusicOn,
     sfxVolume,
     sfxMuted,
@@ -474,15 +472,7 @@ function Controls({
                         disabled={!musicOn}
                         displayValue={`${Math.round((musicVolume || 0) * 100)}%`}
                     />
-                    <div className="control-group" style={{ marginTop: 6 }}>
-                        <button
-                            onClick={onToggleMusicMute}
-                            disabled={!musicOn}
-                            title={!musicOn ? 'Enable Music to control volume' : (musicMuted ? 'Unmute music' : 'Mute music')}
-                        >
-                            {musicMuted ? 'Unmute Music' : 'Mute Music'}
-                        </button>
-                    </div>
+                    
                     <hr style={{ margin: '10px 0', opacity: 0.2 }} />
                     <div className="control-group" style={{ marginBottom: 6 }}>
                         <label>

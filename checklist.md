@@ -29,6 +29,7 @@
   - Acceptance: After resize/DPR change, canvas is crisp (no blur/skew); no memory leaks; smoke test or manual steps documented.
   - Verified: DPR-aware sizing with context scale in `Canvas.jsx`; jsdom-safe stub to keep tests green; suite passes (1 skipped) and production build succeeds.
 - [DONE] Background music with overlay controls (enable, volume, mute) — consolidated audio UX
+
   - Acceptance: Looping BGM starts automatically in all modes (autoplay-safe: starts after first gesture if blocked). Controls live in the overlay panel only: Enable Music (checkbox), Music Volume slider (0–50%), and Mute toggle. All settings persisted (`ui:musicOn`, `ui:musicVolume`, `ui:musicMuted`). Removed duplicate Music button from the right-side game panel. Verified by `test/bgm.api.safe.test.js` and manual checks; no console errors.
 
 - [DONE] SFX controls & audio consolidation (remove global Sound toggle)

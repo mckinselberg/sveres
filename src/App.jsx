@@ -69,6 +69,22 @@ function mergeDefaultsForMode(mode, saved) {
 function App() {
     // Seed from URL hash as early as possible
     try { seedLocalStorageFromHash(); } catch (e) { /* noop */ void 0; }
+    // One-time migration: remove legacy ui:soundOn; if it was false, default music off and sfx muted
+    try {
+        const rawLegacy = localStorage.getItem('ui:soundOn');
+        if (rawLegacy != null) {
+            const legacyVal = JSON.parse(rawLegacy);
+            if (legacyVal === false) {
+                if (localStorage.getItem(LS_KEYS.musicOn) == null) {
+                    localStorage.setItem(LS_KEYS.musicOn, JSON.stringify(false));
+                }
+                if (localStorage.getItem(LS_KEYS.sfxMuted) == null) {
+                    localStorage.setItem(LS_KEYS.sfxMuted, JSON.stringify(true));
+                }
+            }
+            localStorage.removeItem('ui:soundOn');
+        }
+    } catch { /* noop */ }
     // Hydrate level mode from storage first
     const initialLevelMode = loadJSON(LS_KEYS.levelMode, false);
     // Hydrate settings for the current mode; merge with defaults to fill gaps
@@ -738,15 +754,7 @@ function App() {
         <div>
             <IntroOverlay />
             <h1 className="page-title">Bouncing Spheres - React</h1>
-            {/* <div className="global-score">Global Score: <span>{globalScore}</span></div> */}
             <StatusBar uiOpacity={physicsSettings.visuals.uiOpacity} levelMode={levelMode} level={physicsSettings.level} isPaused={isPaused} />
-            {/* {levelMode && (
-                <div className="ball-counters">
-                    <div>Balls Remaining: <span>{initialBallCount - scoredBallsCount - removedBallsCount}</span></div>
-                    <div>Scored: <span>{scoredBallsCount}</span></div>
-                    <div>Removed: <span>{removedBallsCount}</span></div>
-                </div>
-            )} */}
             <GameControlsPanel
                 uiOpacity={physicsSettings.visuals.uiOpacity}
                 levelMode={levelMode}
