@@ -14,6 +14,16 @@ const Sound = (() => {
   let lastPlayAt = 0;
   let confirmedOnce = false;
 
+  // Global audio buses
+  let bgmMasterGain = null; // all BGM tracks feed here
+  let bgmLimiter = null; // gentle dynamics compressor to tame peaks
+  let sfxSend = null; // SFX splitter (pre-fx)
+  let sfxDryGain = null; // dry path gain
+  let sfxFilter = null; // soft low-pass to mellow harshness
+  let sfxWetGain = null; // reverb send (wet amount)
+  let sfxConvolver = null; // simple IR reverb
+  let sfxOutGain = null; // SFX master out
+
   // Background music tracks (multi-instance)
   // Track IDs are numeric; 0 is the default/back-compat track
   const bgmTracks = new Map();
@@ -46,6 +56,85 @@ const Sound = (() => {
     if (!AudioCtx) return null;
     ctx = new AudioCtx();
     return ctx;
+  }
+
+  function ensureBgmBus() {
+    const c = ensureContext();
+    if (!c) return null;
+    if (bgmMasterGain && bgmLimiter) return bgmMasterGain;
+    try {
+      bgmMasterGain = c.createGain();
+      bgmMasterGain.gain.value = 1.0;
+      bgmLimiter = c.createDynamicsCompressor();
+      // Gentle, musical limiting to prevent peaks when volume is high
+      bgmLimiter.threshold.setValueAtTime(-12, c.currentTime);
+      bgmLimiter.knee.setValueAtTime(24, c.currentTime);
+      bgmLimiter.ratio.setValueAtTime(4, c.currentTime);
+      bgmLimiter.attack.setValueAtTime(0.005, c.currentTime);
+      bgmLimiter.release.setValueAtTime(0.25, c.currentTime);
+      bgmMasterGain.connect(bgmLimiter);
+      bgmLimiter.connect(c.destination);
+    } catch {
+      // Fallback: connect master directly to destination if compressor fails
+      if (bgmMasterGain) {
+        try { bgmMasterGain.disconnect(); } catch {}
+        try { bgmMasterGain.connect(c.destination); } catch {}
+      }
+    }
+    return bgmMasterGain;
+  }
+
+  function createImpulse(c, duration = 1.1, decay = 2.5) {
+    const rate = c.sampleRate;
+    const len = Math.max(1, Math.floor(duration * rate));
+    const impulse = c.createBuffer(2, len, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulse.getChannelData(ch);
+      for (let i = 0; i < len; i++) {
+        // Exponential decay white noise
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+      }
+    }
+    return impulse;
+  }
+
+  function ensureSfxBus() {
+    const c = ensureContext();
+    if (!c) return null;
+    if (sfxSend && sfxOutGain) return sfxSend;
+    // Build SFX graph: source -> sfxSend -> [dry->LPF, wet->reverb] -> sfxOut -> destination
+    sfxSend = c.createGain();
+    sfxSend.gain.value = 1.0;
+
+    sfxDryGain = c.createGain();
+    sfxDryGain.gain.value = 1.0;
+    sfxFilter = c.createBiquadFilter();
+    sfxFilter.type = 'lowpass';
+    sfxFilter.frequency.setValueAtTime(5500, c.currentTime); // soften highs
+    sfxFilter.Q.setValueAtTime(0.7, c.currentTime);
+
+    sfxWetGain = c.createGain();
+    sfxWetGain.gain.value = 0.15; // subtle reverb by default
+    sfxConvolver = c.createConvolver();
+    try {
+      sfxConvolver.normalize = true;
+      sfxConvolver.buffer = createImpulse(c, 1.2, 3.0);
+    } catch {}
+
+    sfxOutGain = c.createGain();
+    sfxOutGain.gain.value = 1.0;
+
+    // Wiring
+    sfxSend.connect(sfxDryGain);
+    sfxDryGain.connect(sfxFilter);
+    sfxFilter.connect(sfxOutGain);
+
+    sfxSend.connect(sfxWetGain);
+    sfxWetGain.connect(sfxConvolver);
+    sfxConvolver.connect(sfxOutGain);
+
+    sfxOutGain.connect(c.destination);
+    return sfxSend;
   }
 
   function resumeOnGestureOnce() {
@@ -125,10 +214,12 @@ const Sound = (() => {
       p.pan.value = pan;
       osc.connect(g);
       g.connect(p);
-      p.connect(c.destination);
+      const dest = ensureSfxBus();
+      if (dest) p.connect(dest); else p.connect(c.destination);
     } else {
       osc.connect(g);
-      g.connect(c.destination);
+      const dest = ensureSfxBus();
+      if (dest) g.connect(dest); else g.connect(c.destination);
     }
 
     osc.start(now);
@@ -157,7 +248,10 @@ const Sound = (() => {
     g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
 
     src.connect(g);
-    g.connect(c.destination);
+    {
+      const dest = ensureSfxBus();
+      if (dest) g.connect(dest); else g.connect(c.destination);
+    }
     src.start();
     src.stop(c.currentTime + dur + 0.02);
   }
@@ -231,13 +325,14 @@ const Sound = (() => {
     g.gain.exponentialRampToValueAtTime(gain, time + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
     osc.connect(g);
-    // route through filter then bgm gain -> destination
+    // route through filter then bgm gain -> bgm master -> limiter -> destination
     if (track.filterNode) {
       g.connect(track.filterNode);
     } else if (track.gainNode) {
       g.connect(track.gainNode);
     } else {
-      g.connect(c.destination);
+      const master = ensureBgmBus();
+      if (master) g.connect(master); else g.connect(c.destination);
     }
     osc.start(time);
     osc.stop(time + Math.max(0.05, dur + 0.02));
@@ -296,7 +391,9 @@ const Sound = (() => {
     } catch {
       track.filterNode = null;
     }
-    track.gainNode.connect(c.destination);
+  const master = ensureBgmBus();
+  if (master) track.gainNode.connect(master);
+  else track.gainNode.connect(c.destination);
     track.tempo = Math.max(60, Math.min(140, options.tempo ?? track.tempo));
     track.step = track.seed || 0;
     track.nextNoteTime = c.currentTime + 0.05;
