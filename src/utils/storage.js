@@ -162,6 +162,8 @@ export function buildLevelJSON(levelLike) {
     goals: Array.isArray(level.goals) ? level.goals : [],
     powerups: Array.isArray(level.powerups) ? level.powerups : [],
     physics: level.physics || undefined,
+    timeLimitSec: (typeof level.timeLimitSec !== 'undefined') ? level.timeLimitSec : undefined,
+    iFrameMs: (typeof level.iFrameMs !== 'undefined') ? level.iFrameMs : undefined,
   };
   return JSON.stringify(out, null, 2);
 }

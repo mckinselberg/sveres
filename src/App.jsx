@@ -471,6 +471,8 @@ function App() {
             hazards: sel.hazards,
             goals: sel.goals,
             powerups: sel.powerups,
+            timeLimitSec: sel.timeLimitSec,
+            iFrameMs: sel.iFrameMs,
         };
         const mergedLevel = (nextLevel.type === 'gravityGauntlet') ? { ...nextLevel, hazards: [] } : nextLevel;
         setPhysicsSettings(prev => ({ ...prev, level: mergedLevel }));
@@ -924,6 +926,8 @@ function App() {
             hazards: sel.hazards,
             goals: sel.goals,
             powerups: sel.powerups,
+            timeLimitSec: sel.timeLimitSec,
+            iFrameMs: sel.iFrameMs,
         };
         const mergedLevel = (nextLevel.type === 'gravityGauntlet') ? { ...nextLevel, hazards: [] } : nextLevel;
         // Always refresh from registry to reflect code changes

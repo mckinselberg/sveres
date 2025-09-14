@@ -97,7 +97,8 @@ export const GAME_LEVELS = [
       PLAYER_MIN_WALL_REBOUND: 1.2,
       WALL_GRAZING_THRESHOLD: 2,
     },
-    timeLimitSec: 60
+    timeLimitSec: 45,
+    iFrameMs: 800
   }
 ];
 

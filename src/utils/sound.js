@@ -283,7 +283,7 @@ const Sound = (() => {
     track.gainNode = c.createGain();
     const vol = Math.max(
       0.0,
-      Math.min(0.5, options.volume ?? track.desiredVolume ?? 0.06)
+      Math.min(1.0, options.volume ?? track.desiredVolume ?? 0.06)
     );
     track.desiredVolume = vol;
     track.gainNode.gain.value = vol;
@@ -367,7 +367,7 @@ const Sound = (() => {
     } else {
       volume = Number(idOrVolume);
     }
-    const vol = Math.max(0, Math.min(0.5, Number(volume)));
+  const vol = Math.max(0, Math.min(1.0, Number(volume)));
     const track = getTrack(id);
     track.desiredVolume = vol;
     if (track.gainNode) {
