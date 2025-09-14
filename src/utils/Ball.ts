@@ -146,6 +146,28 @@ export class Ball {
       ctx.stroke();
     }
 
+  // Invulnerability frames indicator: subtle dashed ring (toggleable)
+    if ((this as any)._iFrameUntil && (this as any)._iFrameUntil > now && (this as any)._showIFrameRing !== false) {
+      const remain = Math.max(0, (this as any)._iFrameUntil - now);
+      const total = Math.max(1, Number((this as any)._iFrameDuration) || 800);
+      const pct = Math.max(0, Math.min(1, remain / total));
+      // Color from red (start) to orange (mid), alpha fades out as it ends
+      const r = 255;
+      const g = Math.round(60 + (180 * (1 - Math.max(0, Math.min(1, pct * 1.3))))); // up to ~240
+      const b = 60;
+      const alpha = 0.25 + 0.55 * pct; // 0.8 at start -> 0.25 near end
+      const ringR = this.size + Math.max(5, this.size * 0.26);
+      ctx.beginPath();
+      ctx.setLineDash([6, 6]);
+      ctx.lineDashOffset = (-now / 30) % 100; // slow rotate
+      ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.lineWidth = Math.max(1.5, this.size * 0.10);
+      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]); // reset
+      ctx.lineDashOffset = 0;
+    }
+
     // Health indicator matched to parent shape outline
     if (this.health < 100) {
       const pct = Math.max(0, Math.min(1, this.health / 100));

@@ -1,4 +1,5 @@
 // Central registry of game levels. Level 1 = Gravity Gauntlet
+import { GRAVITY_GAUNTLET_CONSTANTS } from './gravityGauntlet.constants.js';
 
 export const GAME_LEVELS = [
   {
@@ -6,8 +7,10 @@ export const GAME_LEVELS = [
     index: 0,
     mode: 'game',
     type: 'gravityGauntlet',
-    title: 'Gravity Gauntlet',
+    title: 'Gauntlet I: Foundations',
     difficulty: '1',
+    instructions: 'Reach the goal at the bottom while managing your momentum. Use platforms and rebounds to line up your shot.',
+    seed: 101,
     // Visual objects
     hazards: [],
     goals: [
@@ -41,10 +44,7 @@ export const GAME_LEVELS = [
     ],
     // Optional per-level physics overrides
     physics: {
-      COLLISION_ELASTICITY: 0.9,
-      COLLISION_ITERATIONS: 5,
-      PLAYER_MIN_WALL_REBOUND: 1.2,
-      WALL_GRAZING_THRESHOLD: 2,
+      ...GRAVITY_GAUNTLET_CONSTANTS.PHYSICS,
     }
   },
   {
@@ -52,8 +52,10 @@ export const GAME_LEVELS = [
     index: 1,
     mode: 'game',
     type: 'gravityGauntlet',
-    title: 'Gravity Gauntlet: Twin Rings',
+    title: 'Gauntlet II: Twin Rings',
     difficulty: '2',
+    instructions: 'Twin goals demand precision. Use platforms to shape your trajectory and thread the rings.',
+    seed: 202,
     // Visual objects
     hazards: [
       // Simple platforms to shape trajectories
@@ -70,10 +72,7 @@ export const GAME_LEVELS = [
       { type: 'shrink', x: 'center',    y: 'bottom-12', radius: 14, color: 'magenta',     shape: 'circle' }
     ],
     physics: {
-      COLLISION_ELASTICITY: 0.9,
-      COLLISION_ITERATIONS: 5,
-      PLAYER_MIN_WALL_REBOUND: 1.2,
-      WALL_GRAZING_THRESHOLD: 2,
+      ...GRAVITY_GAUNTLET_CONSTANTS.PHYSICS,
     }
   },
   {
@@ -81,20 +80,25 @@ export const GAME_LEVELS = [
     index: 100,
     mode: 'game',
     type: 'bulletHell',
-    title: 'Bullet Hell: Dodge!',
+    title: 'Bullet Hell I: Dodge!',
     difficulty: '3',
+    instructions: 'Survive a relentless barrage. Keep moving and grab powerups to extend your chances.',
+    seed: 301,
     hazards: [],
     goals: [],
     powerups: [
       { type: 'shield', x: 'left+20%',  y: 'bottom-12', radius: 14, color: 'deepskyblue', shape: 'circle' },
-      { type: 'speed',  x: 'right-20%', y: 'bottom-12', radius: 14, color: 'gold',        shape: 'circle' }
+      { type: 'speed',  x: 'right-20%', y: 'bottom-12', radius: 14, color: 'gold',        shape: 'circle' },
+      { type: 'health', x: 'center',    y: 'bottom-12', radius: 14, color: 'lime',        shape: 'circle', amount: 25 }
     ],
     physics: {
       COLLISION_ELASTICITY: 0.95,
       COLLISION_ITERATIONS: 4,
       PLAYER_MIN_WALL_REBOUND: 1.2,
       WALL_GRAZING_THRESHOLD: 2,
-    }
+    },
+    timeLimitSec: 45,
+    iFrameMs: 800
   }
 ];
 

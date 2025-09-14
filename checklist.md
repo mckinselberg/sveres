@@ -137,8 +137,40 @@ Additional nice-to-haves (Audio)
 
 ## Game Levels
 
-- bullet hell - last 1 minute in bullet hell to proceed, implement health system for level. last 1 minute without losing all life.
-- slam - destroy the target balls by using the slam (down arrow) to attack them
+- Mode framework scaffolding
+
+  - Acceptance: Central registry for modes with lifecycle hooks; mode selection persisted; Canvas integrates mode-specific update hooks without breaking sandbox.
+    - Add `src/js/modes/registry.js`: `{ id, name, onEnter(ctx), onUpdate(dt, ctx), onExit(ctx), settings }` and `registerMode/getMode` helpers.
+    - Wire `App.jsx` to hold `ui:mode` (persisted) and pass mode to `Canvas`.
+    - Update `LevelSelect.jsx` (or add `ModeSelect`) to allow choosing: Sandbox, Gauntlet, Bullet Hell, Slam.
+    - In `Canvas.jsx`, call `mode.onEnter` on mount/when mode changes; call `mode.onUpdate` each tick; call `mode.onExit` on unmount/mode change.
+
+- Bullet Hell (survive 60s)
+
+  - Acceptance: Player survives for 60 seconds while avoiding projectiles; losing all health ends the run; timer/HUD visible; deterministic spawns when `seed` is provided; performance holds 60 FPS on typical desktop.
+    - Health: Reuse ball health bars; enable health depletion on hazard collision; clamp and pop on zero (uses existing pop+despawn).
+    - Spawners: Implement pattern presets (arc sweep, ring burst, aimed burst, random drizzle) with a difficulty curve (spawn rate/speed increases at 15s/30s/45s).
+    - Hazards: Use lightweight shapes (triangles/diamonds) with bounding-circle collisions; mark as hazard class for damage-only interactions; pool instances to avoid GC churn.
+    - HUD: Add countdown timer (60→0), hearts/HP bar, and “Wave up” toasts at thresholds; pause overlay on win/lose.
+    - Win/Lose: Win when timer reaches 0 with HP>0; Lose when HP<=0; show overlay with retry/quit; record best time in localStorage `progress:bulletHell:best`.
+    - Tests: Unit test deterministic spawn with fixed `seed` and mocked time; collision reduces HP; win condition fires at 60s; lose triggers on HP<=0.
+
+- Slam Attack (destroy targets with slam)
+
+  - Acceptance: Down Arrow (and 'S') triggers a ground-slam that damages nearby target balls; destroy all targets within time limit to win; sandbox and gauntlet unaffected by slam unless this mode is active.
+    - Input: Reuse existing slam binding; gate activation by mode; short cooldown (e.g., 600ms) and brief invulnerability window to prevent self-harm.
+    - Targets: Spawn N target balls (configurable; default 10) with HP; optional patrol movement; marked as objectives, not hazards.
+    - Slam Effect: Radial damage falloff; apply impulse/knockback; camera/Canvas screenshake; SFX: heavy blip + noiseHit; optional ripple via GSAP.
+    - HUD: Show remaining targets, timer, and slam cooldown indicator; show tutorial hint on first entry.
+    - Win/Lose: Win when all targets are destroyed before timer ends; Lose on timeout; persist best time/kills `progress:slam:best`.
+    - Tests: Deterministic seed spawns same target positions; slam reduces HP within radius; win when count hits 0; cooldown respected.
+
+- Integration & polish
+  - Acceptance: Modes coexist with existing features (music, FPS cap, overlays) without regressions; audio reacts to intensity.
+    - Audio: Hook dynamic BGM intensity (volume/filter) to hazard density/danger state; duck music slightly on slam.
+    - UI: Add mode-specific instructions overlay; disable conflicting Controls while in a mode (e.g., shape-all dropdown) to prevent unintended reseeds.
+    - Persistence: Save last selected mode and difficulty; provide quick retry button.
+    - Performance: Cap concurrent hazards; object pooling; cheap math (avoid per-frame allocations). Profile with FPS badge.
 
 ## Let's come back to this
 

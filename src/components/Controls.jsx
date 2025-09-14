@@ -193,6 +193,16 @@ function Controls({
         });
     };
 
+    const handleLevelChange = (setting, value) => {
+        onPhysicsSettingsChange({
+            ...physicsSettings,
+            level: {
+                ...(physicsSettings.level || {}),
+                [setting]: value
+            }
+        });
+    };
+
     const handleBallShapeChange = (value) => {
         onPhysicsSettingsChange({
             ...physicsSettings,
@@ -478,6 +488,31 @@ function Controls({
                                 disabled={levelMode} // Disable in level mode
                             />
                         </div>
+                        <div className="control-group" style={{ marginTop: 6 }}>
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={!!physicsSettings?.gameplay?.showIFrameRing}
+                                    onChange={(e) => handleGameplayChange('showIFrameRing', e.target.checked)}
+                                />{' '}
+                                Show i-frame ring
+                            </label>
+                        </div>
+                        {levelMode && (
+                            <div className="control-group" style={{ marginTop: 6 }}>
+                                <Slider
+                                    label="Invulnerability (i-frame) ms"
+                                    min={0}
+                                    max={2000}
+                                    step={50}
+                                    value={Math.max(0, Number(physicsSettings?.level?.iFrameMs || 0))}
+                                    onChange={(e) => handleLevelChange('iFrameMs', parseInt(e.target.value, 10) || 0)}
+                                />
+                                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                    Current: {Math.max(0, Number(physicsSettings?.level?.iFrameMs || 0))} ms
+                                </div>
+                            </div>
+                        )}
                     </details>
                 </div>
             </details>
@@ -705,7 +740,7 @@ function Controls({
                     <Slider
                         label={`Music Volume`}
                         min={0}
-                        max={0.5}
+                        max={1}
                         step={0.01}
                         value={musicVolume}
                         onChange={(e) => onMusicVolumeChange(parseFloat(e.target.value))}

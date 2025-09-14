@@ -44,11 +44,18 @@ const Canvas = memo(forwardRef(function Canvas({
     const loseRef = useRef(false);
     const [forceTick, setForceTick] = useState(0);
     const [fps, setFps] = useState(0);
+    const [bhTokens, setBhTokens] = useState({ jumps: 0, slams: 0 });
     const fpsLimitRef = useRef(0);
     fpsLimitRef.current = Math.max(0, Number(fpsLimit) || 0);
     const lastFrameMsRef = useRef(0);
     const fpsCounterRef = useRef(0);
     const fpsLastSampleRef = useRef(0);
+        // Bullet Hell timer (win when reaches 0)
+        const bhTimeLeftRef = useRef(null);
+        const bhTimerActiveRef = useRef(false);
+        // Bullet Hell tokens: 3 air-jumps and 3 slams per airtime
+        const bhJumpTokensRef = useRef(0);
+        const bhSlamTokensRef = useRef(0);
     // Frame-batched increments to reduce React updates inside RAF
     const scoreDeltaRef = useRef(0);
     const scoredBallsDeltaRef = useRef(0);
@@ -208,6 +215,18 @@ const Canvas = memo(forwardRef(function Canvas({
                 ballsRef.current[0].originalSize = 15;
                 // Seed jump state
                 ballsRef.current[0]._airJumpAvailable = true;
+                // Initialize Bullet Hell tokens
+                if (level.type === 'bulletHell') {
+                    bhJumpTokensRef.current = 3;
+                    bhSlamTokensRef.current = 3;
+                    try { setBhTokens({ jumps: 3, slams: 3 }); } catch {}
+                    // Add one extra friendly ball for Bullet Hell
+                    try { addNewBall(ballsRef.current, ballSize, ballVelocity, cssWidthRef.current, cssHeightRef.current, null, null, ballShape); } catch {}
+                } else {
+                    bhJumpTokensRef.current = 0;
+                    bhSlamTokensRef.current = 0;
+                    try { setBhTokens({ jumps: 0, slams: 0 }); } catch {}
+                }
             }
             if (level && ballsRef.current.length > 0) {
                 selectedBallIdRef.current = ballsRef.current[0].id;
@@ -276,10 +295,19 @@ const Canvas = memo(forwardRef(function Canvas({
             // Decide jump type first, then apply cooldown rules
             let isAirJump = false;
             if (!grounded) {
-                if (!player._airJumpAvailable) return; // no air jump available
-                isAirJump = true;
-                // consume token for air jump
-                player._airJumpAvailable = false;
+                if (level && level.type === 'bulletHell') {
+                    if (bhJumpTokensRef.current <= 0) return;
+                    bhJumpTokensRef.current -= 1;
+                    isAirJump = true;
+                    // Keep flag true to allow multiple air jumps in BH
+                    player._airJumpAvailable = true;
+                    try { setBhTokens({ jumps: Math.max(0, bhJumpTokensRef.current), slams: Math.max(0, bhSlamTokensRef.current) }); } catch {}
+                } else {
+                    if (!player._airJumpAvailable) return; // no air jump available
+                    isAirJump = true;
+                    // consume token for air jump
+                    player._airJumpAvailable = false;
+                }
             } else {
                 // grounded jump always resets token so another air jump is possible after takeoff
                 player._airJumpAvailable = true;
@@ -309,6 +337,12 @@ const Canvas = memo(forwardRef(function Canvas({
             const effR = player.size * Math.max(player.scaleX || 1, player.scaleY || 1);
             const grounded = (player.y + effR) >= (cssHeightRef.current - 3);
             if (grounded) return; // Only slam while in the air
+            // In Bullet Hell, require a slam token
+            if (level && level.type === 'bulletHell') {
+                if (bhSlamTokensRef.current <= 0) return;
+                bhSlamTokensRef.current -= 1;
+                try { setBhTokens({ jumps: Math.max(0, bhJumpTokensRef.current), slams: Math.max(0, bhSlamTokensRef.current) }); } catch {}
+            }
             const s = settingsRef.current;
             const g = Math.max(0.05, s.gravityStrength || 0.15);
             const slamVy = Math.max(8, Math.min(18, g * 70));
@@ -338,6 +372,18 @@ const Canvas = memo(forwardRef(function Canvas({
         ballsRef.current[0].originalSize = 15;
     // Seed jump state on level start
     ballsRef.current[0]._airJumpAvailable = true;
+    // Initialize Bullet Hell tokens
+    if (level.type === 'bulletHell') {
+        bhJumpTokensRef.current = 3;
+        bhSlamTokensRef.current = 3;
+        try { setBhTokens({ jumps: 3, slams: 3 }); } catch {}
+        // Add one extra friendly ball for Bullet Hell
+        try { addNewBall(ballsRef.current, ballSize, settingsRef.current.ballVelocity, cssWidthRef.current, cssHeightRef.current, null, null, ballShape); } catch {}
+    } else {
+        bhJumpTokensRef.current = 0;
+        bhSlamTokensRef.current = 0;
+        try { setBhTokens({ jumps: 0, slams: 0 }); } catch {}
+    }
     }
         if (level && ballsRef.current.length > 0) {
             selectedBallIdRef.current = ballsRef.current[0].id;
@@ -347,6 +393,21 @@ const Canvas = memo(forwardRef(function Canvas({
             if (onSelectedBallChangeRef.current) onSelectedBallChangeRef.current(null);
         }
         emitSnapshot();
+
+        // Initialize Bullet Hell timer if applicable
+        if (level && level.type === 'bulletHell') {
+            const tl = Number(level.timeLimitSec);
+            if (Number.isFinite(tl) && tl > 0) {
+                bhTimeLeftRef.current = tl;
+                bhTimerActiveRef.current = true;
+            } else {
+                bhTimeLeftRef.current = null;
+                bhTimerActiveRef.current = false;
+            }
+        } else {
+            bhTimeLeftRef.current = null;
+            bhTimerActiveRef.current = false;
+        }
 
         const handleMouseDown = (e) => {
             // In any level mode (game), keep the player (starting ball) selected
@@ -445,7 +506,9 @@ const Canvas = memo(forwardRef(function Canvas({
             fpsCounterRef.current += 1;
             if (!fpsLastSampleRef.current) fpsLastSampleRef.current = nowMs;
             if (!lastFrameMsRef.current) lastFrameMsRef.current = nowMs;
+            const prevFrame = lastFrameMsRef.current;
             lastFrameMsRef.current = nowMs;
+            const dtSec = Math.max(0, (nowMs - prevFrame) / 1000);
             if (nowMs - fpsLastSampleRef.current >= 1000) {
                 setFps(fpsCounterRef.current);
                 fpsCounterRef.current = 0;
@@ -479,6 +542,17 @@ const Canvas = memo(forwardRef(function Canvas({
                 () => { loseRef.current = true; }
             );
 
+            // Bullet Hell: countdown and win when timer reaches 0
+            if (!loseRef.current && level && level.type === 'bulletHell' && bhTimerActiveRef.current && typeof bhTimeLeftRef.current === 'number') {
+                bhTimeLeftRef.current = Math.max(0, bhTimeLeftRef.current - dtSec);
+                if (bhTimeLeftRef.current <= 0) {
+                    Sound.playWin();
+                    if (onWinRef.current) onWinRef.current();
+                    animationFrameId.current = null;
+                    return;
+                }
+            }
+
             // After physics step, if player is grounded, reset air-jump availability
             {
                 const canvasEl = canvasRef.current;
@@ -488,6 +562,12 @@ const Canvas = memo(forwardRef(function Canvas({
                     const groundedNow = (playerBall.y + effR2) >= (cssHeightRef.current - 3);
                     if (groundedNow) {
                         playerBall._airJumpAvailable = true;
+                        // Refill Bullet Hell tokens when grounded
+                        if (level && level.type === 'bulletHell') {
+                            bhJumpTokensRef.current = 3;
+                            bhSlamTokensRef.current = 3;
+                            try { setBhTokens({ jumps: 3, slams: 3 }); } catch {}
+                        }
                     }
                 }
             }
@@ -626,6 +706,28 @@ const Canvas = memo(forwardRef(function Canvas({
                 }}
                 style={{ display: 'block' }}
             />
+            {level && level.type === 'bulletHell' && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        padding: '4px 8px',
+                        fontSize: 12,
+                        borderRadius: 4,
+                        background: 'rgba(0,0,0,0.45)',
+                        color: '#fff',
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                        display: 'flex',
+                        gap: 8
+                    }}
+                    aria-hidden
+                >
+                    <span title="Air Jumps Remaining">🦘 {bhTokens.jumps}</span>
+                    <span title="Slams Remaining">💥 {bhTokens.slams}</span>
+                </div>
+            )}
             <div
                 style={{
                     position: 'absolute',

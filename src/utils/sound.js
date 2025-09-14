@@ -204,6 +204,8 @@ const Sound = (() => {
       blip({ freq: 880, dur: 0.06, type: 'triangle', gain: 0.05 });
     else if (type === 'shrink')
       blip({ freq: 500, dur: 0.06, type: 'sine', gain: 0.05 });
+    else if (type === 'health')
+      blip({ freq: 640, dur: 0.09, type: 'sine', gain: 0.06 });
     else if (type === 'expire')
       blip({ freq: 420, dur: 0.07, type: 'sine', gain: 0.055 });
     else blip({ freq: 760, dur: 0.06, type: 'sine', gain: 0.05 });
@@ -281,7 +283,7 @@ const Sound = (() => {
     track.gainNode = c.createGain();
     const vol = Math.max(
       0.0,
-      Math.min(0.5, options.volume ?? track.desiredVolume ?? 0.06)
+      Math.min(1.0, options.volume ?? track.desiredVolume ?? 0.06)
     );
     track.desiredVolume = vol;
     track.gainNode.gain.value = vol;
@@ -365,7 +367,7 @@ const Sound = (() => {
     } else {
       volume = Number(idOrVolume);
     }
-    const vol = Math.max(0, Math.min(0.5, Number(volume)));
+  const vol = Math.max(0, Math.min(1.0, Number(volume)));
     const track = getTrack(id);
     track.desiredVolume = vol;
     if (track.gainNode) {
