@@ -554,7 +554,7 @@ function Controls({
                     <div className="control-group" style={{ display: 'grid', gap: 6, marginBottom: 6 }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
                             <strong>BGM Tracks</strong>
-                            <div style={{ display: 'flex', gap: 6 }}>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                 <button
                                     type="button"
                                     onClick={onAddBgmTrack}
@@ -626,7 +626,7 @@ function Controls({
                                             disabled={!musicOn}
                                             aria-label={`Track ${id + 1} gain`}
                                         />
-                                        <span style={{ fontSize: 12, opacity: 0.8, width: 44, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                        <span style={{ fontSize: 12, opacity: 0.8, width: '5ch', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                             {Math.round(((bgmTrackGains?.[id] ?? 1) * 100))}%
                                         </span>
                                     </div>
@@ -644,7 +644,7 @@ function Controls({
                                 placeholder="Song name"
                                 value={selectedBgmSong || ''}
                                 onChange={(e) => onSelectBgmSong(e.target.value)}
-                                style={{ flex: 1 }}
+                                style={{ flex: 1, minWidth: 0 }}
                                 disabled={!musicOn}
                                 aria-label="Song name"
                             />
@@ -653,13 +653,31 @@ function Controls({
                                 onClick={() => onSaveBgmSong(selectedBgmSong)}
                                 disabled={!musicOn || !(selectedBgmSong || '').trim()}
                                 title="Save current tracks as song"
+                                style={{ padding: '4px 8px' }}
                             >Save</button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!musicOn) return;
+                                    const name = window.prompt('Save As… Enter a new song name:', (selectedBgmSong || '').trim() || 'My Song');
+                                    const trimmed = (name || '').trim();
+                                    if (!trimmed) return;
+                                    if (bgmSongs && Object.prototype.hasOwnProperty.call(bgmSongs, trimmed)) {
+                                        const ok = window.confirm(`A song named "${trimmed}" already exists. Overwrite?`);
+                                        if (!ok) return;
+                                    }
+                                    onSaveBgmSong(trimmed);
+                                }}
+                                disabled={!musicOn}
+                                title="Save current tracks under a new name"
+                                style={{ padding: '4px 8px' }}
+                            >Save As…</button>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <select
                                 value={(selectedBgmSong && bgmSongs && bgmSongs[selectedBgmSong]) ? selectedBgmSong : ''}
                                 onChange={(e) => onSelectBgmSong(e.target.value)}
-                                style={{ flex: 1 }}
+                                style={{ flex: 1, minWidth: 0 }}
                                 disabled={!musicOn || !bgmSongs || Object.keys(bgmSongs).length === 0}
                                 aria-label="Saved songs"
                             >
@@ -673,12 +691,14 @@ function Controls({
                                 onClick={() => onLoadBgmSong(selectedBgmSong)}
                                 disabled={!musicOn || !selectedBgmSong || !bgmSongs || !bgmSongs[selectedBgmSong]}
                                 title="Load selected song"
+                                style={{ padding: '4px 8px' }}
                             >Load</button>
                             <button
                                 type="button"
                                 onClick={() => onDeleteBgmSong(selectedBgmSong)}
                                 disabled={!selectedBgmSong || !bgmSongs || !bgmSongs[selectedBgmSong]}
                                 title="Delete selected song"
+                                style={{ padding: '4px 8px' }}
                             >Delete</button>
                         </div>
                     </div>
