@@ -86,6 +86,8 @@ UI Polish
 
 - [DONE] fix the shape dropdown so that it doesn't change all the shapes to the one specified unless a checkmark is checked
   - Acceptance: Added checkbox in Controls; Canvas gates re-seeding; added unit test `test/shape.applyToExisting.test.js`.
+- [DONE] Compact icon buttons for BGM controls (add/remove/mute/unmute) to prevent layout wrapping.
+- [DONE] Slider layout uses grid with non-wrapping value readouts to avoid overflow.
 
 UX Polish
 
@@ -118,18 +120,20 @@ Additional nice-to-haves (Audio)
 
 ## Music Enhancements
 
-- enable ability to start multiple bgm tracks
+- [DONE] enable ability to start multiple bgm tracks
 - dynamic BGM intensity (react to game state via filters/volume; e.g., hazards, near-misses)
 - pause/resume smoothing (short fades and subtle filter sweeps to avoid abrupt transitions)
 - per-level themes/playlist with crossfade on level switch
 - volume ducking when important SFX play (win/lose, hazard impact)
 - music hotkeys and hints (mute/volume shortcuts, overlay tooltip hints)
-- per-track gain sliders (implemented)
-- playing-state indicator per track (LED/dot animation)
+- [DONE] per-track gain sliders
+- [DONE] playing-state indicator per track (LED/dot)
 - “Save As…” to avoid overwriting the current song name
 - include tempo/noteGain per song if/when exposed
 - optional per-track pan for stereo width
-- quick “Mute All Tracks” button
+- [DONE] quick “Mute All Tracks” button
+- [DONE] Named “Songs” (save/load/delete) for BGM configuration with persistence
+- [DONE] HMR-safe audio cleanup (stop all BGM on dispose; prevent duplicates)
 
 ## Game Levels
 
@@ -141,3 +145,13 @@ Additional nice-to-haves (Audio)
 Add a tiny helper to toggle aria-hidden on the main app while any dialog is open (optional).
 Do a quick manual check on mobile (Chrome dev tools emulator) for tab order and dismissal affordances.
 Move on to the WASD test stabilization once you’re satisfied with overlays.
+
+## Next Steps (Proposed)
+
+- Unskip WASD Gauntlet test with deterministic RAF/time mocking; hide overlays; disable FPS cap during test.
+- Add “Save As…” for Songs to avoid accidental overwrite; optionally prevent duplicate names.
+- Per-track pan control (0–1) with persistence; apply to Web Audio panner when available.
+- Optionally include tempo/noteGain in song snapshots to capture composition.
+- Music hotkeys (mute/unmute, vol up/down) and a brief tooltip in Audio section.
+- a11y: set `aria-hidden="true"` on app root when dialogs open (optional; current focus trap is sufficient).
+- Docs: README updates for Multi-BGM, Songs, per-track gain, mute all, indicators.
