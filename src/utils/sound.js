@@ -204,6 +204,8 @@ const Sound = (() => {
       blip({ freq: 880, dur: 0.06, type: 'triangle', gain: 0.05 });
     else if (type === 'shrink')
       blip({ freq: 500, dur: 0.06, type: 'sine', gain: 0.05 });
+    else if (type === 'health')
+      blip({ freq: 640, dur: 0.09, type: 'sine', gain: 0.06 });
     else if (type === 'expire')
       blip({ freq: 420, dur: 0.07, type: 'sine', gain: 0.055 });
     else blip({ freq: 760, dur: 0.06, type: 'sine', gain: 0.05 });

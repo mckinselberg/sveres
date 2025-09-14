@@ -121,6 +121,18 @@ function App() {
     const [didWin, setDidWin] = useState(false);
     const [didLose, setDidLose] = useState(false);
     const isGameOver = didWin || didLose;
+    // Campaign sequence: wire three existing levels in order of index
+    const campaignIds = React.useMemo(() => {
+        // Take the first three defined campaign levels in registry order
+        return GAME_LEVELS
+            .slice()
+            .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+            .filter(l => ['gravityGauntlet', 'bulletHell'].includes(l.type))
+            .slice(0, 3)
+            .map(l => l.id);
+    }, []);
+    const currentCampaignIdx = React.useMemo(() => campaignIds.indexOf(currentLevelId), [campaignIds, currentLevelId]);
+    const nextLevelId = React.useMemo(() => (currentCampaignIdx >= 0 && currentCampaignIdx < campaignIds.length - 1) ? campaignIds[currentCampaignIdx + 1] : null, [campaignIds, currentCampaignIdx]);
     const [wasdEnabled, setWasdEnabled] = useState(() => {
         const saved = loadJSON(LS_KEYS.wasdEnabled, null);
         return typeof saved === 'boolean' ? saved : true;
@@ -491,7 +503,7 @@ function App() {
             if (el.isContentEditable) return true;
             return tag === 'input' || tag === 'textarea' || tag === 'select';
         };
-        const onKeyDownCapture = (event) => {
+    const onKeyDownCapture = (event) => {
             const t = event.target;
             if (event.ctrlKey || event.metaKey || event.altKey) return;
             // Allow typing in editables (import modal textarea, etc.)
@@ -652,6 +664,7 @@ function App() {
     }, [wasdEnabled]);
 
     useEffect(() => {
+    const currentLevelType = physicsSettings?.level?.type;
     const handleKeyDown = (event) => {
             // Don't hijack browser/system shortcuts or typing in inputs
             const t = event.target;
@@ -726,11 +739,18 @@ function App() {
                 return;
             }
 
+            // Immediate slam keys: allowed in sandbox and Bullet Hell; blocked in Gauntlet
+            if ((k === 's' || k === 'ArrowDown') && (!levelMode || currentLevelType === 'bulletHell')) {
+                event.preventDefault();
+                canvasRef.current?.slamPlayer?.();
+                return;
+            }
+
             // Track movement keys while held
             const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Shift']);
             if (moveKeys.has(k)) {
-                // Respect WASD toggle
-                if (!wasdEnabled && (k === 'w' || k === 'a' || k === 's' || k === 'd')) {
+                // Respect WASD toggle for lateral/jump keys; slam already handled above
+                if (!wasdEnabled && (k === 'w' || k === 'a' || k === 'd')) {
                     event.preventDefault();
                     return;
                 }
@@ -739,14 +759,9 @@ function App() {
                 if (k === 'w' || k === 'ArrowUp') {
                     handleJump();
                 } else if (k === 's') {
-                    // Downward slam only if not in gauntlet mode
-                    if (!levelMode) {
-                        canvasRef.current?.slamPlayer?.();
-                    }
+                    // handled above for sandbox; ignore here in gauntlet
                 } else if (k === 'ArrowDown') {
-                    if (!levelMode) {
-                        canvasRef.current?.slamPlayer?.();
-                    }
+                    // handled above for sandbox; ignore here in gauntlet
                 }
             }
         };
@@ -833,7 +848,9 @@ function App() {
             window.removeEventListener('keyup', handleKeyUp);
             if (movementRafRef.current) cancelAnimationFrame(movementRafRef.current);
         };
-    }, [selectedBall, levelMode, setGlobalScore, isGameOver, wasdEnabled, handleJump, refreshLevelFromRegistry]);
+    }, [selectedBall, levelMode, setGlobalScore, isGameOver, wasdEnabled, handleJump, refreshLevelFromRegistry, physicsSettings?.level?.type]);
+
+    
 
     const toggleControlsVisibility = useCallback(() => {
         setShowControls(!showControls);
@@ -937,6 +954,36 @@ function App() {
     try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
     }, [refreshLevelFromRegistry]);
 
+    const handleAdvanceToNextLevel = useCallback(() => {
+        if (!nextLevelId) return;
+        setCurrentLevelId(nextLevelId);
+        // After changing selection, refresh and reset to spawn new level state
+        setTimeout(() => {
+            refreshLevelFromRegistry();
+            canvasRef.current?.resetBalls?.();
+            setGlobalScore(0);
+            setScoredBallsCount(0);
+            setRemovedBallsCount(0);
+            setDidWin(false);
+            setDidLose(false);
+            setShowGauntletHelp(false);
+            try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
+        }, 0);
+    }, [nextLevelId, refreshLevelFromRegistry]);
+
+    // Auto-advance after a short win toast when a next level exists
+    useEffect(() => {
+        if (!levelMode) return;
+        if (!didWin) return;
+        if (!nextLevelId) return;
+        const tid = setTimeout(() => {
+            if (didWin) {
+                handleAdvanceToNextLevel();
+            }
+        }, 1200);
+        return () => clearTimeout(tid);
+    }, [didWin, nextLevelId, levelMode, handleAdvanceToNextLevel]);
+
     // Show gauntlet help on first load if mode is already gauntlet and not dismissed
     useEffect(() => {
         if (levelMode) {
@@ -987,10 +1034,17 @@ function App() {
             {didWin && (
                 <div className="pause-overlay" style={{ pointerEvents: 'auto' }}>
                     <div style={{ background: 'rgba(0,0,0,0.6)', padding: 16, borderRadius: 8 }}>
-                        <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 10 }}>You won!</div>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                            <button className="button button--primary" onClick={handleResetGauntlet}>Play Again</button>
-                        </div>
+                        <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 10, textAlign: 'center' }}>You won!</div>
+                        {nextLevelId ? (
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                <button className="button button--primary" onClick={handleAdvanceToNextLevel} aria-label="Next Level">Next Level ▶</button>
+                                <button className="button" onClick={handleResetGauntlet} aria-label="Replay Level">Replay</button>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                <button className="button button--primary" onClick={handleResetGauntlet}>Play Again</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

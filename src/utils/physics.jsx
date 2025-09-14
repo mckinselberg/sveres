@@ -207,14 +207,42 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
 
                 if (distSq < threshSq) {
                     const distance = Math.sqrt(distSq) || 0;
-                    // Bullet Hell: bullet touching player -> immediate lose
+                    // Bullet Hell: bullets deal damage instead of instant lose
                     if (level && level.type === 'bulletHell' && (ball1.isBullet || ball2.isBullet)) {
                         const isControlled1 = selectedBall && ball1.id === selectedBall.id;
                         const isControlled2 = selectedBall && ball2.id === selectedBall.id;
                         const isPlayer1 = isControlled1 || ball1.isStartingBall;
                         const isPlayer2 = isControlled2 || ball2.isStartingBall;
-                        if ((ball1.isBullet && isPlayer2) || (ball2.isBullet && isPlayer1)) {
-                            if (onPlayerHitGoal) onPlayerHitGoal();
+                        const touchingPlayer = (ball1.isBullet && isPlayer2) || (ball2.isBullet && isPlayer1);
+                        if (touchingPlayer) {
+                            const playerBall = isPlayer1 ? ball1 : ball2;
+                            const bulletBall = ball1.isBullet ? ball1 : ball2;
+                            const now = Date.now();
+                            // Shield prevents damage
+                            if (playerBall.shieldUntil && playerBall.shieldUntil > now) {
+                                // consume shield and play a softer hit
+                                playerBall.shieldUntil = undefined;
+                                try { Sound.playCollision(0.4); } catch {}
+                            } else {
+                                // Brief invulnerability to avoid rapid multi-hit
+                                if (!playerBall._iFrameUntil || playerBall._iFrameUntil <= now) {
+                                    const dmg = 18;
+                                    playerBall.health = Math.max(0, playerBall.health - dmg);
+                                    playerBall._iFrameUntil = now + 600; // ms
+                                    // Flash red
+                                    const originalColor = playerBall.color;
+                                    playerBall.color = 'red';
+                                    setTimeout(() => { playerBall.color = originalColor; }, 140);
+                                    try { Sound.playCollision(0.6); } catch {}
+                                    if (playerBall.health <= 0) {
+                                        if (onPlayerHitGoal) onPlayerHitGoal();
+                                    }
+                                }
+                            }
+                            // Despawn bullet immediately
+                            bulletBall.size = 0;
+                            bulletBall.isDespawning = true;
+                            bulletBall.opacity = 0;
                             continue;
                         }
                     }
@@ -565,6 +593,26 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
             bulletsTTL(bullet, now);
             balls.push(bullet);
         }
+        // Periodic health pickup spawner
+        const nextHeal = (ctx._nextHealthTime || 0);
+        if (now >= nextHeal) {
+            ctx._nextHealthTime = now + 7000; // every ~7s
+            // Place near bottom corners alternating
+            const corner = Math.random() < 0.5 ? 'left' : 'right';
+            const px = corner === 'left' ? 40 : (canvasWidth - 40);
+            const py = canvasHeight - 40;
+            const healPu = { type: 'health', x: px, y: py, radius: 12, color: 'lime', shape: 'circle', amount: 25 };
+            // Push into level.powerups for pickup handling this frame
+            try {
+                if (!Array.isArray(level.powerups)) level.powerups = [];
+                level.powerups.push(healPu);
+                // Schedule expiration after 6s
+                setTimeout(() => {
+                    const idx = level.powerups.indexOf(healPu);
+                    if (idx > -1) level.powerups.splice(idx, 1);
+                }, 6000);
+            } catch {}
+        }
     }
 
     // Pre-resolve static positions once per frame
@@ -638,6 +686,9 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
                     player.size = Math.max(6, Math.round(player.baseSize * 0.65));
                     player.shrinkUntil = now + 7000; // 7s
                     Sound.playPowerup('shrink');
+                } else if (pu.type === 'health') {
+                    player.health = Math.min(100, (player.health || 0) + (pu.amount || 25));
+                    Sound.playPowerup('health');
                 }
                 level.powerups.splice(i, 1);
             }
