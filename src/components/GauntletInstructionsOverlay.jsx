@@ -1,9 +1,9 @@
-// no React import needed with new JSX transform
+import { useEffect } from 'react';
 
 export default function GauntletInstructionsOverlay({ onClose, onReset }) {
   const stop = (e) => e.stopPropagation();
   // Close on Escape for accessibility
-  React.useEffect(() => {
+  useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
