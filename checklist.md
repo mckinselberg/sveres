@@ -137,7 +137,7 @@ Additional nice-to-haves (Audio)
 
 ## Game Levels
 
-- bullet hell - last 1 minute in bullet hell to proceed
+- bullet hell - last 1 minute in bullet hell to proceed, implement health system for level. last 1 minute without losing all life.
 - slam - destroy the target balls by using the slam (down arrow) to attack them
 
 ## Let's come back to this
