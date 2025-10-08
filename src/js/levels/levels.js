@@ -1,5 +1,5 @@
 // Central registry of game levels. Level 1 = Gravity Gauntlet
-import { GRAVITY_GAUNTLET_CONSTANTS } from './gravityGauntlet.constants.js';
+import { GAME_MODE_CONSTANTS } from './gravityGauntlet.constants.js';
 
 export const GAME_LEVELS = [
   {
@@ -44,7 +44,7 @@ export const GAME_LEVELS = [
     ],
     // Optional per-level physics overrides
     physics: {
-      ...GRAVITY_GAUNTLET_CONSTANTS.PHYSICS,
+      ...GAME_MODE_CONSTANTS.PHYSICS,
     }
   },
   {
@@ -72,7 +72,7 @@ export const GAME_LEVELS = [
       { type: 'shrink', x: 'center',    y: 'bottom-12', radius: 14, color: 'magenta',     shape: 'circle' }
     ],
     physics: {
-      ...GRAVITY_GAUNTLET_CONSTANTS.PHYSICS,
+      ...GAME_MODE_CONSTANTS.PHYSICS,
     }
   },
   {

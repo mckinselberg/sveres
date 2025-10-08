@@ -3,7 +3,7 @@ import Controls from './components/Controls.jsx';
 import Canvas from './components/Canvas.jsx';
 import SelectedBallControls from './components/SelectedBallControls.jsx';
 import IntroOverlay from './components/IntroOverlay.jsx';
-import GauntletInstructionsOverlay from './components/GauntletInstructionsOverlay.jsx';
+import GameInstructionsOverlay from './components/GameInstructionsOverlay.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import ImportLevelModal from './components/ImportLevelModal.jsx';
 import HUDPowerups from './components/HUDPowerups.jsx';
@@ -11,7 +11,7 @@ import GameControlsPanel from './components/GameControlsPanel.jsx';
 import LevelSelect from './components/LevelSelect.jsx';
 import './styles/App.scss';
 import Sound from './utils/sound';
-import { DEFAULTS, GRAVITY_GAUNTLET_DEFAULTS } from './js/config.jsx';
+import { DEFAULTS, GAME_MODE_DEFAULTS } from './js/config.jsx';
 import { GAME_LEVELS, getLevelById } from './js/levels/levels.js';
 import { localStorageToJSONString, seedLocalStorageFromHash, setHashFromLocalStorage, buildLevelJSON } from './utils/storage.js';
 
@@ -27,7 +27,7 @@ const LS_KEYS = {
     levelMode: 'sim:levelMode',
     currentLevelId: 'sim:currentLevelId',
     settingsSandbox: 'sim:settings:sandbox',
-    settingsGauntlet: 'sim:settings:gauntlet',
+    settingsGameMode: 'sim:settings:gameMode',
     showControls: 'ui:showControls',
     wasdEnabled: 'ui:wasdEnabled',
     gauntletInstructionsDismissed: 'ui:gauntletInstructions:dismissed',
@@ -57,7 +57,7 @@ function mergeDefaultsForMode(mode, saved) {
     if (mode) {
     // level mode (Game) — start from Level 1 (Gravity Gauntlet) by default
     const level1 = getLevelById('gauntlet-1') || GAME_LEVELS[0];
-    const base = { ...GRAVITY_GAUNTLET_DEFAULTS, level: { type: level1.type, title: level1.title, difficulty: level1.difficulty, hazards: level1.hazards, goals: level1.goals, powerups: level1.powerups } };
+    const base = { ...GAME_MODE_DEFAULTS, level: { type: level1.type, title: level1.title, difficulty: level1.difficulty, hazards: level1.hazards, goals: level1.goals, powerups: level1.powerups } };
     // Merge saved top-level settings but DO NOT let saved.level override code-defined level
     const merged = { ...base, ...(saved || {}) };
     merged.level = { ...base.level };
@@ -94,7 +94,7 @@ function App() {
     const initialLevelMode = loadJSON(LS_KEYS.levelMode, false);
     // Hydrate settings for the current mode; merge with defaults to fill gaps
     const initialSaved = initialLevelMode
-        ? loadJSON(LS_KEYS.settingsGauntlet, null)
+        ? loadJSON(LS_KEYS.settingsGameMode, null)
         : loadJSON(LS_KEYS.settingsSandbox, null);
     const initialSettings = mergeDefaultsForMode(initialLevelMode, initialSaved);
 
@@ -608,11 +608,11 @@ function App() {
             const newMode = !prevMode;
             // Load last-saved settings for the target mode, or fall back to defaults
             const saved = newMode
-                ? loadJSON(LS_KEYS.settingsGauntlet, null)
+                ? loadJSON(LS_KEYS.settingsGameMode, null)
                 : loadJSON(LS_KEYS.settingsSandbox, null);
             const next = mergeDefaultsForMode(newMode, saved);
             setPhysicsSettings(next);
-            // If switching into gauntlet, show instructions unless dismissed before
+            // If switching into game mode, show instructions unless dismissed before
             if (newMode) {
                 const dismissed = loadJSON(LS_KEYS.gauntletInstructionsDismissed, false);
                 if (!dismissed) setShowGauntletHelp(true);
@@ -882,17 +882,17 @@ function App() {
     }, []);
 
     const handleResetToDefaults = useCallback(() => {
-        const defaults = levelMode ? GRAVITY_GAUNTLET_DEFAULTS : DEFAULTS;
+        const defaults = levelMode ? GAME_MODE_DEFAULTS : DEFAULTS;
         setPhysicsSettings(defaults);
         // Clear saved settings for this mode to avoid reloading old values later
     try {
-            localStorage.removeItem(levelMode ? LS_KEYS.settingsGauntlet : LS_KEYS.settingsSandbox);
+            localStorage.removeItem(levelMode ? LS_KEYS.settingsGameMode : LS_KEYS.settingsSandbox);
     } catch (e) { /* noop */ void 0; }
     }, [levelMode]);
 
     // Persist settings whenever they change (per mode)
     useEffect(() => {
-        const key = levelMode ? LS_KEYS.settingsGauntlet : LS_KEYS.settingsSandbox;
+        const key = levelMode ? LS_KEYS.settingsGameMode : LS_KEYS.settingsSandbox;
         try {
             // In level mode, avoid persisting the level definition so code/registry updates remain authoritative
             const toSave = levelMode ? { ...physicsSettings } : physicsSettings;
@@ -1063,7 +1063,7 @@ function App() {
                 </div>
             )}
             {levelMode && showGauntletHelp && (
-                <GauntletInstructionsOverlay
+                <GameInstructionsOverlay
                     onClose={() => {
                         setShowGauntletHelp(false);
                         try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }

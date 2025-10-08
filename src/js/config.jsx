@@ -29,7 +29,7 @@ export const DEFAULTS = {
     }
 };
 
-export const GRAVITY_GAUNTLET_DEFAULTS = {
+export const GAME_MODE_DEFAULTS = {
     ...DEFAULTS, // Inherit all default settings
     enableGravity: true,
     gravityStrength: 0.03, // Slightly stronger gravity for the gauntlet

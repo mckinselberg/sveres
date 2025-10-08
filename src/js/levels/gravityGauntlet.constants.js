@@ -1,5 +1,5 @@
-// Gravity Gauntlet specific constants for physics tuning
-export const GRAVITY_GAUNTLET_CONSTANTS = {
+// Game mode specific constants for physics tuning
+export const GAME_MODE_CONSTANTS = {
   PHYSICS: {
     COLLISION_ELASTICITY: 0.9,
     COLLISION_ITERATIONS: 5,

@@ -225,7 +225,7 @@ function Controls({
             <h2>Controls</h2>
             <div className="control-group" style={{ display: 'grid', gap: 8 }}>
                 <button onClick={toggleLevelMode} className="button button--primary button--full">
-                    Switch to {levelMode ? 'Sandbox' : 'Gravity Gauntlet'} Mode
+                    Switch to {levelMode ? 'Sandbox' : 'Game'} Mode
                 </button>
                 <button onClick={onResetToDefaults} className="button button--secondary button--full">
                     Reset Settings to Defaults

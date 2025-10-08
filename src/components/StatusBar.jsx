@@ -2,10 +2,10 @@
 export default function StatusBar({ uiOpacity = 1, levelMode, level, isPaused }) {
   return (
     <div className="status-bar" style={{ opacity: uiOpacity }}>
-      <span>Mode: {levelMode ? 'Gravity Gauntlet' : 'Sandbox'}</span>
+      <span>Mode: {levelMode ? 'Game' : 'Sandbox'}</span>
       {level && (
         <span style={{ marginLeft: 12 }}>
-          Level: {level.title || (level.type === 'gravityGauntlet' ? 'Gravity Gauntlet' : level.type)}
+          Level: {level.title || level.type || 'Unknown'}
           {level.difficulty ? ` · ${level.difficulty}` : ''}
         </span>
       )}

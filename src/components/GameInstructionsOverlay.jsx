@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export default function GauntletInstructionsOverlay({ onClose, onReset }) {
+export default function GameInstructionsOverlay({ onClose, onReset }) {
   const stop = (e) => e.stopPropagation();
   // Close on Escape for accessibility
   useEffect(() => {
@@ -9,10 +9,10 @@ export default function GauntletInstructionsOverlay({ onClose, onReset }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   return (
-  <div className="gauntlet-instructions-overlay" role="dialog" aria-modal="true" aria-label="Gauntlet Instructions" data-refocus-canvas="true" onClick={onClose}>
+  <div className="game-instructions-overlay" role="dialog" aria-modal="true" aria-label="Game Instructions" data-refocus-canvas="true" onClick={onClose}>
       <div className="intro-card" role="document" onClick={stop}>
-        <h3>Gravity Gauntlet — Instructions</h3>
-        <p>Goal: push all non-player balls into the yellow goal. If your ball touches the yellow goal, you lose.</p>
+        <h3>Game Mode — Instructions</h3>
+        <p>Complete structured levels with different objectives and mechanics.</p>
         <ul>
           <li>Move: A/D or Arrow Left/Right</li>
           <li>Boost: hold Shift for extra horizontal thrust</li>

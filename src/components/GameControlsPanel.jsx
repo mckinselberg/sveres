@@ -18,7 +18,7 @@ export default function GameControlsPanel({
             data-refocus-canvas="true"
             className="gauntlet-reset-button"
             onClick={onResetGauntlet}
-            aria-label="Reset Gauntlet Level"
+            aria-label="Reset Level"
             title="Reset Level"
           >
             ↻ Reset
@@ -40,8 +40,8 @@ export default function GameControlsPanel({
             data-refocus-canvas="true"
             className="gauntlet-wasd-toggle"
             onClick={onShowInstructions}
-            aria-label="Show Gauntlet Instructions"
-            title="Show Gauntlet Instructions"
+            aria-label="Show Game Instructions"
+            title="Show Game Instructions"
           >
             Instructions
           </button>

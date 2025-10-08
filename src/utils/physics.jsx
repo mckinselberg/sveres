@@ -3,13 +3,13 @@ import { DEFAULTS } from '../js/config.jsx';
 // import { getControlsPanel } from './dom.js';
 import { Ball } from './Ball.ts';
 import { ENGINE_CONSTANTS } from '../js/physics.constants.js';
-import { GRAVITY_GAUNTLET_CONSTANTS } from '../js/levels/gravityGauntlet.constants.js';
+import { GAME_MODE_CONSTANTS } from '../js/levels/gravityGauntlet.constants.js';
 import Sound from './sound.js';
 import { drawStaticShape as drawStaticShapeHelper, drawPowerup } from './canvasRendering.js';
 import { resolveLevelPos } from './levelPositioning.js';
 
 const LEVEL_CONSTANTS_MAP = {
-    gravityGauntlet: GRAVITY_GAUNTLET_CONSTANTS?.PHYSICS
+    gravityGauntlet: GAME_MODE_CONSTANTS?.PHYSICS
 };
 
 // Utility functions
