@@ -2,51 +2,152 @@
 
 ## Project Overview
 
-- This project is a physics-based interactive simulation using HTML5 Canvas, React, and GSAP for animation.
-- The main simulation logic is in `src/` (modern React/JSX) and `legacy/src/` (older JS, non-React). The current focus is on the modern `src/` directory.
-- The app features real-time, event-driven controls, persistent color schemes, and a variety of geometric shapes with advanced collision and deformation physics.
+A sophisticated physics simulation with dual modes: **Sandbox** (free-form physics playground) and **Game** (structured levels with objectives). Built with React, HTML5 Canvas, GSAP animations, and TypeScript physics.
 
-## Architecture & Key Patterns
+- **Modern stack**: React 18 + Vite + TypeScript physics + Vitest testing + SCSS styling
+- **Dual architecture**: `src/utils/physics.jsx` (main) coexists with `src/utils/physics.ts` (typed refactor)
+- **Game system**: Level definitions with hazards, goals, powerups, win/lose conditions, and audio
 
-- **Physics Engine**: Core logic in `src/js/` and `src/utils/physics.jsx`. Ball and shape classes encapsulate state and behavior. Collision detection uses spatial partitioning, cooldowns, and energy conservation.
-- **UI/Controls**: React components in `src/components/` manage overlays, sliders, and settings. State is often lifted to parent components for global control.
-- **Event-Driven**: User actions (sliders, color pickers, etc.) trigger immediate updates via React state and event handlers.
-- **Persistence**: Color schemes and some settings are saved to local storage (see `usePersistentDetails.js`).
-- **Animation**: GSAP is used for all deformation and ripple effects. See `applyDeformation` and `addRipple` patterns.
+## Architecture Layers
+
+### Physics Engine (`src/utils/physics.jsx` + `Ball.ts`)
+
+```javascript
+// Core physics loop pattern
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings,
+  backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level,
+  setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal)
+
+// Collision system with health, deformation, cooldowns
+export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, ...)
+```
+
+### Level System (`src/js/levels/levels.js`)
+
+- **Position syntax**: `"center"`, `"bottom-40"`, `"right-20%"`, `"left+24"` (see `levelPositioning.js`)
+- **Static objects**: Hazards damage players, goals trigger win/lose, powerups give temporary abilities
+- **Level constants**: Per-level physics overrides in `gravityGauntlet.constants.js`
+
+### State Management (`App.jsx`)
+
+- **Mode switching**: `levelMode` boolean toggles sandbox vs game
+- **Settings persistence**: Different localStorage keys for sandbox vs gauntlet settings
+- **Event handling**: WASD movement, keyboard shortcuts (R=reset, M=gas, J=jump)
+
+## Critical Patterns
+
+### Dual Physics Architecture
+
+```javascript
+// Main physics (physics.jsx) - use for new features
+import { Ball } from './Ball.ts'; // TypeScript Ball class
+import { solveCollisions, loop } from '../utils/physics.jsx';
+
+// When adding level objects, pre-resolve positions:
+const resolvedHazards = level.hazards.map((h) => ({
+  ...h,
+  ...resolveLevelPos(h, canvasWidth, canvasHeight),
+}));
+```
+
+### Settings Configuration
+
+```javascript
+// Config inheritance pattern (config.jsx)
+export const GRAVITY_GAUNTLET_DEFAULTS = {
+  ...DEFAULTS, // Always inherit base
+  enableGravity: true,
+  ballCount: 5,
+  gameplay: { ...DEFAULTS.gameplay, sandbox: false },
+};
+```
+
+### Component State Lifting
+
+```jsx
+// App.jsx controls all physics settings, components receive props
+const [physicsSettings, setPhysicsSettings] = useState(mergedSettings);
+<Canvas physicsSettings={physicsSettings} level={currentLevel} ... />
+<Controls physicsSettings={physicsSettings} onSettingsChange={setPhysicsSettings} />
+```
 
 ## Developer Workflows
 
-- **Development**: `npm run dev` (Vite dev server, hot reload)
-- **Production Build**: `npm run build`
-- **Preview Build**: `npm run preview`
-- **Config**: Physics and animation constants in `src/js/config.jsx` and `src/js/balls.js`.
+### Commands
 
-## Project-Specific Conventions
+- `npm run dev` - Vite dev server with hot reload
+- `npm test` - Vitest unit tests (physics, collision, UI behavior)
+- `npm run typecheck` - TypeScript validation
+- `npm run lint:fix` - ESLint auto-fix
 
-- **Shapes**: All shapes (circle, square, triangle, diamond, pentagon, hexagon, star) are supported and selectable. Shape logic is modular.
-- **Collision**: Use bounding circles for all shape types. Cooldown system prevents rapid re-collisions.
-- **Deformation**: Always use GSAP timelines for shape deformation and restoration.
-- **UI**: Use React state for all user-facing controls. Avoid direct DOM manipulation except in Canvas rendering.
-- **Legacy**: `legacy/` is for reference only; do not add new features there.
+### Testing Strategy
 
-## Integration & Dependencies
+- **Unit tests**: Physics collision logic (`test/physics.test.js`)
+- **Integration tests**: Level interactions (`test/physics.goal.win-lose.test.js`)
+- **UI behavior**: Control panel toggles (`test/ui.showControls.e2e.test.js`)
 
-- **GSAP**: For all animation (deformation, ripples, transitions)
-- **Vite**: For build and dev server
-- **React**: For UI and state management
+### Audio System (`src/utils/sound.js`)
 
-## Examples
+- BGM tracks with individual gain controls
+- SFX gating system prevents audio spam
+- Local storage persistence: `ui:musicVolume`, `ui:sfxMuted`, etc.
 
-- See `src/components/SelectedBallControls.jsx` for per-object editing patterns.
-- See `src/utils/physics.jsx` for collision and deformation logic.
-- See `src/hooks/usePersistentDetails.js` for local storage usage.
+## Level Development
 
-## Tips for AI Agents
+### Creating Levels
 
-- Always update both physics and UI when adding new shape types or properties.
-- When changing physics, update both the config and the relevant React controls.
-- Use the README for up-to-date architecture and workflow details.
+```javascript
+// In levels.js - position objects with flexible syntax
+{
+  id: 'custom-level',
+  type: 'gravityGauntlet',
+  hazards: [
+    { x: 'left+25%', y: 'middle', width: 120, height: 18, shape: 'square' }
+  ],
+  goals: [
+    { x: 'center', y: 'bottom-80', radius: 40, shape: 'circle' }
+  ],
+  powerups: [
+    { type: 'shield', x: 'right-10%', y: 'top+50', radius: 14 }
+  ]
+}
+```
+
+### Physics Constants
+
+```javascript
+// Per-level physics tuning (gravityGauntlet.constants.js)
+export const GAME_MODE_CONSTANTS = {
+  PHYSICS: {
+    COLLISION_ELASTICITY: 0.9,
+    COLLISION_ITERATIONS: 5,
+    WALL_GRAZING_THRESHOLD: 2,
+  },
+};
+```
+
+## Integration Points
+
+### Canvas Rendering (`canvasRendering.js`)
+
+- Static shape rendering: `drawStaticShape(resolvedObject)`
+- Powerup rendering: `drawPowerup(ctx, powerupObject)`
+- Ball rendering: `ball.draw(ctx, selectedBall)` method
+
+### Storage & Persistence (`storage.js`)
+
+- URL hash seeding: `seedLocalStorageFromHash()` for level sharing
+- Level export: `buildLevelJSON(levelObject)` for copying to levels registry
+- Settings namespacing: `sim:settings:sandbox` vs `sim:settings:gauntlet`
+
+## Common Pitfalls
+
+1. **Position resolution**: Always use `resolveLevelPos()` for level objects, don't hardcode pixel coordinates
+2. **Ball collision cooldowns**: Required to prevent sticking - check `lastCollisionTime` patterns
+3. **Settings inheritance**: New game modes must extend `DEFAULTS` in config.jsx
+4. **TypeScript coexistence**: Import Ball from `Ball.ts`, physics functions from `physics.jsx`
+5. **Test stubbing**: Use minimal Ball stubs in tests, not full Ball instances
 
 ---
 
-For questions or unclear conventions, consult the README or ask for clarification.
+For complex physics changes, check existing tests first. For new game mechanics, follow the powerup pickup pattern in `physics.jsx` loop.
