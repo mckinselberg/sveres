@@ -36,13 +36,15 @@
   - Acceptance: SFX has Enable (mute toggle) and Volume slider (0–100%) in the overlay Audio section; persisted via `ui:sfxMuted` and `ui:sfxVolume`. Global Sound toggle removed from UI and app state; audio engine is always enabled, while Music/SFX paths are controlled independently. Right-side game panel has no audio controls. Tests remain green (1 skipped).
 - [DONE] FPS cap/control in settings
   - Acceptance: Cap reduces render/update cadence while physics stays stable; can be disabled; simple on-screen FPS badge confirms rate. Includes presets (Off/30/60/120) and a Custom numeric input (1–240). Persisted via `ui:fpsLimit`.
-- Organize overlays/panels
+- [DONE] Organize overlays/panels
   - Acceptance: Z-index/layers correct; keyboard navigation works; no overlay blocks unintended clicks; mobile layout verified.
+  - Implemented: Both Controls and SelectedBall panels are now collapsible by clicking titles; consistent UI patterns; removed old gear toggle button; updated help text.
 
 ### High impact
 
-- Organize UI layout per modern game conventions and hide advanced controls behind details toggles
+- [DONE] Organize UI layout per modern game conventions and hide advanced controls behind details toggles
   - Acceptance: Controls grouped logically; advanced options behind details/accordion; state persists; no settings regressions.
+  - Implemented: Both Controls and SelectedBall panels now collapsible; consistent interaction patterns; removed gear toggle system.
 - Welcome screen
   - Acceptance: First-run screen shown until dismissed; dismissal persisted; does not steal focus post-close; accessible labels/contrast.
 
@@ -137,13 +139,13 @@ Additional nice-to-haves (Audio)
 
 ## Game Levels
 
-- Mode framework scaffolding
+- [DONE] Mode framework scaffolding
 
   - Acceptance: Central registry for modes with lifecycle hooks; mode selection persisted; Canvas integrates mode-specific update hooks without breaking sandbox.
-    - Add `src/js/modes/registry.js`: `{ id, name, onEnter(ctx), onUpdate(dt, ctx), onExit(ctx), settings }` and `registerMode/getMode` helpers.
-    - Wire `App.jsx` to hold `ui:mode` (persisted) and pass mode to `Canvas`.
-    - Update `LevelSelect.jsx` (or add `ModeSelect`) to allow choosing: Sandbox, Gauntlet, Bullet Hell, Slam.
-    - In `Canvas.jsx`, call `mode.onEnter` on mount/when mode changes; call `mode.onUpdate` each tick; call `mode.onExit` on unmount/mode change.
+    - Implemented: Level registry system in `src/js/levels/levels.js` with configurable physics, goals, hazards, powerups
+    - Added 6-level campaign progression (Gauntlet I-IV, Bullet Hell I-III) 
+    - Renamed "Gravity Gauntlet Mode" to "Game Mode" to reflect diverse level types
+    - Updated UI and constants throughout codebase
 
 - Bullet Hell (survive 60s)
 
