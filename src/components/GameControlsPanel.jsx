@@ -1,11 +1,8 @@
 export default function GameControlsPanel({
   uiOpacity = 1,
   levelMode,
-  wasdEnabled,
-  onToggleWasd,
   onResetGauntlet,
   onShowInstructions,
-  onJump,
   onShareURL,
   onExportLevel,
   levelSelectNode,
@@ -16,65 +13,43 @@ export default function GameControlsPanel({
         <div className="rc-group">
           <button
             data-refocus-canvas="true"
-            className="gauntlet-reset-button"
+            className="rc-button--primary"
             onClick={onResetGauntlet}
-            aria-label="Reset Level"
-            title="Reset Level"
+            aria-label="Reset Level - Keyboard: R"
+            title="Reset Level (R)"
           >
-            ↻ Reset
+            ↻ Reset <span className="kbd-hint">R</span>
           </button>
           <button
             data-refocus-canvas="true"
-            className="gauntlet-wasd-toggle"
-            onClick={onToggleWasd}
-            aria-label="Toggle WASD input"
-            title="Toggle WASD input"
-          >
-            {wasdEnabled ? 'WASD: On' : 'WASD: Off'}
-          </button>
-        </div>
-      )}
-      {levelMode && (
-        <div className="rc-group">
-          <button
-            data-refocus-canvas="true"
-            className="gauntlet-wasd-toggle"
+            className="rc-button--secondary"
             onClick={onShowInstructions}
             aria-label="Show Game Instructions"
             title="Show Game Instructions"
           >
-            Instructions
-          </button>
-          <button
-            data-refocus-canvas="true"
-            className="gauntlet-wasd-toggle"
-            onClick={onJump}
-            aria-label="Jump"
-            title="Jump (Space/J)"
-          >
-            Jump
+            📖 Instructions
           </button>
         </div>
       )}
       <div className="rc-group">
         <button
           data-refocus-canvas="true"
-          className="gauntlet-wasd-toggle"
+          className="rc-button--utility"
           onClick={onShareURL}
           aria-label="Append settings hash to URL"
-          title="Append settings hash to URL for bookmarking/sharing"
+          title="Copy shareable URL to clipboard"
         >
-          Share URL
+          🔗 Share URL
         </button>
         {levelMode && (
           <button
             data-refocus-canvas="true"
-            className="gauntlet-wasd-toggle"
+            className="rc-button--utility"
             onClick={onExportLevel}
             aria-label="Export Level JSON"
             title="Copy current level JSON to clipboard"
           >
-            Export Level JSON
+            📄 Export JSON
           </button>
         )}
       </div>

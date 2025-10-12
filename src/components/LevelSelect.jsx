@@ -2,7 +2,7 @@ export default function LevelSelect({ levels, currentLevelId, onChangeLevel, onO
   return (
     <div className="rc-group">
       <select
-        className="gauntlet-wasd-toggle"
+        className="rc-button--secondary"
         style={{ width: 220 }}
         value={currentLevelId}
         onChange={(e) => onChangeLevel(e.target.value)}
@@ -17,12 +17,12 @@ export default function LevelSelect({ levels, currentLevelId, onChangeLevel, onO
       </select>
       <button
         data-refocus-canvas="true"
-        className="gauntlet-wasd-toggle"
+        className="rc-button--utility"
         onClick={onOpenImport}
         aria-label="Import Level JSON from clipboard"
-        title="Open Import Level JSON modal"
+        title="Import custom level from JSON"
       >
-        Import Level JSON
+        📥 Import JSON
       </button>
     </div>
   );

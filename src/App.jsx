@@ -28,7 +28,6 @@ const LS_KEYS = {
     currentLevelId: 'sim:currentLevelId',
     settingsSandbox: 'sim:settings:sandbox',
     settingsGameMode: 'sim:settings:gameMode',
-    wasdEnabled: 'ui:wasdEnabled',
     gauntletInstructionsDismissed: 'ui:gauntletInstructions:dismissed',
     musicOn: 'ui:musicOn',
     musicVolume: 'ui:musicVolume',
@@ -134,10 +133,6 @@ function App() {
     }, []);
     const currentCampaignIdx = React.useMemo(() => campaignIds.indexOf(currentLevelId), [campaignIds, currentLevelId]);
     const nextLevelId = React.useMemo(() => (currentCampaignIdx >= 0 && currentCampaignIdx < campaignIds.length - 1) ? campaignIds[currentCampaignIdx + 1] : null, [campaignIds, currentCampaignIdx]);
-    const [wasdEnabled, setWasdEnabled] = useState(() => {
-        const saved = loadJSON(LS_KEYS.wasdEnabled, null);
-        return typeof saved === 'boolean' ? saved : true;
-    });
     const [showGauntletHelp, setShowGauntletHelp] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [importText, setImportText] = useState('');
@@ -599,14 +594,6 @@ function App() {
     const lastMotionDirRef = React.useRef(0); // track last non-zero X direction
     const movementRafRef = React.useRef(null);
 
-    // When disabling WASD, purge any held WASD keys and reset activeDir if no arrows are held
-    useEffect(() => {
-        if (!wasdEnabled) {
-            const kd = keysDownRef.current;
-            kd.delete('w'); kd.delete('a'); kd.delete('s'); kd.delete('d');
-        }
-    }, [wasdEnabled]);
-
     useEffect(() => {
     const currentLevelType = physicsSettings?.level?.type;
     const handleKeyDown = (event) => {
@@ -685,11 +672,7 @@ function App() {
             // Track movement keys while held
             const moveKeys = new Set(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Shift']);
             if (moveKeys.has(k)) {
-                // Respect WASD toggle for lateral/jump keys; slam already handled above
-                if (!wasdEnabled && (k === 'w' || k === 'a' || k === 'd')) {
-                    event.preventDefault();
-                    return;
-                }
+                // Always allow WASD movement
                 event.preventDefault();
                 keysDownRef.current.add(k);
                 if (k === 'w' || k === 'ArrowUp') {
@@ -730,8 +713,8 @@ function App() {
             }
             const keys = keysDownRef.current;
             if (selectedBall) {
-                const hasLeft = ((wasdEnabled && keys.has('a')) || keys.has('ArrowLeft'));
-                const hasRight = ((wasdEnabled && keys.has('d')) || keys.has('ArrowRight'));
+                const hasLeft = (keys.has('a') || keys.has('ArrowLeft'));
+                const hasRight = (keys.has('d') || keys.has('ArrowRight'));
                 const boosting = keys.has('Shift');
 
                 // Tunables from selected ball (with sensible defaults)
@@ -784,14 +767,7 @@ function App() {
             window.removeEventListener('keyup', handleKeyUp);
             if (movementRafRef.current) cancelAnimationFrame(movementRafRef.current);
         };
-    }, [selectedBall, levelMode, setGlobalScore, isGameOver, wasdEnabled, handleJump, refreshLevelFromRegistry, physicsSettings?.level?.type]);
-
-    
-
-    // Persist WASD toggle
-    useEffect(() => {
-    try { localStorage.setItem(LS_KEYS.wasdEnabled, JSON.stringify(wasdEnabled)); } catch (e) { /* noop */ void 0; }
-    }, [wasdEnabled]);
+    }, [selectedBall, levelMode, setGlobalScore, isGameOver, handleJump, refreshLevelFromRegistry, physicsSettings?.level?.type]);
 
     // Persist current level id
     useEffect(() => {
@@ -928,11 +904,8 @@ function App() {
             <GameControlsPanel
                 uiOpacity={physicsSettings.visuals.uiOpacity}
                 levelMode={levelMode}
-                wasdEnabled={wasdEnabled}
-                onToggleWasd={() => setWasdEnabled(v => !v)}
                 onResetGauntlet={handleResetGauntlet}
                 onShowInstructions={() => setShowGauntletHelp(true)}
-                onJump={handleJump}
                 onShareURL={handleShareURL}
                 onExportLevel={handleExportLevel}
                 levelSelectNode={levelMode ? (

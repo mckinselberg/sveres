@@ -27,8 +27,9 @@
     position: fixed;
     transform: translateX(-50%);
     width: 94vw;
-  font-size: 16px;
+    font-size: 16px;
     top: auto;
+    overflow-x: hidden;
   }
 
   #controls label {
@@ -87,6 +88,7 @@
   width: 94vw !important;
   z-index: 1002 !important; /* above main controls */
   overflow-y: auto; /* allow scrolling when content grows */
+  overflow-x: hidden;
 
     h3 { text-align: center; }
     .row { margin-bottom: 16px; }
@@ -126,6 +128,36 @@
         font-size: 18px;
         min-height: 48px;
       }
+    }
+  }
+
+  /* Right controls mobile improvements */
+  .right-controls {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    right: 8px;
+    top: auto;
+    gap: 12px;
+
+    .rc-group:first-child {
+      flex-direction: row;
+      gap: 8px;
+    }
+
+    .rc-button--primary,
+    .rc-button--secondary,
+    .rc-button--utility {
+      font-size: 14px;
+      padding: 8px 12px;
+      min-height: 44px; /* minimum touch target */
+    }
+
+    .rc-button--utility {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+
+    .kbd-hint {
+      display: none; /* hide keyboard hints on mobile */
     }
   }
 }
