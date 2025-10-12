@@ -7,13 +7,14 @@ import { rgbToHex } from '../utils/colors.js';
 
 function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
     const controlsRef = useRef(null);
-    const handleRef = useRef(null);
+    const dragHandleRef = useRef(null);
+    const mainRef = useRef(null);
     const appearanceRef = useRef(null);
     const motionRef = useRef(null);
     const statsRef = useRef(null);
     const controlRef = useRef(null);
 
-    usePersistentDetails([appearanceRef, motionRef, statsRef, controlRef]);
+    usePersistentDetails([mainRef, appearanceRef, motionRef, statsRef, controlRef]);
 
     useEffect(() => {
         if (selectedBall) {
@@ -26,20 +27,30 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                 controlsRef.current.style.top = '65px';
             }
 
-            const handleElement = handleRef.current;
+            const dragHandleElement = dragHandleRef.current;
             const controlsElement = controlsRef.current;
+
+            if (!dragHandleElement || !controlsElement) return;
 
             let isDragging = false;
             let offsetX, offsetY;
 
             const onMouseDown = (e) => {
+                // Only start dragging if the click was specifically on the drag handle
+                if (e.target !== dragHandleElement) return;
+                
                 isDragging = true;
                 offsetX = e.clientX - controlsElement.offsetLeft;
                 offsetY = e.clientY - controlsElement.offsetTop;
+                
+                // Prevent text selection during drag and stop event bubbling to parent summary
+                e.preventDefault();
+                e.stopPropagation();
             };
 
             const onMouseMove = (e) => {
                 if (!isDragging) return;
+                e.preventDefault();
                 const left = e.clientX - offsetX;
                 const top = e.clientY - offsetY;
                 controlsElement.style.left = `${left}px`;
@@ -56,16 +67,21 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                 localStorage.setItem("selectedBallControlsPosition", JSON.stringify(position));
             };
 
-            if (handleElement) {
-                handleElement.addEventListener('mousedown', onMouseDown);
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            }
+            const onClick = (e) => {
+                // Prevent clicks on drag handle from toggling the details element
+                e.stopPropagation();
+                e.preventDefault();
+            };
+
+            // Only attach mousedown to the drag handle element
+            dragHandleElement.addEventListener('mousedown', onMouseDown);
+            dragHandleElement.addEventListener('click', onClick);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
 
             return () => {
-                if (handleElement) {
-                    handleElement.removeEventListener('mousedown', onMouseDown);
-                }
+                dragHandleElement.removeEventListener('mousedown', onMouseDown);
+                dragHandleElement.removeEventListener('click', onClick);
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
             };
@@ -119,7 +135,31 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
 
     return (
         <div ref={controlsRef} className="selected-ball-controls-panel">
-            <h3 ref={handleRef} data-refocus-canvas="true" style={{ cursor: 'grab' }}>Selected Ball</h3>
+            <details id="section-selected-ball" open ref={mainRef}>
+                <summary data-refocus-canvas="true" style={{ 
+                    position: 'relative', 
+                    cursor: 'pointer',
+                    padding: '6px 10px',
+                    margin: 0,
+                    minHeight: 'auto'
+                }}>
+                    <span>Selected Ball</span>
+                    <span 
+                        ref={dragHandleRef}
+                        style={{ 
+                            position: 'absolute', 
+                            right: '8px', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)', 
+                            fontSize: '12px', 
+                            opacity: 0.6,
+                            cursor: 'grab',
+                            padding: '4px',
+                            userSelect: 'none'
+                        }}
+                    >⋮⋮</span>
+                </summary>
+                <div className="section-body" style={{ padding: '10px 10px 5px 10px' }}>
             <details id="section-selected-appearance" open ref={appearanceRef}>
                 <summary>Appearance</summary>
                 <div className="section-body">
@@ -156,6 +196,10 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         step={0.05}
                         value={Number.isFinite(Number(selectedBall.opacity)) ? Number(selectedBall.opacity) : 1}
                         onChange={handleOpacityChange}
+                        displayValue={(() => {
+                            const opacity = Number.isFinite(Number(selectedBall.opacity)) ? Number(selectedBall.opacity) : 1;
+                            return opacity.toFixed(2);
+                        })()}
                     />
                 </div>
             </details>
@@ -167,7 +211,7 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                         label="Velocity"
                         min={1}
                         max={15}
-                        step={1}
+                        step={0.1}
                         value={(() => {
                             const vx = Number.isFinite(Number(selectedBall.velX)) ? Number(selectedBall.velX) : 0;
                             const vy = Number.isFinite(Number(selectedBall.velY)) ? Number(selectedBall.velY) : 0;
@@ -175,6 +219,12 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
                             return Number.isFinite(speed) ? speed : 0;
                         })()}
                         onChange={handleVelocityChange}
+                        displayValue={(() => {
+                            const vx = Number.isFinite(Number(selectedBall.velX)) ? Number(selectedBall.velX) : 0;
+                            const vy = Number.isFinite(Number(selectedBall.velY)) ? Number(selectedBall.velY) : 0;
+                            const speed = Math.sqrt(vx * vx + vy * vy);
+                            return Number.isFinite(speed) ? speed.toFixed(2) : "0.00";
+                        })()}
                     />
                     {/* Speed and Speed Multiplier controls would go here */}
                 </div>
@@ -252,6 +302,8 @@ function SelectedBallControls({ selectedBall, onUpdateSelectedBall }) {
             </details>
 
             {/* Actions and Saved Balls sections would go here */}
+                </div>
+            </details>
         </div>
     );
 }

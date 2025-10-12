@@ -135,9 +135,11 @@ function Controls({
     const gameplayAdvancedRef = useRef(null);
     const visualsAdvancedRef = useRef(null);
     const deformationAdvancedRef = useRef(null);
+    const mainControlsRef = useRef(null);
     // Removed presets section
 
     usePersistentDetails([
+        mainControlsRef,
         simulationRef,
         visualsRef,
         deformationRef,
@@ -222,7 +224,9 @@ function Controls({
                 aria-orientation="vertical"
                 aria-label="Resize controls panel"
             />
-            <h2>Controls</h2>
+            <details id="section-main-controls" open ref={mainControlsRef}>
+                <summary>Controls</summary>
+                <div className="section-body" style={{ padding: '10px 10px 5px 10px' }}>
             <div className="control-group" style={{ display: 'grid', gap: 8 }}>
                 <button onClick={toggleLevelMode} className="button button--primary button--full">
                     Switch to {levelMode ? 'Sandbox' : 'Game'} Mode
@@ -769,6 +773,8 @@ function Controls({
 
             {/* Presets section removed */}
             {/* Add more controls here */}
+                </div>
+            </details>
         </div>
     );
 }

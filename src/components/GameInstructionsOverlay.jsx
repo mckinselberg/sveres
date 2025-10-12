@@ -18,8 +18,8 @@ export default function GameInstructionsOverlay({ onClose, onReset }) {
           <li>Boost: hold Shift for extra horizontal thrust</li>
           <li>Jump: Space, W, or Arrow Up</li>
           <li>Slam: disabled in Gauntlet (available in Sandbox/Bullet Hell)</li>
-          <li>Pause: P • Toggle Controls panel: C</li>
-          <li>Reset: R key or the on-screen Reset button</li>
+          <li>Pause: P • Reset: R</li>
+          <li>Click panel titles to collapse/expand sections</li>
         </ul>
         <div className="actions">
           <button data-refocus-canvas="true" onClick={onReset} aria-label="Reset Level">Reset Level</button>

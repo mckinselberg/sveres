@@ -112,18 +112,6 @@
   details > summary { font-size: 20px; padding: 16px 18px; }
   }
 
-  /* Friendlier toggle button placement/size */
-  #toggleControls {
-    bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
-    left: auto;
-    right: 16px;
-    top: auto;
-    width: 56px;
-    height: 56px;
-    font-size: 20px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
-  }
-
   /* Intro overlay mobile tweaks */
   .intro-overlay {
     height: 100svh; /* account for mobile UI chrome */

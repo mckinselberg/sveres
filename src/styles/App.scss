@@ -192,6 +192,19 @@ canvas {
   .row {
     margin-bottom: 10px;
   }
+
+  // Make the main controls section more compact when collapsed
+  #section-main-controls {
+    margin-bottom: 0;
+    
+    &:not([open]) {
+      > summary {
+        margin: 0;
+        padding: 6px 10px;
+        white-space: nowrap;
+      }
+    }
+  }
 }
 
 .selected-ball-controls-panel {
@@ -204,10 +217,12 @@ canvas {
   z-index: 2050;
 
   // Section styling
-  h3 {
+  summary {
     color: #fff;
     margin: 0 0 10px 0;
     cursor: grab;
+    font-size: 16px;
+    font-weight: bold;
   }
 
   details {
@@ -259,6 +274,22 @@ canvas {
   &::-webkit-scrollbar-thumb:hover {
     background: $scrollbar-thumb-hover;
   }
+
+  // Make the main details element more compact when collapsed
+  #section-selected-ball {
+    margin-bottom: 0;
+    
+    &:not([open]) {
+      width: auto;
+      min-width: 160px;
+      
+      > summary {
+        margin: 0;
+        padding: 6px 10px;
+        white-space: nowrap;
+      }
+    }
+  }
 }
 
 /* Themed buttons */
@@ -287,40 +318,6 @@ canvas {
   }
 
   &--full { width: 100%; }
-}
-
-/* Toggle button */
-.toggle-controls-button {
-  align-items: center;
-  background: rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  font-size: 18px;
-  height: 40px;
-  justify-content: center;
-  left: 15px;
-  position: fixed;
-  justify-content: center;
-  top: 15px;
-  transition: all 0.3s ease;
-  width: 40px;
-  z-index: 1001;
-  &:hover { transform: scale(1.06); }
-  &:active { transform: scale(0.98); }
-  &.is-pulsing { animation: gear-pulse 1.4s ease-in-out infinite; }
-}
-
-@keyframes gear-pulse {
-  0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
-  50% { transform: scale(1.12) rotate(10deg); filter: drop-shadow(0 0 8px rgba(255,255,255,0.35)); }
-  100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toggle-controls-button.is-pulsing { animation: none !important; }
 }
 
 input[type="range"] {

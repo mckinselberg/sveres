@@ -45,7 +45,7 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
 
     const draggingRef = useRef(false);
     return (
-        <div className="control-group" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 8 }}>
+        <div className="control-group" style={{ display: 'grid', gridTemplateColumns: 'auto 2fr auto', alignItems: 'center', gap: 8 }}>
             <label>{label}:</label>
             <input
                 type="range"
@@ -55,8 +55,14 @@ function Slider({ label, value, onChange, min, max, step, displayValue, logarith
                 value={cleanedValue}
                 onChange={logarithmic ? handleLogarithmicChange : onChange}
                 data-refocus-canvas="true"
-                onMouseDown={() => { draggingRef.current = true; beginUiDrag(); }}
-                onTouchStart={() => { draggingRef.current = true; beginUiDrag(); }}
+                onMouseDown={() => { 
+                    draggingRef.current = true; 
+                    beginUiDrag(); 
+                }}
+                onTouchStart={() => { 
+                    draggingRef.current = true; 
+                    beginUiDrag(); 
+                }}
                 onMouseUp={() => {
                     if (draggingRef.current) { draggingRef.current = false; endUiDrag(); }
                     // After releasing the slider, refocus the canvas so game keys work immediately

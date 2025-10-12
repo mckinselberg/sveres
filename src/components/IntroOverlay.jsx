@@ -54,7 +54,7 @@ function IntroOverlay() {
                 <h3>Welcome to Sveres</h3>
                 <p>Quick tips to get you started:</p>
                 <ul>
-                    <li>Click or tap the gear to show/hide controls (or press C).</li>
+                    <li>Click panel titles to show/hide sections (Controls, Selected Ball, etc.).</li>
                     <li>Drag on a ball to move it; use WASD or arrow keys to nudge the selected ball.</li>
                     <li>Use the sliders to change size, speed, gravity, and more. Try Deformation for squishy fun.</li>
                     <li>On mobile, panels become bottom sheets and inputs are touch-friendly.</li>
