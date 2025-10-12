@@ -66,7 +66,7 @@ export function colorWithAlpha(color, alpha = 1) {
 // Handles the collision response between two balls.
 // This function applies positional correction, resolves velocities based on elastic collision physics,
 // applies deformation effects, updates health, and increments the global score.
-export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, physicsConsts = ENGINE_CONSTANTS) {
+export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, physicsConsts = ENGINE_CONSTANTS, isInvincible = false) {
     // 1. Positional Correction: Separate balls to prevent sticking
     const overlap = combinedRadius - distance;
     const separationFactor = overlap / 2 + 0.5; // Add a small buffer
@@ -110,8 +110,8 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
     // Play a collision sound for sufficiently strong impacts
     if (intensity > 0.06) Sound.playCollision(intensity);
 
-    // 4. Health System: Apply damage if enabled
-    if (healthSystemEnabled) {
+    // 4. Health System: Apply damage if enabled and not invincible
+    if (healthSystemEnabled && !isInvincible) {
         const healthDamage = intensity * healthDamageMultiplier; // More intense collisions cause more damage
         ball1.health -= healthDamage;
         ball2.health -= healthDamage;
@@ -132,7 +132,7 @@ export function handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadi
 // Iteratively solves collisions between all balls in the simulation.
 // This function performs multiple iterations to ensure stable collision resolution,
 // especially for stacked or multi-ball collisions.
-export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall, preResolvedStaticObjects, popDespawnEnabled) {
+export function solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, canvasWidth, canvasHeight, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, selectedBall, preResolvedStaticObjects, popDespawnEnabled, isInvincible = false) {
     // Backwards compatibility: old signature was
     // solveCollisions(balls, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal)
     // Detect when the 5th arg is a function (setGlobalScore) and remap accordingly.
@@ -225,7 +225,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                                 try { Sound.playCollision(0.4); } catch {}
                             } else {
                                 // Brief invulnerability to avoid rapid multi-hit
-                                if (!playerBall._iFrameUntil || playerBall._iFrameUntil <= now) {
+                                if (!isInvincible && (!playerBall._iFrameUntil || playerBall._iFrameUntil <= now)) {
                                     const dmg = 12; // lower damage per hit
                                     playerBall.health = Math.max(0, playerBall.health - dmg);
                                     const iFrameMs = (level && Number(level.iFrameMs)) ? Math.max(0, Number(level.iFrameMs)) : 800;
@@ -265,7 +265,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                     const velAlongNormal = relativeVelX * normalX + relativeVelY * normalY;
 
                     if (velAlongNormal < 0) { // Only resolve if balls are moving towards each other
-                        handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, phys);
+                        handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, phys, isInvincible);
                     }
                 }
             }
@@ -305,7 +305,7 @@ export function solveCollisions(balls, healthSystemEnabled, healthDamageMultipli
                     ball.applyWallDeformation(normalX, normalY, deformationSettings);
                     Sound.playWall(Math.min(1, Math.hypot(ball.velX, ball.velY) / 20));
 
-                    if (staticObj.type === 'hazard' && healthSystemEnabled) {
+                    if (staticObj.type === 'hazard' && healthSystemEnabled && !isInvincible) {
                         const damage = healthDamageMultiplier * 100; // Use 100 to make it a percentage
                         ball.health -= damage;
                         ball.health = Math.max(0, ball.health);
@@ -538,14 +538,14 @@ export function detectCollisions(balls, healthSystemEnabled, healthDamageMultipl
                 if (velAlongNormal > 0) {
                     ball1.lastCollisionTime = currentTime;
                     ball2.lastCollisionTime = currentTime;
-                    handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore);
+                    handleBallCollision(ball1, ball2, dx, dy, distance, combinedRadius, normalX, normalY, healthSystemEnabled, healthDamageMultiplier, deformationSettings, setGlobalScore, undefined, isInvincible);
                 }
             }
         }
     }
 }
 
-export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal) {
+export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, backgroundColor, currentClearAlpha, setGlobalScore, selectedBall, level, setScoredBallsCount, setRemovedBallsCount, onPlayerHitGoal, isInvincible = false) {
     ctx.fillStyle = colorWithAlpha(backgroundColor, currentClearAlpha);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -726,7 +726,8 @@ export function loop(ctx, balls, canvasWidth, canvasHeight, physicsSettings, bac
         onPlayerHitGoal,
         selectedBall,
         preResolvedStatics,
-        physicsSettings?.gameplay?.popDespawnEnabled
+        physicsSettings?.gameplay?.popDespawnEnabled,
+        isInvincible
     );
 
     // Sandbox-only: pop+despawn any balls that reached 0 health from ball-ball collisions

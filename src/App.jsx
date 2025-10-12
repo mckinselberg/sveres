@@ -73,6 +73,12 @@ function mergeDefaultsForMode(mode, saved) {
 function App() {
     // Seed from URL hash as early as possible
     try { seedLocalStorageFromHash(); } catch (e) { /* noop */ void 0; }
+    
+    // Check for debug invincibility flag in URL
+    // Usage: Add ?invincible=true to the URL to make the player ball invincible
+    // This is useful for testing perfect run decorations and level mechanics
+    const urlParams = new URLSearchParams(window.location.search);
+    const isInvincible = urlParams.get('invincible') === 'true';
     // One-time migration: remove legacy ui:soundOn; if it was false, default music off and sfx muted
     try {
         const rawLegacy = localStorage.getItem('ui:soundOn');
@@ -1025,6 +1031,7 @@ function App() {
                     }
                 }, [])}
                 fpsLimit={fpsLimit}
+                isInvincible={isInvincible}
             />
             {/* Lightweight HUD: show active powerups on the player with countdowns */}
             {levelMode && selectedBall && <HUDPowerups selectedBall={selectedBall} />}

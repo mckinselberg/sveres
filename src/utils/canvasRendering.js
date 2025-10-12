@@ -59,22 +59,114 @@ export function drawStaticShape(ctx, shapeData) {
 }
 
 /**
- * Draw a powerup affordance (currently only circle type used in the app).
+ * Draw a powerup affordance with type-specific icons.
  * @param {CanvasRenderingContext2D} ctx
- * @param {{shape:string,x:number,y:number,color?:string,radius?:number}} pu
+ * @param {{type:string,shape:string,x:number,y:number,color?:string,radius?:number}} pu
  */
 export function drawPowerup(ctx, pu) {
   ctx.save();
+  
+  const x = pu.x;
+  const y = pu.y;
+  const radius = pu.radius || 14;
+  const color = pu.color || 'gold';
+  
+  // Draw outer ring
   ctx.beginPath();
-  ctx.strokeStyle = pu.color || 'gold';
+  ctx.strokeStyle = color;
   ctx.lineWidth = 3;
-  if (pu.shape === 'circle') {
-    ctx.arc(pu.x, pu.y, pu.radius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.arc(pu.x, pu.y, Math.max(2, pu.radius * 0.4), 0, Math.PI * 2);
-    ctx.fill();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Draw background circle
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.arc(x, y, radius * 0.8, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Draw type-specific icon
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  
+  const iconSize = radius * 0.6;
+  
+  switch (pu.type) {
+    case 'health':
+      // Medical cross (hospital icon)
+      ctx.beginPath();
+      // Vertical bar
+      ctx.fillRect(x - iconSize * 0.15, y - iconSize * 0.6, iconSize * 0.3, iconSize * 1.2);
+      // Horizontal bar
+      ctx.fillRect(x - iconSize * 0.6, y - iconSize * 0.15, iconSize * 1.2, iconSize * 0.3);
+      break;
+      
+    case 'speed':
+      // Lightning bolt / speed lines
+      ctx.beginPath();
+      ctx.moveTo(x - iconSize * 0.4, y - iconSize * 0.6);
+      ctx.lineTo(x + iconSize * 0.2, y - iconSize * 0.1);
+      ctx.lineTo(x - iconSize * 0.1, y - iconSize * 0.1);
+      ctx.lineTo(x + iconSize * 0.4, y + iconSize * 0.6);
+      ctx.lineTo(x - iconSize * 0.2, y + iconSize * 0.1);
+      ctx.lineTo(x + iconSize * 0.1, y + iconSize * 0.1);
+      ctx.closePath();
+      ctx.fill();
+      break;
+      
+    case 'shield':
+      // Shield shape
+      ctx.beginPath();
+      ctx.moveTo(x, y - iconSize * 0.6);
+      ctx.quadraticCurveTo(x + iconSize * 0.4, y - iconSize * 0.3, x + iconSize * 0.4, y + iconSize * 0.1);
+      ctx.quadraticCurveTo(x + iconSize * 0.4, y + iconSize * 0.4, x, y + iconSize * 0.6);
+      ctx.quadraticCurveTo(x - iconSize * 0.4, y + iconSize * 0.4, x - iconSize * 0.4, y + iconSize * 0.1);
+      ctx.quadraticCurveTo(x - iconSize * 0.4, y - iconSize * 0.3, x, y - iconSize * 0.6);
+      ctx.fill();
+      break;
+      
+    case 'shrink':
+      // Inward arrows (shrinking symbol)
+      ctx.beginPath();
+      // Top arrow pointing down
+      ctx.moveTo(x - iconSize * 0.3, y - iconSize * 0.6);
+      ctx.lineTo(x, y - iconSize * 0.2);
+      ctx.lineTo(x + iconSize * 0.3, y - iconSize * 0.6);
+      ctx.moveTo(x, y - iconSize * 0.5);
+      ctx.lineTo(x, y - iconSize * 0.1);
+      
+      // Bottom arrow pointing up  
+      ctx.moveTo(x - iconSize * 0.3, y + iconSize * 0.6);
+      ctx.lineTo(x, y + iconSize * 0.2);
+      ctx.lineTo(x + iconSize * 0.3, y + iconSize * 0.6);
+      ctx.moveTo(x, y + iconSize * 0.5);
+      ctx.lineTo(x, y + iconSize * 0.1);
+      
+      // Left arrow pointing right
+      ctx.moveTo(x - iconSize * 0.6, y - iconSize * 0.3);
+      ctx.lineTo(x - iconSize * 0.2, y);
+      ctx.lineTo(x - iconSize * 0.6, y + iconSize * 0.3);
+      ctx.moveTo(x - iconSize * 0.5, y);
+      ctx.lineTo(x - iconSize * 0.1, y);
+      
+      // Right arrow pointing left
+      ctx.moveTo(x + iconSize * 0.6, y - iconSize * 0.3);
+      ctx.lineTo(x + iconSize * 0.2, y);
+      ctx.lineTo(x + iconSize * 0.6, y + iconSize * 0.3);
+      ctx.moveTo(x + iconSize * 0.5, y);
+      ctx.lineTo(x + iconSize * 0.1, y);
+      
+      ctx.stroke();
+      break;
+      
+    default:
+      // Fallback: simple dot
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.arc(x, y, iconSize * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      break;
   }
+  
   ctx.restore();
 }

@@ -2,6 +2,7 @@ import { useRef, useEffect, memo, forwardRef, useImperativeHandle, useState, use
 // Use the JS physics module (with sound hooks) explicitly
 import { loop, initializeBalls, addNewBall, adjustBallCount, adjustBallVelocities } from '../utils/physics.jsx';
 import Sound from '../utils/sound';
+import { savePerfectRun } from '../utils/achievements.js';
 
 const Canvas = memo(forwardRef(function Canvas({
     enableGravity,
@@ -27,7 +28,8 @@ const Canvas = memo(forwardRef(function Canvas({
     onWin,
     onLose,
     onSelectedBallMotion,
-    fpsLimit = 0
+    fpsLimit = 0,
+    isInvincible = false
 }, ref) {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
@@ -45,6 +47,7 @@ const Canvas = memo(forwardRef(function Canvas({
     const [forceTick, setForceTick] = useState(0);
     const [fps, setFps] = useState(0);
     const [bhTokens, setBhTokens] = useState({ jumps: 0, slams: 0 });
+    const [bhHud, setBhHud] = useState({ timeLeft: 0, playerHealth: 100, active: false, perfectRun: true });
     const fpsLimitRef = useRef(0);
     fpsLimitRef.current = Math.max(0, Number(fpsLimit) || 0);
     const lastFrameMsRef = useRef(0);
@@ -53,6 +56,9 @@ const Canvas = memo(forwardRef(function Canvas({
         // Bullet Hell timer (win when reaches 0)
         const bhTimeLeftRef = useRef(null);
         const bhTimerActiveRef = useRef(false);
+        // Track starting health for perfect run detection
+        const bhStartingHealthRef = useRef(100);
+        const bhPerfectRunRef = useRef(true);
         // Bullet Hell tokens: 3 air-jumps and 3 slams per airtime
         const bhJumpTokensRef = useRef(0);
         const bhSlamTokensRef = useRef(0);
@@ -215,6 +221,14 @@ const Canvas = memo(forwardRef(function Canvas({
                 ballsRef.current[0].originalSize = 15;
                 // Seed jump state
                 ballsRef.current[0]._airJumpAvailable = true;
+                
+                // Check for invisible ball query parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('invisible') || urlParams.has('invisibleBall')) {
+                    ballsRef.current[0].opacity = 0.1; // Nearly invisible but still functional
+                    console.log('🔍 Invisible ball mode activated! Player ball opacity set to 0.1');
+                }
+                
                 // Initialize Bullet Hell tokens
                 if (level.type === 'bulletHell') {
                     bhJumpTokensRef.current = 3;
@@ -400,13 +414,23 @@ const Canvas = memo(forwardRef(function Canvas({
             if (Number.isFinite(tl) && tl > 0) {
                 bhTimeLeftRef.current = tl;
                 bhTimerActiveRef.current = true;
+                // Initialize perfect run tracking
+                bhStartingHealthRef.current = 100;
+                bhPerfectRunRef.current = true;
+                setBhHud({ timeLeft: tl, playerHealth: 100, active: true, perfectRun: true });
             } else {
                 bhTimeLeftRef.current = null;
                 bhTimerActiveRef.current = false;
+                bhStartingHealthRef.current = 100;
+                bhPerfectRunRef.current = true;
+                setBhHud({ timeLeft: 0, playerHealth: 100, active: false, perfectRun: true });
             }
         } else {
             bhTimeLeftRef.current = null;
             bhTimerActiveRef.current = false;
+            bhStartingHealthRef.current = 100;
+            bhPerfectRunRef.current = true;
+            setBhHud({ timeLeft: 0, playerHealth: 100, active: false, perfectRun: true });
         }
 
         const handleMouseDown = (e) => {
@@ -539,15 +563,50 @@ const Canvas = memo(forwardRef(function Canvas({
                 level,
                 incScored,
                 incRemoved,
-                () => { loseRef.current = true; }
+                () => { loseRef.current = true; },
+                isInvincible
             );
 
             // Bullet Hell: countdown and win when timer reaches 0
             if (!loseRef.current && level && level.type === 'bulletHell' && bhTimerActiveRef.current && typeof bhTimeLeftRef.current === 'number') {
                 bhTimeLeftRef.current = Math.max(0, bhTimeLeftRef.current - dtSec);
+                
+                // Update HUD with current timer and player health
+                const playerBall = selectedForDraw || ballsRef.current.find(b => b.isStartingBall);
+                const playerHealth = playerBall ? Math.max(0, Math.min(100, playerBall.health || 100)) : 100;
+                
+                // Track perfect run status
+                if (playerHealth < bhStartingHealthRef.current) {
+                    bhPerfectRunRef.current = false;
+                }
+                
+                setBhHud({ 
+                    timeLeft: bhTimeLeftRef.current, 
+                    playerHealth, 
+                    active: true,
+                    perfectRun: bhPerfectRunRef.current 
+                });
+                
                 if (bhTimeLeftRef.current <= 0) {
-                    Sound.playWin();
-                    if (onWinRef.current) onWinRef.current();
+                    // Check for perfect run bonus
+                    const isPerfect = bhPerfectRunRef.current && playerHealth >= bhStartingHealthRef.current;
+                    
+                    if (isPerfect) {
+                        // Perfect run achieved! Extra celebration
+                        Sound.playPerfectWin();
+                        
+                        // Store perfect run achievement
+                        const levelId = level.id || 'unknown';
+                        const levelTitle = level.title || 'Bullet Hell';
+                        const perfectCount = savePerfectRun(levelId, levelTitle);
+                        
+                        // Show perfect bonus message
+                        console.log(`🌟 PERFECT RUN! No damage taken in ${levelTitle}! (Perfect runs: ${perfectCount})`);
+                    } else {
+                        Sound.playWin();
+                    }
+                    
+                    if (onWinRef.current) onWinRef.current(isPerfect ? { perfect: true } : undefined);
                     animationFrameId.current = null;
                     return;
                 }
@@ -658,7 +717,7 @@ const Canvas = memo(forwardRef(function Canvas({
                 animationFrameId.current = null;
             }
         };
-    }, [isPaused, level, forceTick, setGlobalScore, setScoredBallsCount, setRemovedBallsCount, applyDprSizing]);
+    }, [isPaused, level, forceTick, setGlobalScore, setScoredBallsCount, setRemovedBallsCount, applyDprSizing, isInvincible]);
 
     // Reconcile when count/size/velocity/shape change (without full re-seed)
     useEffect(() => {
@@ -706,6 +765,57 @@ const Canvas = memo(forwardRef(function Canvas({
                 }}
                 style={{ display: 'block' }}
             />
+            {bhHud.active && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 8,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        padding: '6px 12px',
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        borderRadius: 6,
+                        background: 'rgba(0,0,0,0.8)',
+                        color: '#fff',
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                        display: 'flex',
+                        gap: 16,
+                        alignItems: 'center',
+                        border: bhHud.perfectRun ? '1px solid gold' : '1px solid rgba(255,255,255,0.2)'
+                    }}
+                    aria-hidden
+                >
+                    {bhHud.perfectRun && (
+                        <span 
+                            style={{ 
+                                color: 'gold',
+                                animation: 'pulse 2s infinite'
+                            }}
+                            title="Perfect Run - No Damage Taken!"
+                        >
+                            🌟
+                        </span>
+                    )}
+                    <span 
+                        style={{ 
+                            color: bhHud.timeLeft <= 10 ? '#ff6b6b' : bhHud.timeLeft <= 30 ? '#ffd43b' : '#51cf66' 
+                        }}
+                        title="Time Remaining"
+                    >
+                        ⏱️ {Math.ceil(bhHud.timeLeft)}s
+                    </span>
+                    <span 
+                        style={{ 
+                            color: bhHud.playerHealth <= 25 ? '#ff6b6b' : bhHud.playerHealth <= 50 ? '#ffd43b' : '#51cf66' 
+                        }}
+                        title="Player Health"
+                    >
+                        ❤️ {Math.round(bhHud.playerHealth)}%
+                    </span>
+                </div>
+            )}
             {level && level.type === 'bulletHell' && (
                 <div
                     style={{

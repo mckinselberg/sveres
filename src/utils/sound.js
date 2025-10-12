@@ -289,6 +289,14 @@ const Sound = (() => {
     blip({ freq: 800, dur: 0.14, type: 'sine', gain: 0.07 });
     blip({ freq: 1000, dur: 0.18, type: 'sine', gain: 0.07 });
   }
+  function playPerfectWin() {
+    // Special fanfare for perfect runs - ascending celebration
+    blip({ freq: 600, dur: 0.08, type: 'sine', gain: 0.06 });
+    blip({ freq: 800, dur: 0.1, type: 'sine', gain: 0.065 });
+    blip({ freq: 1000, dur: 0.12, type: 'sine', gain: 0.07 });
+    blip({ freq: 1200, dur: 0.14, type: 'sine', gain: 0.075 });
+    blip({ freq: 1500, dur: 0.16, type: 'sine', gain: 0.08 });
+  }
   function playLose() {
     blip({ freq: 220, dur: 0.16, type: 'sawtooth', gain: 0.08 });
     blip({ freq: 160, dur: 0.2, type: 'sawtooth', gain: 0.07 });
@@ -499,6 +507,7 @@ const Sound = (() => {
     playWall,
     playScore,
     playWin,
+    playPerfectWin,
     playLose,
     playPowerup,
     playPop,

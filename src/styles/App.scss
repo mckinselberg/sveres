@@ -1,5 +1,11 @@
 @use './_mobile.scss';
 
+// Animations
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
 // Theme vars (alphabetized)
 $accent: #8a2be2;
 $accent-hover: #9b4dff;
