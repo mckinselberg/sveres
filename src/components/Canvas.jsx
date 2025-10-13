@@ -207,13 +207,25 @@ const Canvas = memo(forwardRef(function Canvas({
         resetBalls: () => {
             const canvas = canvasRef.current;
             if (!canvas) return;
+            
+            console.log('🔄 Canvas resetBalls called');
+            
             // Stop the render loop before mutating ball state to avoid mid-frame inconsistencies
             if (animationFrameId.current) {
                 cancelAnimationFrame(animationFrameId.current);
                 animationFrameId.current = null;
             }
+            
+            // Reset all game state
             ballsRef.current = [];
             loseRef.current = false;
+            
+            // Reset bullet hell timer state - THIS WAS MISSING!
+            bhTimeLeftRef.current = null;
+            bhTimerActiveRef.current = false;
+            
+            console.log('🔄 Game state reset, reinitializing balls...');
+            
             const startingOverrideReset = (level ? 15 : undefined);
             initializeBalls(ballsRef.current, ballCount, ballSize, ballVelocity, cssWidthRef.current, cssHeightRef.current, ballShape, startingOverrideReset);
             if (level && ballsRef.current.length > 0) {

@@ -847,18 +847,25 @@ function App() {
     }, [levelMode, refreshLevelFromRegistry]);
 
     const handleResetGauntlet = useCallback(() => {
+        console.log('🔄 handleResetGauntlet called');
+        
         // Stop any pending auto-advance to prevent race conditions
         setDidWin(false);
         setDidLose(false);
         setShowGauntletHelp(false);
         
+        console.log('🔄 States cleared, starting reset...');
+        
         // Use setTimeout to ensure state changes are processed before reset
         setTimeout(() => {
+            console.log('🔄 Executing delayed reset operations...');
             refreshLevelFromRegistry();
-            canvasRef.current?.resetBalls?.();
+            const resetResult = canvasRef.current?.resetBalls?.();
+            console.log('🔄 Canvas resetBalls result:', resetResult);
             setGlobalScore(0);
             setScoredBallsCount(0);
             setRemovedBallsCount(0);
+            console.log('🔄 Reset complete!');
             try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
         }, 16); // Single frame delay to ensure UI updates
     }, [refreshLevelFromRegistry]);
@@ -952,12 +959,38 @@ function App() {
                         <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 10, textAlign: 'center' }}>You won!</div>
                         {nextLevelId ? (
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                                <button className="button button--primary" onClick={handleAdvanceToNextLevel} aria-label="Next Level">Next Level ▶</button>
-                                <button className="button" onClick={handleResetGauntlet} aria-label="Replay Level">Replay</button>
+                                <button 
+                                    className="button button--primary" 
+                                    onClick={(e) => {
+                                        console.log('🎯 Next Level button clicked!', e);
+                                        handleAdvanceToNextLevel();
+                                    }} 
+                                    aria-label="Next Level"
+                                >
+                                    Next Level ▶
+                                </button>
+                                <button 
+                                    className="button" 
+                                    onClick={(e) => {
+                                        console.log('🎯 Replay button clicked!', e);
+                                        handleResetGauntlet();
+                                    }} 
+                                    aria-label="Replay Level"
+                                >
+                                    Replay
+                                </button>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                                <button className="button button--primary" onClick={handleResetGauntlet}>Play Again</button>
+                                <button 
+                                    className="button button--primary" 
+                                    onClick={(e) => {
+                                        console.log('🎯 Play Again button clicked!', e);
+                                        handleResetGauntlet();
+                                    }}
+                                >
+                                    Play Again
+                                </button>
                             </div>
                         )}
                     </div>
