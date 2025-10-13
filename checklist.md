@@ -47,6 +47,12 @@
   - Implemented: Both Controls and SelectedBall panels now collapsible; consistent interaction patterns; removed gear toggle system.
 - Welcome screen
   - Acceptance: First-run screen shown until dismissed; dismissal persisted; does not steal focus post-close; accessible labels/contrast.
+- Improve existing level balance and progression
+  - Acceptance: Better hazard placement for skill progression; adjusted goal positions for strategic gameplay; balanced powerup distribution; smoother difficulty curves across levels.
+- Add new level concepts and variety
+  - Acceptance: New level archetypes like "Pinball Machine" gauntlet and "Corridor Run" bullet hell; creative hazard arrangements; diverse gameplay challenges beyond current patterns.
+- Enhance powerup system with new types
+  - Acceptance: New powerup types (ghost, magnet, bounce, gravity) with meaningful gameplay impact; interactive elements that add strategic depth; balanced spawn rates and effects.
 
 ### Later cleanup
 

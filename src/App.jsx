@@ -847,32 +847,42 @@ function App() {
     }, [levelMode, refreshLevelFromRegistry]);
 
     const handleResetGauntlet = useCallback(() => {
-        refreshLevelFromRegistry();
-        canvasRef.current?.resetBalls?.();
-        setGlobalScore(0);
-        setScoredBallsCount(0);
-        setRemovedBallsCount(0);
-    setDidWin(false);
-    setDidLose(false);
-    setShowGauntletHelp(false);
-    try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
-    }, [refreshLevelFromRegistry]);
-
-    const handleAdvanceToNextLevel = useCallback(() => {
-        if (!nextLevelId) return;
-        setCurrentLevelId(nextLevelId);
-        // After changing selection, refresh and reset to spawn new level state
+        // Stop any pending auto-advance to prevent race conditions
+        setDidWin(false);
+        setDidLose(false);
+        setShowGauntletHelp(false);
+        
+        // Use setTimeout to ensure state changes are processed before reset
         setTimeout(() => {
             refreshLevelFromRegistry();
             canvasRef.current?.resetBalls?.();
             setGlobalScore(0);
             setScoredBallsCount(0);
             setRemovedBallsCount(0);
-            setDidWin(false);
-            setDidLose(false);
-            setShowGauntletHelp(false);
             try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
-        }, 0);
+        }, 16); // Single frame delay to ensure UI updates
+    }, [refreshLevelFromRegistry]);
+
+    const handleAdvanceToNextLevel = useCallback(() => {
+        if (!nextLevelId) return;
+        
+        // Immediately clear win state to prevent double-triggering
+        setDidWin(false);
+        setDidLose(false);
+        setShowGauntletHelp(false);
+        
+        // Change level selection
+        setCurrentLevelId(nextLevelId);
+        
+        // Reset game state after level change
+        setTimeout(() => {
+            refreshLevelFromRegistry();
+            canvasRef.current?.resetBalls?.();
+            setGlobalScore(0);
+            setScoredBallsCount(0);
+            setRemovedBallsCount(0);
+            try { localStorage.setItem(LS_KEYS.gauntletInstructionsDismissed, JSON.stringify(true)); } catch (e) { /* noop */ void 0; }
+        }, 16); // Single frame delay to ensure level change is processed
     }, [nextLevelId, refreshLevelFromRegistry]);
 
     // Auto-advance after a short win toast when a next level exists
@@ -880,11 +890,15 @@ function App() {
         if (!levelMode) return;
         if (!didWin) return;
         if (!nextLevelId) return;
+        
+        // Only auto-advance if the win state has been stable for the timeout period
         const tid = setTimeout(() => {
-            if (didWin) {
+            // Double-check that we're still in win state and haven't been reset
+            if (didWin && nextLevelId && levelMode) {
                 handleAdvanceToNextLevel();
             }
         }, 1200);
+        
         return () => clearTimeout(tid);
     }, [didWin, nextLevelId, levelMode, handleAdvanceToNextLevel]);
 

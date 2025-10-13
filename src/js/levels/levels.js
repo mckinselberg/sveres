@@ -9,38 +9,23 @@ export const GAME_LEVELS = [
     type: 'gravityGauntlet',
     title: 'Gauntlet I: Foundations',
     difficulty: '1',
-    instructions: 'Reach the goal at the bottom while managing your momentum. Use platforms and rebounds to line up your shot.',
+    instructions: 'Your first challenge! Use WASD to move, collect powerups, and reach the goal. Platforms will help guide your path.',
     seed: 101,
-    // Visual objects
-    hazards: [],
+    // Visual objects - tutorial level with gentle learning curve
+    hazards: [
+      // Gentle guiding platforms that teach navigation without being punishing
+      { x: 'left+20%', y: 'middle+20%', width: 100, height: 16, color: '#555', shape: 'square', isStatic: true },
+      { x: 'right-20%', y: 'middle-20%', width: 100, height: 16, color: '#555', shape: 'square', isStatic: true }
+    ],
     goals: [
-      { x: "center", y: "bottom - 80", radius: 40, color: 'yellow', shape: 'circle', isStatic: true }
+      // Smaller goal that still feels achievable for beginners
+      { x: "center", y: "bottom-60", radius: 32, color: 'yellow', shape: 'circle', isStatic: true }
     ],
     powerups: [
-      // Place within easy reach of the player spawn (center-top area)
-      /* 
-        Enhanced resolveLevelPos in physics.jsx to support:
-        Numbers: 120
-        Percentages: '50%'
-        Centering: 'center' (x) and 'center'/'middle' (y), with offsets like 'center+20'
-        Edge anchors with offsets:
-        X: 'right', 'right-20', 'right-10%', 'left+24'
-        Y: 'bottom', 'bottom-24', 'bottom-5%', 'top+12'
-        Offsets can be px or %, and edge anchors respect the shape's half-size (radius for circles, width/height/2 for rects) so objects stay inside the canvas.
-        Examples you can use in levels.js
-        Place goal 40px above bottom, centered horizontally:
-        x: 'center'
-        y: 'bottom-40'
-        Place hazard 10% from right edge and 24px from top:
-        x: 'right-10%'
-        y: 'top+24'
-        Place powerup 5% up from bottom and 20% in from left:
-        x: '20%'
-        y: 'bottom-5%'
-      */
-      { type: 'speed',  x: "left", y: 'bottom - 10', radius: 14, color: 'gold',        shape: 'circle' },
-      { type: 'shield', x: "right", y: 'bottom - 10', radius: 14, color: 'deepskyblue', shape: 'circle' },
-      { type: 'shrink', x: "center", y: 'bottom', radius: 14, color: 'magenta',     shape: 'circle' }
+      // Tutorial powerups positioned to teach collection strategy
+      { type: 'health', x: "center", y: 'middle', radius: 14, color: 'lime', shape: 'circle', amount: 15 },
+      { type: 'speed',  x: "left+30%", y: 'middle+40%', radius: 12, color: 'gold', shape: 'circle' },
+      { type: 'shield', x: "right-30%", y: 'middle-40%', radius: 12, color: 'deepskyblue', shape: 'circle' }
     ],
     // Optional per-level physics overrides
     physics: {
@@ -52,24 +37,28 @@ export const GAME_LEVELS = [
     index: 1,
     mode: 'game',
     type: 'gravityGauntlet',
-    title: 'Gauntlet II: Twin Rings',
+    title: 'Gauntlet II: Split Decision',
     difficulty: '2',
-    instructions: 'Twin goals demand precision. Use platforms to shape your trajectory and thread the rings.',
+    instructions: 'Two paths, two goals. Choose your route wisely and use momentum to reach both targets.',
     seed: 202,
-    // Visual objects
+    // Visual objects - creates two distinct paths
     hazards: [
-      // Simple platforms to shape trajectories
-      { x: 'left+25%',  y: 'middle',     width: 120, height: 18, color: '#444', shape: 'square', isStatic: true },
-      { x: 'right-25%', y: 'middle+40',  width: 120, height: 18, color: '#444', shape: 'square', isStatic: true }
+      // Create two pathways with strategic platform placement
+      { x: 'left+15%',  y: 'middle-30%', width: 140, height: 20, color: '#444', shape: 'square', isStatic: true },
+      { x: 'right-15%', y: 'middle+30%', width: 140, height: 20, color: '#444', shape: 'square', isStatic: true },
+      // Central obstacle to force path choice
+      { x: 'center', y: 'middle', width: 80, height: 60, color: '#666', shape: 'square', isStatic: true }
     ],
     goals: [
-      { x: 'left+20%',  y: 'bottom-120', radius: 34, color: 'yellow', shape: 'circle', isStatic: true },
-      { x: 'right-20%', y: 'bottom-120', radius: 34, color: 'yellow', shape: 'circle', isStatic: true }
+      // Separated goals requiring strategic approach
+      { x: 'left+25%',  y: 'bottom-80', radius: 28, color: 'yellow', shape: 'circle', isStatic: true },
+      { x: 'right-25%', y: 'bottom-80', radius: 28, color: 'yellow', shape: 'circle', isStatic: true }
     ],
     powerups: [
-      { type: 'speed',  x: 'left+20%',  y: 'bottom-12', radius: 14, color: 'gold',        shape: 'circle' },
-      { type: 'shield', x: 'right-20%', y: 'bottom-12', radius: 14, color: 'deepskyblue', shape: 'circle' },
-      { type: 'shrink', x: 'center',    y: 'bottom-12', radius: 14, color: 'magenta',     shape: 'circle' }
+      // Powerups positioned to teach path planning
+      { type: 'speed',  x: 'left+25%',  y: 'middle-50%', radius: 12, color: 'gold', shape: 'circle' },
+      { type: 'shield', x: 'right-25%', y: 'middle+50%', radius: 12, color: 'deepskyblue', shape: 'circle' },
+      { type: 'health', x: 'center',    y: 'top+25%', radius: 12, color: 'lime', shape: 'circle', amount: 10 }
     ],
     physics: {
       ...GAME_MODE_CONSTANTS.PHYSICS,
@@ -80,16 +69,18 @@ export const GAME_LEVELS = [
     index: 100,
     mode: 'game',
     type: 'bulletHell',
-    title: 'Bullet Hell I: Dodge!',
+    title: 'Bullet Hell I: Baptism by Fire',
     difficulty: '3',
-    instructions: 'Survive a relentless barrage. Keep moving and grab powerups to extend your chances.',
+    instructions: 'Welcome to bullet hell! Survive 50 seconds of projectiles. Learn the patterns and use powerups wisely.',
     seed: 301,
     hazards: [],
     goals: [],
     powerups: [
-      { type: 'shield', x: 'left+20%',  y: 'bottom-12', radius: 14, color: 'deepskyblue', shape: 'circle' },
-      { type: 'speed',  x: 'right-20%', y: 'bottom-12', radius: 14, color: 'gold',        shape: 'circle' },
-      { type: 'health', x: 'center',    y: 'bottom-12', radius: 14, color: 'lime',        shape: 'circle', amount: 25 }
+      // Tutorial-friendly powerup placement with health emphasis
+      { type: 'health', x: 'center',    y: 'middle',     radius: 14, color: 'lime', shape: 'circle', amount: 25 },
+      { type: 'shield', x: 'left+25%',  y: 'top+25%',    radius: 12, color: 'deepskyblue', shape: 'circle' },
+      { type: 'speed',  x: 'right-25%', y: 'bottom-25%', radius: 12, color: 'gold', shape: 'circle' },
+      { type: 'health', x: 'left+25%',  y: 'bottom-25%', radius: 12, color: 'lime', shape: 'circle', amount: 20 }
     ],
     physics: {
       COLLISION_ELASTICITY: 0.95,
@@ -97,7 +88,7 @@ export const GAME_LEVELS = [
       PLAYER_MIN_WALL_REBOUND: 1.2,
       WALL_GRAZING_THRESHOLD: 2,
     },
-    timeLimitSec: 45,
+    timeLimitSec: 50,
     iFrameMs: 800
   },
   {
@@ -105,28 +96,34 @@ export const GAME_LEVELS = [
     index: 2,
     mode: 'game',
     type: 'gravityGauntlet',
-    title: 'Gauntlet III: The Maze',
+    title: 'Gauntlet III: The Labyrinth',
     difficulty: '3',
-    instructions: 'Navigate through obstacles to reach the central goal. Use wall bounces strategically.',
+    instructions: 'Navigate the maze to reach the heart. Dead ends and narrow passages demand precision.',
     seed: 303,
-    // Visual objects - maze-like structure
+    // Visual objects - true maze-like structure
     hazards: [
-      // Outer maze walls
-      { x: 'left+15%',   y: 'top+25%',    width: 200, height: 20, color: '#444', shape: 'square', isStatic: true },
-      { x: 'right-15%',  y: 'top+25%',    width: 200, height: 20, color: '#444', shape: 'square', isStatic: true },
-      { x: 'left+15%',   y: 'bottom-25%', width: 200, height: 20, color: '#444', shape: 'square', isStatic: true },
-      { x: 'right-15%',  y: 'bottom-25%', width: 200, height: 20, color: '#444', shape: 'square', isStatic: true },
-      // Central barriers
-      { x: 'center-30%', y: 'middle',     width: 20, height: 120, color: '#444', shape: 'square', isStatic: true },
-      { x: 'center+30%', y: 'middle',     width: 20, height: 120, color: '#444', shape: 'square', isStatic: true }
+      // Outer maze walls creating channels
+      { x: 'left+20%',   y: 'top+20%',    width: 160, height: 24, color: '#444', shape: 'square', isStatic: true },
+      { x: 'right-20%',  y: 'top+30%',    width: 160, height: 24, color: '#444', shape: 'square', isStatic: true },
+      { x: 'left+20%',   y: 'bottom-30%', width: 160, height: 24, color: '#444', shape: 'square', isStatic: true },
+      { x: 'right-20%',  y: 'bottom-20%', width: 160, height: 24, color: '#444', shape: 'square', isStatic: true },
+      // Vertical maze barriers creating passages
+      { x: 'left+35%',   y: 'middle-15%', width: 24, height: 100, color: '#444', shape: 'square', isStatic: true },
+      { x: 'right-35%',  y: 'middle+15%', width: 24, height: 100, color: '#444', shape: 'square', isStatic: true },
+      // Additional complexity - smaller barriers
+      { x: 'center-15%', y: 'top+40%',    width: 60, height: 20, color: '#555', shape: 'square', isStatic: true },
+      { x: 'center+15%', y: 'bottom-40%', width: 60, height: 20, color: '#555', shape: 'square', isStatic: true }
     ],
     goals: [
-      { x: 'center', y: 'middle', radius: 28, color: 'yellow', shape: 'circle', isStatic: true }
+      // Goal positioned to require navigation through the maze
+      { x: 'center+10%', y: 'middle-10%', radius: 24, color: 'yellow', shape: 'circle', isStatic: true }
     ],
     powerups: [
-      { type: 'speed',  x: 'left+10%',  y: 'middle-15%', radius: 12, color: 'gold',        shape: 'circle' },
-      { type: 'shield', x: 'right-10%', y: 'middle+15%', radius: 12, color: 'deepskyblue', shape: 'circle' },
-      { type: 'shrink', x: 'center',    y: 'top+15%',    radius: 12, color: 'magenta',     shape: 'circle' }
+      // Powerups hidden in maze corners to reward exploration
+      { type: 'speed',  x: 'left+15%',  y: 'top+35%',    radius: 10, color: 'gold', shape: 'circle' },
+      { type: 'shield', x: 'right-15%', y: 'bottom-35%', radius: 10, color: 'deepskyblue', shape: 'circle' },
+      { type: 'health', x: 'center-25%', y: 'middle+25%', radius: 10, color: 'lime', shape: 'circle', amount: 15 },
+      { type: 'shrink', x: 'center',     y: 'top+15%',    radius: 10, color: 'magenta', shape: 'circle' }
     ],
     physics: {
       ...GAME_MODE_CONSTANTS.PHYSICS,
@@ -137,16 +134,19 @@ export const GAME_LEVELS = [
     index: 101,
     mode: 'game',
     type: 'bulletHell',
-    title: 'Bullet Hell II: Crossfire',
+    title: 'Bullet Hell II: Crossfire Protocol',
     difficulty: '4',
-    instructions: 'Survive intense crossfire patterns. Health pickups are scarce - make every move count.',
+    instructions: 'Survive 65 seconds of intense crossfire patterns. Health is precious - every pickup counts.',
     seed: 401,
     hazards: [],
     goals: [],
     powerups: [
-      { type: 'health', x: 'left+25%',  y: 'top+25%',    radius: 12, color: 'lime',        shape: 'circle', amount: 20 },
-      { type: 'health', x: 'right-25%', y: 'bottom-25%', radius: 12, color: 'lime',        shape: 'circle', amount: 20 },
-      { type: 'shield', x: 'center',    y: 'middle',     radius: 12, color: 'deepskyblue', shape: 'circle' }
+      // More sparse powerups requiring strategic movement
+      { type: 'health', x: 'center',    y: 'top+20%',    radius: 12, color: 'lime', shape: 'circle', amount: 20 },
+      { type: 'health', x: 'left+30%',  y: 'bottom-30%', radius: 12, color: 'lime', shape: 'circle', amount: 20 },
+      { type: 'health', x: 'right-30%', y: 'top+30%',    radius: 12, color: 'lime', shape: 'circle', amount: 20 },
+      { type: 'shield', x: 'center',    y: 'bottom-20%', radius: 12, color: 'deepskyblue', shape: 'circle' },
+      { type: 'speed',  x: 'center',    y: 'middle',     radius: 12, color: 'gold', shape: 'circle' }
     ],
     physics: {
       COLLISION_ELASTICITY: 0.95,
@@ -154,35 +154,47 @@ export const GAME_LEVELS = [
       PLAYER_MIN_WALL_REBOUND: 1.2,
       WALL_GRAZING_THRESHOLD: 2,
     },
-    timeLimitSec: 60,
-    iFrameMs: 600
+    timeLimitSec: 65,
+    iFrameMs: 650
   },
   {
     id: 'gauntlet-4',
     index: 3,
     mode: 'game',
     type: 'gravityGauntlet',
-    title: 'Gauntlet IV: Multi-Target',
+    title: 'Gauntlet IV: Master\'s Trial',
     difficulty: '4',
-    instructions: 'Multiple goals require precision timing. Clear them in sequence or risk collision.',
+    instructions: 'The ultimate test. Multiple goals, complex paths, and precise timing required. Master all skills.',
     seed: 404,
     hazards: [
-      // Moving platforms (static for now, but positioned strategically)
-      { x: 'left+20%',  y: 'middle-10%', width: 80, height: 15, color: '#666', shape: 'square', isStatic: true },
-      { x: 'right-20%', y: 'middle+10%', width: 80, height: 15, color: '#666', shape: 'square', isStatic: true }
+      // Complex multi-level platform system
+      { x: 'left+25%',  y: 'top+25%',    width: 100, height: 18, color: '#666', shape: 'square', isStatic: true },
+      { x: 'right-25%', y: 'top+35%',    width: 100, height: 18, color: '#666', shape: 'square', isStatic: true },
+      { x: 'left+25%',  y: 'middle+5%',  width: 80,  height: 18, color: '#666', shape: 'square', isStatic: true },
+      { x: 'right-25%', y: 'middle-5%',  width: 80,  height: 18, color: '#666', shape: 'square', isStatic: true },
+      // Challenging barriers requiring skill
+      { x: 'center-20%', y: 'middle-25%', width: 24, height: 80, color: '#444', shape: 'square', isStatic: true },
+      { x: 'center+20%', y: 'middle+25%', width: 24, height: 80, color: '#444', shape: 'square', isStatic: true },
+      // Final obstacle before goals
+      { x: 'center', y: 'bottom-120', width: 120, height: 20, color: '#333', shape: 'square', isStatic: true }
     ],
     goals: [
-      { x: 'left+25%',  y: 'bottom-60', radius: 24, color: 'yellow', shape: 'circle', isStatic: true },
-      { x: 'center',    y: 'bottom-60', radius: 24, color: 'yellow', shape: 'circle', isStatic: true },
-      { x: 'right-25%', y: 'bottom-60', radius: 24, color: 'yellow', shape: 'circle', isStatic: true }
+      // Three goals requiring different approach strategies
+      { x: 'left+20%',  y: 'bottom-40', radius: 20, color: 'yellow', shape: 'circle', isStatic: true },
+      { x: 'center',    y: 'bottom-40', radius: 20, color: 'yellow', shape: 'circle', isStatic: true },
+      { x: 'right-20%', y: 'bottom-40', radius: 20, color: 'yellow', shape: 'circle', isStatic: true }
     ],
     powerups: [
-      { type: 'speed',  x: 'left+15%',  y: 'top+20%', radius: 12, color: 'gold',        shape: 'circle' },
-      { type: 'shield', x: 'right-15%', y: 'top+20%', radius: 12, color: 'deepskyblue', shape: 'circle' },
-      { type: 'shrink', x: 'center',    y: 'top+30%', radius: 12, color: 'magenta',     shape: 'circle' }
+      // Strategic powerup placement requiring risk/reward decisions
+      { type: 'speed',  x: 'left+15%',  y: 'middle-35%', radius: 10, color: 'gold', shape: 'circle' },
+      { type: 'shield', x: 'right-15%', y: 'middle+35%', radius: 10, color: 'deepskyblue', shape: 'circle' },
+      { type: 'health', x: 'center',    y: 'top+20%',    radius: 10, color: 'lime', shape: 'circle', amount: 20 },
+      { type: 'shrink', x: 'center',    y: 'middle',     radius: 10, color: 'magenta', shape: 'circle' }
     ],
     physics: {
       ...GAME_MODE_CONSTANTS.PHYSICS,
+      // Slightly more challenging physics for the final level
+      COLLISION_ELASTICITY: 0.85,
     }
   },
   {
@@ -190,16 +202,17 @@ export const GAME_LEVELS = [
     index: 102,
     mode: 'game',
     type: 'bulletHell',
-    title: 'Bullet Hell III: Endurance',
+    title: 'Bullet Hell III: Final Convergence',
     difficulty: '5',
-    instructions: 'The ultimate survival test. 90 seconds of relentless chaos with minimal powerups.',
+    instructions: 'The ultimate 80-second trial. Minimal powerups, maximum chaos. Only the skilled survive.',
     seed: 505,
     hazards: [],
     goals: [],
     powerups: [
-      { type: 'health', x: 'center',    y: 'middle',     radius: 14, color: 'lime',        shape: 'circle', amount: 30 },
-      { type: 'speed',  x: 'left+30%',  y: 'bottom-30%', radius: 12, color: 'gold',        shape: 'circle' },
-      { type: 'shield', x: 'right-30%', y: 'top+30%',    radius: 12, color: 'deepskyblue', shape: 'circle' }
+      // Minimal powerups for maximum challenge
+      { type: 'health', x: 'center',    y: 'middle',     radius: 14, color: 'lime', shape: 'circle', amount: 30 },
+      { type: 'shield', x: 'left+35%',  y: 'top+35%',    radius: 12, color: 'deepskyblue', shape: 'circle' },
+      { type: 'speed',  x: 'right-35%', y: 'bottom-35%', radius: 12, color: 'gold', shape: 'circle' }
     ],
     physics: {
       COLLISION_ELASTICITY: 0.95,
@@ -207,8 +220,8 @@ export const GAME_LEVELS = [
       PLAYER_MIN_WALL_REBOUND: 1.2,
       WALL_GRAZING_THRESHOLD: 2,
     },
-    timeLimitSec: 90,
-    iFrameMs: 500
+    timeLimitSec: 80,
+    iFrameMs: 550
   }
 ];
 
