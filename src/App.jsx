@@ -123,12 +123,12 @@ function App() {
     const isGameOver = didWin || didLose;
     // Campaign sequence: wire levels in order of index for a progression
     const campaignIds = React.useMemo(() => {
-        // Take the first 6 defined campaign levels in registry order for a full campaign
+        // Take the first 10 defined campaign levels in registry order for a full campaign
         return GAME_LEVELS
             .slice()
             .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-            .filter(l => ['gravityGauntlet', 'bulletHell'].includes(l.type))
-            .slice(0, 6)
+            .filter(l => ['gravityGauntlet', 'bulletHell', 'puzzle'].includes(l.type))
+            .slice(0, 10)
             .map(l => l.id);
     }, []);
     const currentCampaignIdx = React.useMemo(() => campaignIds.indexOf(currentLevelId), [campaignIds, currentLevelId]);

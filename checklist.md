@@ -39,6 +39,8 @@
 - [DONE] Organize overlays/panels
   - Acceptance: Z-index/layers correct; keyboard navigation works; no overlay blocks unintended clicks; mobile layout verified.
   - Implemented: Both Controls and SelectedBall panels are now collapsible by clicking titles; consistent UI patterns; removed old gear toggle button; updated help text.
+- Create a way to ensure client side user has latest version
+  - Acceptance: Client can detect when a newer version is available and prompt user to refresh/update; mechanism works reliably across deployments; non-intrusive UX that doesn't interrupt gameplay.
 
 ### High impact
 
